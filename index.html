@@ -396,6 +396,8 @@
   .badge { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 4px; font-size: 11.5px; font-weight: 600; white-space: nowrap; color: var(--tone); background: color-mix(in srgb, var(--tone) 13%, transparent); }
   .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 10px; }
   .tag { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 4px; border: 1px solid var(--line-2); color: var(--text-2); font-size: 11.5px; white-space: nowrap; }
+  .tag[data-tone] { color: var(--tone); border-color: color-mix(in srgb, var(--tone) 45%, transparent); }
+  .article-text { margin: 0; white-space: pre-line; color: var(--text-2); font-size: 13.5px; line-height: 1.9; }
 
   .fold { margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; }
   .fold > summary { list-style: none; cursor: pointer; padding: 9px 12px; font-size: 13.5px; font-weight: 600; color: var(--text-2); display: flex; align-items: center; gap: 8px; }
@@ -406,6 +408,7 @@
   }
   .fold[open] > summary::after { transform: translateY(2px) rotate(-135deg); }
   .fold > summary:hover { color: var(--text); }
+  .fold > summary > svg { width: 16px; height: 16px; flex: none; color: var(--text-3); }
   .fold-body { padding: 12px 14px 14px; border-top: 1px solid var(--line); }
   .row-actions { display: flex; gap: 8px; margin-top: 12px; }
   .audit { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--panel-2); }
@@ -659,6 +662,8 @@
         <input class="input ltr" id="inToken" type="password" placeholder="اتركه فارغاً إن لم تضبطه في الخادم" autocomplete="off" spellcheck="false">
         <button class="rbtn" id="btnShowToken" type="button" aria-label="إظهار الرمز" title="إظهار الرمز"></button>
       </div>
+      <label class="lbl" for="inLinkedin">صفحة الشركة على LinkedIn (اختياري)</label>
+      <input class="input ltr" id="inLinkedin" type="url" placeholder="https://www.linkedin.com/company/…/admin/" autocomplete="off" spellcheck="false">
       <div class="msg" id="settingsMsg" role="status"></div>
     </div>
     <div class="dlg-foot">
@@ -733,7 +738,7 @@ const RANGES = [
   { id: "all", label: "الكل", note: "كل البيانات" }
 ];
 
-const KEYS = { url: "entaliq.url", token: "entaliq.token", agent: "entaliq.agent", draft: "entaliq.draft", auto: "entaliq.auto", range: "entaliq.range" };
+const KEYS = { url: "entaliq.url", token: "entaliq.token", agent: "entaliq.agent", draft: "entaliq.draft", auto: "entaliq.auto", range: "entaliq.range", linkedin: "entaliq.linkedin" };
 const store = {
   get(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
   set(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch (e) {} }
@@ -742,6 +747,7 @@ const store = {
 const state = {
   url: store.get(KEYS.url),
   token: store.get(KEYS.token),
+  linkedin: store.get(KEYS.linkedin),
   agent: AGENT_BY_NAME[store.get(KEYS.agent)] ? store.get(KEYS.agent) : "راكان",
   range: RANGES.some(r => r.id === store.get(KEYS.range)) ? store.get(KEYS.range) : "week",
   tasks: [], news: [], content: [], stats: null, sig: "",
@@ -969,6 +975,21 @@ async function copyText(text) {
 }
 const copyButton = (text, label) =>
   `<button type="button" class="btn btn-line sm" data-copy="${copyable(text)}">${ICON.copy}<span class="lbl-text">${esc(label)}</span></button>`;
+
+// LinkedIn لا يعرض Markdown: نحذف رموز التنسيق ونحوّل القوائم والروابط إلى نص عادي، والهاشتاقات تبقى كما هي
+function linkedinText(text) {
+  return String(text ?? "").replace(/\r/g, "")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^[ \t]*([-*_])([ \t]*\1){2,}[ \t]*$/gm, "")
+    .replace(/^[ \t]*[-*+][ \t]+/gm, "• ")
+    .replace(/\*\*(.+?)\*\*|__(.+?)__/g, "$1$2")
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, (m, label, url) => label === url ? url : label + ": " + url)
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^>\s?/gm, "")
+    .replace(/\n{3,}/g, "\n\n").trim();
+}
+// صفحة الشركة في LinkedIn من الإعدادات، وإلا الصفحة الرئيسية حيث يمكن التبديل إلى صفحة الشركة
+const linkedinUrl = () => /^https:\/\/([\w-]+\.)?linkedin\.com\//i.test(state.linkedin) ? state.linkedin : "https://www.linkedin.com/feed/";
 
 function toast(text, kind) {
   const el = document.createElement("div");
@@ -1316,13 +1337,16 @@ function taskItem(row, reason) {
   </article>`;
 }
 function newsItem(row, reason) {
-  // الأعمدة 8–10 (الخدمة المرتبطة، الصلة، الجمهور) موجودة في الأخبار الجديدة فقط
-  const [date, title, link, nawaf, faisal, lama, salem, service, relevance, audience] = row;
-  const href = /^https?:\/\//i.test(String(link ?? "")) ? String(link) : "";
+  // الأعمدة 8–10 (الخدمة، الصلة، الجمهور) و11–12 (رابط الناشر، نص الخبر) موجودة في الأخبار الأحدث فقط
+  const [date, title, link, nawaf, faisal, lama, salem, service, relevance, audience, pubUrl, article] = row;
+  const isUrl = v => /^https?:\/\//i.test(String(v ?? ""));
+  const href = isUrl(pubUrl) ? String(pubUrl) : isUrl(link) ? String(link) : "";
   const tags = [
     service && `<span class="tag" title="الخدمة المرتبطة">${esc(service)}</span>`,
     audience && `<span class="tag" title="الجمهور">${esc(audience === "وهج" ? "وهج · المنازل" : "انطلق · الشركات والجهات")}</span>`,
-    relevance !== undefined && relevance !== "" && `<span class="tag" title="صلة الخبر بخدماتنا كما قدّرها نواف">صلة ${esc(relevance)}%</span>`
+    relevance !== undefined && relevance !== "" && `<span class="tag" title="صلة الخبر بخدماتنا كما قدّرها نواف">صلة ${esc(relevance)}%</span>`,
+    article ? `<span class="tag" title="بنى الوكلاء على نص الخبر من موقع الناشر">نص الخبر كاملاً</span>`
+      : `<span class="tag" data-tone="warn" title="تعذر جلب نص الخبر، فبنى الوكلاء على العنوان فقط">العنوان فقط</span>`
   ].filter(Boolean).join("");
   return `<article class="item">
     <div class="item-head"><small class="muted" style="margin-inline-end:auto">${esc(fmtDate(date))}</small>${reason ? `<span class="badge" data-tone="bad">${esc(reason)}</span>` : ""}${scoreBadge(salem)}</div>
@@ -1330,6 +1354,7 @@ function newsItem(row, reason) {
     ${tags ? `<div class="tags">${tags}</div>` : ""}
     <div class="by">${avatar("نواف", "xs")} ملخص نواف</div>
     <div class="md">${md(nawaf)}</div>
+    ${article ? `<details class="fold"><summary>${ICON.news} نص الخبر كما قرأه الوكلاء</summary><div class="fold-body"><p class="article-text">${esc(article)}${String(article).length >= 1500 ? "…" : ""}</p></div></details>` : ""}
     <details class="fold"><summary>${avatar("فيصل", "xs")} تحليل فيصل للسوق</summary><div class="fold-body"><div class="md">${md(faisal)}</div></div></details>
     <details class="fold"><summary>${avatar("لمى", "xs")} منشور لمى (LinkedIn)</summary><div class="fold-body"><div class="md">${md(lama)}</div><div class="row-actions">${copyButton(lama, "نسخ المنشور")}</div></div></details>
     <details class="fold"><summary>${avatar("سالم", "xs")} اعتماد سالم</summary><div class="fold-body"><div class="md">${md(salem)}</div></div></details>
@@ -1415,7 +1440,8 @@ function contentItem(row) {
   const actions = {
     "فكرة": [btn("write", "اكتب المنشور", "btn-primary")],
     "مسودة": [btn("approve", "اعتماد", "btn-primary"), btn("edit", "تعديل"), btn("rewrite", "إعادة كتابة"), btn("reject", "رفض")],
-    "معتمد": [btn("publish", "تم النشر", "btn-primary"), btn("edit", "تعديل"), btn("draft", "إرجاع لمسودة")],
+    "معتمد": [text ? `<button type="button" class="btn btn-primary sm" data-li-open="${copyable(linkedinText(text))}">${ICON.ext}<span class="lbl-text">انسخ وافتح LinkedIn</span></button>` : "",
+      btn("publish", "تم النشر"), btn("edit", "تعديل"), btn("draft", "إرجاع لمسودة")],
     "مرفوض": [btn("rewrite", "إعادة كتابة", "btn-primary"), btn("draft", "إرجاع لمسودة")]
   }[status] || [];
   const href = /^https?:\/\//i.test(String(source || "")) ? String(source) : "";
@@ -1432,7 +1458,7 @@ function contentItem(row) {
       <textarea class="field" id="note-${esc(id)}" rows="3"></textarea>
       <div class="row-actions">${btn("send-note", asking === "reject" ? "تأكيد الرفض" : "أعد الكتابة", "btn-primary")}${btn("cancel", "إلغاء")}</div></div>`;
   } else if (!editing) {
-    footer = `<div class="row-actions">${actions.join("")}${text ? copyButton(text, "نسخ") : ""}</div>`;
+    footer = `<div class="row-actions">${actions.join("")}${text && status !== "معتمد" ? copyButton(linkedinText(text), "نسخ") : ""}</div>`;
   }
   return `<article class="item">
     <div class="item-head">
@@ -1703,6 +1729,7 @@ function settingsMsg(text, kind) { const m = $("#settingsMsg"); m.textContent = 
 function openSettings() {
   $("#inUrl").value = state.url;
   $("#inToken").value = state.token;
+  $("#inLinkedin").value = state.linkedin;
   settingsMsg("");
   if (!dlg.open) dlg.showModal();
 }
@@ -1710,8 +1737,12 @@ async function saveSettings(ev) {
   ev.preventDefault();
   const url = $("#inUrl").value.trim();
   const token = $("#inToken").value.trim();
+  const linkedin = $("#inLinkedin").value.trim();
   try { if (!/^https?:$/.test(new URL(url).protocol)) throw new Error(); }
   catch (e) { settingsMsg("الرابط غير صالح.", "bad"); return; }
+  if (linkedin && !/^https:\/\/([\w-]+\.)?linkedin\.com\//i.test(linkedin)) { settingsMsg("رابط LinkedIn يجب أن يبدأ بـ https://www.linkedin.com/", "bad"); return; }
+  state.linkedin = linkedin;
+  store.set(KEYS.linkedin, linkedin);
 
   Object.assign(state, { url, token, loaded: false, error: "", sig: "" });
   store.set(KEYS.url, url); store.set(KEYS.token, token);
@@ -1791,6 +1822,14 @@ document.addEventListener("click", async e => {
   if (cact) { contentAction(cact); return; }
   const cfilter = t.closest("[data-cfilter]");
   if (cfilter) { state.contentFilter = cfilter.dataset.cfilter; renderContentView(); return; }
+  // النسخ أولاً ثم فتح LinkedIn في تبويب جديد؛ المستخدم يلصق في صفحة الشركة ثم يضغط «تم النشر»
+  const li = t.closest("[data-li-open]");
+  if (li) {
+    const ok = await copyText(copyMap.get(Number(li.dataset.liOpen)) || "");
+    window.open(linkedinUrl(), "_blank", "noopener");
+    toast(ok ? "نُسخ المنشور. الصقه في صفحة الشركة على LinkedIn، ثم اضغط «تم النشر» هنا." : "تعذر النسخ؛ استخدم «تعديل» وانسخ النص يدوياً.", ok ? "ok" : "bad");
+    return;
+  }
   const cp = t.closest("[data-copy]");
   if (cp) {
     const ok = await copyText(copyMap.get(Number(cp.dataset.copy)) || "");
