@@ -411,6 +411,12 @@
   .audit { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--panel-2); }
   .audit-h { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-2); margin-bottom: 4px; }
 
+  .note-box { margin-top: 10px; }
+  .item .field { margin-top: 4px; }
+  a.tag { text-decoration: none; }
+  a.tag:hover { color: var(--text); border-color: #46505a; }
+  .tag svg { width: 12px; height: 12px; margin-inline-start: 4px; }
+  .toolbar .seg-ctl button { height: 28px; padding: 0 10px; font-size: 12.5px; }
   .team { width: 100%; display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); text-align: start; cursor: pointer; }
   .team:last-child { border-bottom: 0; }
   .team:hover .team-line b { color: var(--steel); }
@@ -543,6 +549,7 @@
       <button class="tile" type="button" data-open="compose"><span class="t-vis" id="tvAssign"></span><span class="t-lbl">تكليف وكيل</span></button>
       <button class="tile" type="button" data-open="team"><span class="t-vis" id="tvCompare"></span><span class="t-lbl">مقارنة الوكلاء</span></button>
       <button class="tile" type="button" data-open="tasks" data-filter-agent="" data-sort="new"><span class="t-vis" id="tvLog"></span><span class="t-lbl">سجل المهام</span></button>
+      <button class="tile" type="button" data-open="content"><span class="t-vis"><span class="t-num" id="tnReview"></span></span><span class="t-lbl">للمراجعة</span></button>
     </div>
   </section>
 
@@ -626,6 +633,15 @@
     </div>
     <div data-view="team" hidden><div class="list" id="teamList"></div></div>
     <div data-view="alerts" hidden><div class="list" id="alertList"></div></div>
+    <div data-view="content" hidden>
+      <div class="toolbar">
+        <div class="seg-ctl" id="contentFilter" role="group" aria-label="تصفية حسب الحالة"></div>
+        <span class="grow"></span>
+        <button class="btn btn-line sm" type="button" data-action="seasonal-tips"><span class="lbl-text">نصائح موسمية</span></button>
+        <button class="btn btn-primary sm" type="button" data-action="weekly-plan"><span class="lbl-text">خطة الأسبوع</span></button>
+      </div>
+      <div class="list" id="contentList"></div>
+    </div>
   </div>
 </dialog>
 
@@ -706,7 +722,8 @@ const VIEWS = {
   tasks: { title: "سجل المهام", sub: "آخر 20 مهمة يعيدها الخادم." },
   news: { title: "الأخبار", sub: "آخر 10 أخبار طاقة رصدها نواف وربطها الفريق بخدماتنا." },
   team: { title: "فريق الوكلاء", sub: "متوسط تقدير سالم لكل وكيل خلال الفترة المختارة، الأعلى أولاً." },
-  alerts: { title: "التنبيهات", sub: "مخرجات بتقدير أقل من 70% أو لم يكتمل تدقيقها، من أحدث 20 مهمة و10 أخبار." }
+  alerts: { title: "التنبيهات", sub: "مخرجات بتقدير أقل من 70% أو لم يكتمل تدقيقها، من أحدث 20 مهمة و10 أخبار." },
+  content: { title: "المحتوى والاعتماد", sub: "منشورات الأخبار وخطة الأسبوع والنصائح الموسمية؛ لا يُعتبر شيء جاهزاً للنشر قبل اعتمادك." }
 };
 // نفس قيم RANGE_DAYS في Code.gs
 const RANGES = [
@@ -727,7 +744,8 @@ const state = {
   token: store.get(KEYS.token),
   agent: AGENT_BY_NAME[store.get(KEYS.agent)] ? store.get(KEYS.agent) : "راكان",
   range: RANGES.some(r => r.id === store.get(KEYS.range)) ? store.get(KEYS.range) : "week",
-  tasks: [], news: [], stats: null, sig: "",
+  tasks: [], news: [], content: [], stats: null, sig: "",
+  contentFilter: "review", editingId: null, askingId: null, askingKind: "", contentBusy: false,
   loaded: false, loading: false, error: "", lastSync: null,
   sending: false, fetching: false,
   view: "", filterAgent: "", query: "", sort: "new"
@@ -1092,6 +1110,8 @@ function renderTiles(m) {
   setNum("#tnDone", ready ? `${m.done}/${m.total}` : "—", !ready || !m.total ? "none" : m.done === m.total ? "ok" : "warn");
   setNum("#tnNewsToday", ready ? String(m.todayNews) : "—", ready && m.todayNews ? "ok" : "none");
   setNum("#tnAlerts", ready ? String(m.alerts) : "—", ready && m.alerts ? "bad" : ready ? "ok" : "none");
+  const review = state.content.filter(r => r[9] === "مسودة" || r[9] === "فكرة").length;
+  setNum("#tnReview", ready ? String(review) : "—", ready && review ? "warn" : ready ? "ok" : "none");
   const badge = $("#fabBadge");
   badge.hidden = !(ready && m.alerts);
   badge.textContent = m.alerts;
@@ -1378,8 +1398,136 @@ function renderCompose() {
   $("#taskInput").placeholder = `اكتب المهمة المطلوبة من ${a.name}…`;
   if (!state.sending) $("#sendLabel").textContent = "تكليف " + a.name;
 }
+// ---------------- المحتوى والاعتماد ----------------
+const CONTENT_FILTERS = [
+  { id: "review", label: "للمراجعة", match: s => s === "مسودة" || s === "فكرة" },
+  { id: "approved", label: "معتمد", match: s => s === "معتمد" },
+  { id: "published", label: "منشور", match: s => s === "منشور" },
+  { id: "rejected", label: "مرفوض", match: s => s === "مرفوض" },
+  { id: "all", label: "الكل", match: () => true }
+];
+const STATUS_TONE = { "فكرة": "none", "مسودة": "warn", "معتمد": "ok", "منشور": "none", "مرفوض": "bad" };
+
+function contentItem(row) {
+  const [id, , scheduled, pillar, audience, service, idea, text, audit, status, source, note] = row;
+  const editing = state.editingId === id, asking = state.askingId === id ? state.askingKind : "";
+  const btn = (act, label, cls) => `<button type="button" class="btn ${cls || "btn-line"} sm" data-cact="${act}" data-id="${esc(id)}"><span class="lbl-text">${esc(label)}</span></button>`;
+  const actions = {
+    "فكرة": [btn("write", "اكتب المنشور", "btn-primary")],
+    "مسودة": [btn("approve", "اعتماد", "btn-primary"), btn("edit", "تعديل"), btn("rewrite", "إعادة كتابة"), btn("reject", "رفض")],
+    "معتمد": [btn("publish", "تم النشر", "btn-primary"), btn("edit", "تعديل"), btn("draft", "إرجاع لمسودة")],
+    "مرفوض": [btn("rewrite", "إعادة كتابة", "btn-primary"), btn("draft", "إرجاع لمسودة")]
+  }[status] || [];
+  const href = /^https?:\/\//i.test(String(source || "")) ? String(source) : "";
+  const day = String(scheduled || "").slice(0, 10);
+  const tags = [pillar, audience ? (audience === "وهج" ? "وهج · المنازل" : "انطلق · الشركات والجهات") : "", service]
+    .filter(Boolean).map(t => `<span class="tag">${esc(t)}</span>`).join("")
+    + (href ? `<a class="tag" href="${esc(href)}" target="_blank" rel="noopener noreferrer">المصدر${ICON.ext}</a>` : source ? `<span class="tag">${esc(source)}</span>` : "");
+  let body;
+  if (editing) body = `<textarea class="field" id="edit-${esc(id)}" rows="12" aria-label="نص المنشور">${esc(text)}</textarea><div class="row-actions">${btn("save", "حفظ", "btn-primary")}${btn("cancel", "إلغاء")}</div>`;
+  else body = text ? `<div class="md">${md(text)}</div>` : `<p class="hint">لم يُكتب المنشور بعد؛ هذه فكرة من خطة الأسبوع.</p>`;
+  let footer = "";
+  if (asking) {
+    footer = `<div class="note-box"><label class="lbl" for="note-${esc(id)}">${asking === "reject" ? "سبب الرفض (اختياري)" : "ملاحظاتك للمى (اختياري)"}</label>
+      <textarea class="field" id="note-${esc(id)}" rows="3"></textarea>
+      <div class="row-actions">${btn("send-note", asking === "reject" ? "تأكيد الرفض" : "أعد الكتابة", "btn-primary")}${btn("cancel", "إلغاء")}</div></div>`;
+  } else if (!editing) {
+    footer = `<div class="row-actions">${actions.join("")}${text ? copyButton(text, "نسخ") : ""}</div>`;
+  }
+  return `<article class="item">
+    <div class="item-head">
+      <span class="badge" data-tone="${STATUS_TONE[status] || "none"}">${esc(status)}</span>
+      <small class="muted" style="margin-inline-end:auto">${day ? "موعد مقترح " + esc(day) : ""}</small>
+      ${scoreBadge(audit)}
+    </div>
+    <h3 class="news-title">${esc(idea)}</h3>
+    ${tags ? `<div class="tags">${tags}</div>` : ""}
+    ${body}
+    ${note ? `<p class="hint">ملاحظات المراجع: ${esc(note)}</p>` : ""}
+    ${audit && !editing ? `<details class="fold"><summary>${avatar("سالم", "xs")} تدقيق سالم</summary><div class="fold-body"><div class="md">${md(audit)}</div></div></details>` : ""}
+    ${footer}
+  </article>`;
+}
+function renderContentView() {
+  $("#contentFilter").innerHTML = CONTENT_FILTERS.map(f => {
+    const n = state.content.filter(r => f.match(r[9])).length;
+    return `<button type="button" data-cfilter="${f.id}" aria-pressed="${f.id === state.contentFilter}">${esc(f.label)}${f.id === "all" ? "" : " " + n}</button>`;
+  }).join("");
+  const el = $("#contentList");
+  if (!state.loaded) { el.innerHTML = notReady(); return; }
+  const f = CONTENT_FILTERS.find(x => x.id === state.contentFilter) || CONTENT_FILTERS[0];
+  const rows = state.content.filter(r => f.match(r[9]));
+  // في المراجعة: الأقرب موعداً أولاً، وما بلا موعد (منشورات الأخبار) في الأعلى لأنها مرتبطة بخبر حديث
+  if (f.id === "review") rows.sort((a, b) => String(a[2] || "0").localeCompare(String(b[2] || "0")));
+  el.innerHTML = rows.length ? rows.map(contentItem).join("")
+    : empty(ICON.clip, f.id === "review" ? "لا يوجد ما يحتاج مراجعتك" : "لا توجد منشورات بهذه الحالة",
+      f.id === "review" ? "اطلب «خطة الأسبوع» أو «نصائح موسمية»، أو انتظر دورة الأخبار القادمة." : "");
+}
+
+async function contentAction(btn) {
+  const id = btn.dataset.id, act = btn.dataset.cact;
+  if (!state.content.some(r => r[0] === id)) return;
+  if (act === "edit") { Object.assign(state, { editingId: id, askingId: null }); renderContentView(); const t = document.getElementById("edit-" + id); if (t) t.focus(); return; }
+  if (act === "cancel") { Object.assign(state, { editingId: null, askingId: null }); renderContentView(); return; }
+  if (act === "reject" || act === "rewrite") {
+    Object.assign(state, { askingId: id, askingKind: act, editingId: null });
+    renderContentView();
+    const n = document.getElementById("note-" + id); if (n) n.focus();
+    return;
+  }
+  if (state.contentBusy) { toast("انتظر حتى تكتمل العملية الحالية", "warn"); return; }
+  const noteEl = document.getElementById("note-" + id), editEl = document.getElementById("edit-" + id);
+  const note = noteEl ? noteEl.value : "";
+  const rejecting = act === "send-note" && state.askingKind === "reject";
+  const request = {
+    approve: [{ action: "content_update", id, status: "معتمد" }, "اعتُمد المنشور"],
+    publish: [{ action: "content_update", id, status: "منشور" }, "سُجّل كمنشور"],
+    draft: [{ action: "content_update", id, status: "مسودة" }, "أُعيد إلى المسودات"],
+    save: [{ action: "content_update", id, text: editEl ? editEl.value : "" }, "حُفظ التعديل"],
+    write: [{ action: "content_rewrite", id }, "كُتب المنشور وينتظر مراجعتك"],
+    "send-note": rejecting ? [{ action: "content_update", id, status: "مرفوض", note }, "رُفض المنشور"]
+      : [{ action: "content_rewrite", id, note }, "أُعيدت الكتابة وتنتظر مراجعتك"]
+  }[act];
+  if (!request) return;
+  const writing = request[0].action === "content_rewrite";
+  state.contentBusy = true;
+  const stop = busy(btn, writing ? "لمى تكتب" : "جاري الحفظ");
+  if (writing) toast("تكتب لمى المنشور ثم يدققه سالم؛ قد يستغرق ذلك نصف دقيقة إلى دقيقة.");
+  try {
+    await api(request[0]);
+    Object.assign(state, { editingId: null, askingId: null });
+    toast(request[1], "ok");
+    await refresh({ quiet: true });
+  } catch (e) {
+    toast(e.message, "bad");
+  } finally {
+    state.contentBusy = false;
+    stop();
+  }
+}
+
+async function contentJob(btn, kind) {
+  if (!state.url) { openSettings(); return; }
+  if (state.contentBusy) { toast("انتظر حتى تكتمل العملية الحالية", "warn"); return; }
+  state.contentBusy = true;
+  const stop = busy(btn, kind === "plan" ? "راكان يخطط" : "لمى تكتب");
+  toast(kind === "plan" ? "يضع راكان خطة 5 منشورات ثم تكتبها لمى ويدققها سالم؛ قد يستغرق ذلك دقيقتين إلى أربع."
+    : "تكتب لمى نصيحتين موسميتين ويدققهما سالم؛ قرابة دقيقة.");
+  try {
+    const data = await api({ action: kind === "plan" ? "weekly_plan" : "seasonal_tips" });
+    toast(data.message || "تم", "ok");
+    state.contentFilter = "review";
+    await refresh({ quiet: true });
+  } catch (e) {
+    toast(e.message, "bad");
+  } finally {
+    state.contentBusy = false;
+    stop();
+  }
+}
+
 function renderView() {
-  ({ tasks: renderTasksView, news: renderNewsView, team: renderTeamView, alerts: renderAlertsView, compose: renderCompose }[state.view] || (() => {}))();
+  ({ tasks: renderTasksView, news: renderNewsView, team: renderTeamView, alerts: renderAlertsView, compose: renderCompose, content: renderContentView }[state.view] || (() => {}))();
 }
 
 const sheet = $("#sheet");
@@ -1443,10 +1591,11 @@ async function refresh(opts) {
     }
     const tasks = Array.isArray(data.tasks) ? data.tasks : [];
     const news = Array.isArray(data.news) ? data.news : [];
+    const content = Array.isArray(data.content) ? data.content : [];
     const stats = data.stats && data.stats.series ? data.stats : null;
-    const sig = JSON.stringify([tasks, news, stats]);
+    const sig = JSON.stringify([tasks, news, content, stats]);
     changed = changed || sig !== state.sig;
-    Object.assign(state, { tasks, news, stats, sig, loaded: true, error: "", lastSync: new Date() });
+    Object.assign(state, { tasks, news, content, stats, sig, loaded: true, error: "", lastSync: new Date() });
   } catch (e) {
     state.error = e.message;
     changed = true;
@@ -1455,7 +1604,9 @@ async function refresh(opts) {
     state.loading = false;
     renderStatus();
     // لا نعيد رسم القوائم إن لم تتغير البيانات، حتى لا تنطوي الأقسام المفتوحة أثناء التحديث التلقائي
-    if (changed) { renderBoard(); if (sheet.open && state.view !== "compose") renderView(); }
+    // ولا نعيد رسم قائمة المحتوى بينما تكتب تعديلاً أو ملاحظة حتى لا يضيع ما كتبته
+    const typing = state.view === "content" && (state.editingId || state.askingId);
+    if (changed) { renderBoard(); if (sheet.open && state.view !== "compose" && !typing) renderView(); }
   }
 }
 
@@ -1634,6 +1785,12 @@ document.addEventListener("click", async e => {
   if (t.closest("[data-refresh]")) { refresh(); return; }
   const fetchBtn = t.closest('[data-action="fetch-news"]');
   if (fetchBtn) { fetchNews(fetchBtn); return; }
+  const planBtn = t.closest('[data-action="weekly-plan"], [data-action="seasonal-tips"]');
+  if (planBtn) { contentJob(planBtn, planBtn.dataset.action === "weekly-plan" ? "plan" : "tips"); return; }
+  const cact = t.closest("[data-cact]");
+  if (cact) { contentAction(cact); return; }
+  const cfilter = t.closest("[data-cfilter]");
+  if (cfilter) { state.contentFilter = cfilter.dataset.cfilter; renderContentView(); return; }
   const cp = t.closest("[data-copy]");
   if (cp) {
     const ok = await copyText(copyMap.get(Number(cp.dataset.copy)) || "");
