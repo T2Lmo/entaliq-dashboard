@@ -1337,16 +1337,19 @@ function taskItem(row, reason) {
   </article>`;
 }
 function newsItem(row, reason) {
-  // الأعمدة 8–10 (الخدمة، الصلة، الجمهور) و11–12 (رابط الناشر، نص الخبر) موجودة في الأخبار الأحدث فقط
-  const [date, title, link, nawaf, faisal, lama, salem, service, relevance, audience, pubUrl, article] = row;
+  // الأعمدة 8–10 (الخدمة، الصلة، الجمهور) و11–13 (رابط الناشر، نص الخبر، عمق المصدر) موجودة في الأخبار الأحدث فقط
+  const [date, title, link, nawaf, faisal, lama, salem, service, relevance, audience, pubUrl, article, depthCell] = row;
+  const depth = depthCell || (article ? "نص كامل" : "العنوان فقط");
   const isUrl = v => /^https?:\/\//i.test(String(v ?? ""));
   const href = isUrl(pubUrl) ? String(pubUrl) : isUrl(link) ? String(link) : "";
   const tags = [
     service && `<span class="tag" title="الخدمة المرتبطة">${esc(service)}</span>`,
     audience && `<span class="tag" title="الجمهور">${esc(audience === "وهج" ? "وهج · المنازل" : "انطلق · الشركات والجهات")}</span>`,
     relevance !== undefined && relevance !== "" && `<span class="tag" title="صلة الخبر بخدماتنا كما قدّرها نواف">صلة ${esc(relevance)}%</span>`,
-    article ? `<span class="tag" title="بنى الوكلاء على نص الخبر من موقع الناشر">نص الخبر كاملاً</span>`
-      : `<span class="tag" data-tone="warn" title="تعذر جلب نص الخبر، فبنى الوكلاء على العنوان فقط">العنوان فقط</span>`
+    {
+      "نص كامل": `<span class="tag" title="بنى الوكلاء على نص الخبر من موقع الناشر">نص الخبر كاملاً</span>`,
+      "مقتطف": `<span class="tag" data-tone="warn" title="تعذر جلب النص الكامل، فبنى الوكلاء على مقتطف من الخبر">مقتطف من الخبر</span>`
+    }[depth] || `<span class="tag" data-tone="warn" title="تعذر جلب نص الخبر، فبنى الوكلاء على العنوان فقط">العنوان فقط</span>`
   ].filter(Boolean).join("");
   return `<article class="item">
     <div class="item-head"><small class="muted" style="margin-inline-end:auto">${esc(fmtDate(date))}</small>${reason ? `<span class="badge" data-tone="bad">${esc(reason)}</span>` : ""}${scoreBadge(salem)}</div>
@@ -1354,7 +1357,7 @@ function newsItem(row, reason) {
     ${tags ? `<div class="tags">${tags}</div>` : ""}
     <div class="by">${avatar("نواف", "xs")} ملخص نواف</div>
     <div class="md">${md(nawaf)}</div>
-    ${article ? `<details class="fold"><summary>${ICON.news} نص الخبر كما قرأه الوكلاء</summary><div class="fold-body"><p class="article-text">${esc(article)}${String(article).length >= 1500 ? "…" : ""}</p></div></details>` : ""}
+    ${article ? `<details class="fold"><summary>${ICON.news} ${depth === "مقتطف" ? "مقتطف الخبر" : "نص الخبر"} كما قرأه الوكلاء</summary><div class="fold-body"><p class="article-text">${esc(article)}${String(article).length >= 1500 ? "…" : ""}</p></div></details>` : ""}
     <details class="fold"><summary>${avatar("فيصل", "xs")} تحليل فيصل للسوق</summary><div class="fold-body"><div class="md">${md(faisal)}</div></div></details>
     <details class="fold"><summary>${avatar("لمى", "xs")} منشور لمى (LinkedIn)</summary><div class="fold-body"><div class="md">${md(lama)}</div><div class="row-actions">${copyButton(lama, "نسخ المنشور")}</div></div></details>
     <details class="fold"><summary>${avatar("سالم", "xs")} اعتماد سالم</summary><div class="fold-body"><div class="md">${md(salem)}</div></div></details>
