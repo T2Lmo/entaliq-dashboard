@@ -189,6 +189,55 @@
   .corner.bl { bottom: 0; left: 0; border-width: 0 0 2px 2px; }
   .corner.br { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
 
+  /* ---------- فلتر الفترة ---------- */
+  .filters { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .filters-lbl { font-size: 13px; color: var(--text-2); }
+  .seg-ctl { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--line-2); border-radius: 8px; background: rgb(255 255 255 / .02); }
+  .seg-ctl button { height: 30px; padding: 0 14px; border-radius: 6px; font-size: 13px; color: var(--text-2); cursor: pointer; white-space: nowrap; }
+  .seg-ctl button:hover { color: var(--text); background: rgb(255 255 255 / .05); }
+  .seg-ctl button[aria-pressed="true"] { background: var(--steel); color: #08111b; font-weight: 700; }
+  .filters-note { font-size: 12px; color: var(--text-3); direction: ltr; unicode-bidi: isolate; }
+  .scoped { transition: opacity .2s; }
+  .scoped.refetching { opacity: .45; }
+  @media (max-width: 640px) { .filters-lbl { display: none; } .seg-ctl button { padding: 0 10px; } }
+
+  /* ---------- تطور الأداء ---------- */
+  .trend { margin-top: 18px; padding: 16px 20px 18px; background: linear-gradient(180deg, #111418, #0a0c0f); border: 1px solid var(--line); border-radius: 6px; }
+  .trend-head { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  .trend-head > div { margin-inline-end: auto; min-width: 0; }
+  .trend-head h2 { margin: 0; font-size: 16px; }
+  .trend-head p { margin: 2px 0 0; font-size: 12.5px; color: var(--text-3); }
+  .trend-charts { position: relative; margin-top: 10px; direction: ltr; }
+  .trend-charts svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .trend-charts .grid { stroke: #23282e; stroke-width: 1; }
+  .trend-charts .ref { stroke: #3b424b; stroke-width: 1; stroke-dasharray: 3 4; }
+  .trend-charts .base { stroke: #3b424b; stroke-width: 1; }
+  .trend-charts .tick { fill: #7d848c; font-size: 11px; font-family: inherit; font-variant-numeric: tabular-nums; }
+  .trend-charts .ptitle { fill: var(--text-2); font-size: 12.5px; font-family: inherit; }
+  .trend-charts .vlabel { fill: var(--text); font-size: 12px; font-weight: 700; font-family: inherit; }
+  .trend-charts .line { fill: none; stroke: #e9edf1; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .trend-charts .dot { fill: #e9edf1; stroke: #0c0e11; stroke-width: 2; }
+  .trend-charts .bar-t { fill: #3987e5; }
+  .trend-charts .bar-n { fill: #d95926; }
+  .trend-charts .cross { stroke: #6a727c; stroke-width: 1; }
+  .trend-charts .hit { fill: transparent; cursor: crosshair; outline: none; }
+  .trend-charts .hit:focus-visible { fill: rgb(156 196 238 / .08); }
+  .trend-charts .hl { fill: rgb(255 255 255 / .04); }
+  .tip {
+    position: absolute; z-index: 5; pointer-events: none; min-width: 150px; padding: 8px 10px; border-radius: 8px; direction: rtl;
+    background: #161a1f; border: 1px solid var(--line-2); box-shadow: 0 8px 24px rgb(0 0 0 / .5); font-size: 12.5px; color: var(--text-2);
+  }
+  .tip-h { color: var(--text-3); margin-bottom: 4px; direction: ltr; text-align: right; }
+  .tip-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .tip-row b { color: var(--text); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .tip-key { display: inline-block; width: 12px; height: 2px; border-radius: 1px; margin-inline-end: 6px; vertical-align: middle; }
+  .trend-empty { padding: 40px 0; text-align: center; color: var(--text-3); font-size: 13.5px; direction: rtl; }
+  .trend-table { margin-top: 12px; max-height: 300px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+  .trend-table table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .trend-table th, .trend-table td { padding: 7px 12px; border-bottom: 1px solid var(--line); text-align: start; }
+  .trend-table th { position: sticky; top: 0; background: #12161a; color: var(--text-2); font-weight: 600; }
+  .trend-table td:first-child { direction: ltr; unicode-bidi: isolate; text-align: right; }
+
   /* ---------- شريط الأحداث ---------- */
   .ticker { display: flex; align-items: stretch; height: 38px; margin-top: 22px; border-block: 1px solid var(--line); background: rgb(8 10 12 / .85); }
   .ticker-lbl { flex: none; display: flex; align-items: center; gap: 8px; padding: 0 18px; font-size: 13px; font-weight: 700; border-inline-end: 1px solid var(--line); }
@@ -455,7 +504,12 @@
 </header>
 
 <main class="wrap">
-  <section class="top" aria-label="اختصارات">
+  <div class="filters" role="group" aria-label="فترة المؤشرات">
+    <span class="filters-lbl">الفترة</span>
+    <div class="seg-ctl" id="rangeCtl"></div>
+    <span class="filters-note" id="rangeNote"></span>
+  </div>
+  <section class="top scoped" aria-label="اختصارات">
     <div class="tiles">
       <button class="tile" type="button" data-open="news"><span class="t-vis" id="tvNews"></span><span class="t-lbl">الأخبار</span></button>
       <button class="tile" type="button" data-open="tasks" data-filter-agent="" data-sort="new"><span class="t-vis" id="tvTrend"></span><span class="t-lbl">اتجاه الأداء</span></button>
@@ -490,7 +544,7 @@
     </div>
   </section>
 
-  <section class="stage" id="stage" aria-label="المؤشرات">
+  <section class="stage scoped" id="stage" aria-label="المؤشرات">
     <div class="gauge-cell">
       <div class="gauge" id="gauge" role="img" aria-label="المؤشر العام">
         <svg id="gaugeSvg" viewBox="-38 -38 476 476" aria-hidden="true"></svg>
@@ -504,6 +558,15 @@
       </div>
     </div>
   </section>
+
+  <section class="trend scoped" id="trend" aria-labelledby="trendTitle">
+    <div class="trend-head">
+      <div><h2 id="trendTitle">تطور الأداء</h2><p id="trendSub"></p></div>
+      <button class="btn btn-line sm" type="button" id="btnTrendTable" aria-pressed="false">عرض كجدول</button>
+    </div>
+    <div class="trend-charts" id="trendCharts"></div>
+    <div class="trend-table" id="trendTable" hidden></div>
+  </section>
 </main>
 
 <section class="ticker" aria-label="آخر الأحداث">
@@ -511,7 +574,7 @@
   <div class="ticker-view"><div class="ticker-track" id="tickerTrack"></div></div>
 </section>
 <section class="strip" id="strip" aria-label="أحدث الأخبار"></section>
-<p class="foot">المؤشرات محسوبة من آخر 20 مهمة و10 أخبار يعيدها الخادم. نسب «تقدير سالم» يقدّرها نموذج ذكاء اصطناعي، وهي مؤشر للمراجعة وليست قياساً مؤكداً للدقة.</p>
+<p class="foot">المؤشرات والرسم محسوبة من كل المهام والأخبار خلال الفترة المختارة، أما «آخر الأحداث» وشريط الأخبار والقوائم فتعرض أحدث 20 مهمة و10 أخبار. نسب «تقدير سالم» يقدّرها نموذج ذكاء اصطناعي، وهي مؤشر للمراجعة وليست قياساً مؤكداً للدقة.</p>
 
 <button class="fab" type="button" data-open="compose" aria-label="المساعد: تكليف وكيل" title="تكليف وكيل">
   <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -629,7 +692,7 @@ const SLOTS = [
   { pos: "c5", sys: "completion" }
 ];
 const SYS = {
-  completion: { title: "معدل الإنجاز", sub: "المهام المكتملة من السجل", view: "tasks", sort: "new" },
+  completion: { title: "معدل الإنجاز", sub: "المهام المكتملة في الفترة", view: "tasks", sort: "new" },
   newsQuality: { title: "جودة الأخبار", sub: "متوسط تقدير سالم للأخبار", view: "news" },
   coverage: { title: "تغطية التدقيق", sub: "مهام لها تقدير رقمي من سالم", view: "tasks", sort: "low" },
   highRate: { title: "الاعتماد العالي", sub: "مخرجات بتقدير 85% فأكثر", view: "tasks", sort: "high" }
@@ -640,11 +703,18 @@ const VIEWS = {
   compose: { title: "تكليف وكيل", sub: "اختر الوكيل واكتب المهمة، ويدقق سالم المخرجات تلقائياً." },
   tasks: { title: "سجل المهام", sub: "آخر 20 مهمة يعيدها الخادم." },
   news: { title: "الأخبار", sub: "آخر 10 أخبار رصدها نواف وحللها الفريق." },
-  team: { title: "فريق الوكلاء", sub: "متوسط تقدير سالم لكل وكيل من السجل الحالي، الأعلى أولاً." },
-  alerts: { title: "التنبيهات", sub: "مخرجات بتقدير أقل من 70% أو لم يكتمل تدقيقها." }
+  team: { title: "فريق الوكلاء", sub: "متوسط تقدير سالم لكل وكيل خلال الفترة المختارة، الأعلى أولاً." },
+  alerts: { title: "التنبيهات", sub: "مخرجات بتقدير أقل من 70% أو لم يكتمل تدقيقها، من أحدث 20 مهمة و10 أخبار." }
 };
+// نفس قيم RANGE_DAYS في Code.gs
+const RANGES = [
+  { id: "day", label: "اليوم", note: "اليوم" },
+  { id: "week", label: "آخر 7 أيام", note: "آخر 7 أيام" },
+  { id: "month", label: "آخر 30 يوماً", note: "آخر 30 يوماً" },
+  { id: "all", label: "الكل", note: "كل البيانات" }
+];
 
-const KEYS = { url: "entaliq.url", token: "entaliq.token", agent: "entaliq.agent", draft: "entaliq.draft", auto: "entaliq.auto" };
+const KEYS = { url: "entaliq.url", token: "entaliq.token", agent: "entaliq.agent", draft: "entaliq.draft", auto: "entaliq.auto", range: "entaliq.range" };
 const store = {
   get(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
   set(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch (e) {} }
@@ -654,7 +724,8 @@ const state = {
   url: store.get(KEYS.url),
   token: store.get(KEYS.token),
   agent: AGENT_BY_NAME[store.get(KEYS.agent)] ? store.get(KEYS.agent) : "راكان",
-  tasks: [], news: [], sig: "",
+  range: RANGES.some(r => r.id === store.get(KEYS.range)) ? store.get(KEYS.range) : "week",
+  tasks: [], news: [], stats: null, sig: "",
   loaded: false, loading: false, error: "", lastSync: null,
   sending: false, fetching: false,
   view: "", filterAgent: "", query: "", sort: "new"
@@ -765,7 +836,37 @@ const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${pad(
 const shortDay = v => { const k = dayKey(v); return k ? `${k.slice(8, 10)}/${k.slice(5, 7)}` : ""; };
 const clip = (s, n) => { s = String(s ?? "").replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n) + "…" : s; };
 
+const rangeNote = () => RANGES.find(r => r.id === state.range).note;
+
+// المؤشرات من إحصاءات الخادم لكل البيانات في الفترة؛ وإن كان الخادم أقدم فمن أحدث العناصر
 function computeMetrics() {
+  const s = state.stats;
+  if (!s) return metricsFromRecent();
+  const perAgent = {};
+  AGENTS.forEach(a => {
+    const g = s.agents[a.name] || { count: 0, scored: 0, avg: null };
+    perAgent[a.name] = { a, count: g.count, scored: g.scored, avg: g.avg };
+  });
+  return {
+    overall: s.overall.avg,
+    scoredCount: s.overall.scored,
+    perAgent,
+    done: s.tasks.done,
+    total: s.tasks.total,
+    completion: pct(s.tasks.done, s.tasks.total),
+    newsQuality: s.news.avg,
+    coverage: pct(s.tasks.scored, s.tasks.total),
+    highRate: pct(s.overall.high, s.overall.scored),
+    activeAgents: AGENTS.filter(a => perAgent[a.name].count).length,
+    todayTasks: s.today.tasks,
+    todayNews: s.today.news,
+    trend: s.series.points.map(p => p.avg).filter(isNum),
+    alerts: s.alerts,
+    series: s.series
+  };
+}
+
+function metricsFromRecent() {
   const taskScores = state.tasks.map(r => salemScore(r[5]));
   const newsScores = state.news.map(r => salemScore(r[6])).filter(isNum);
   const all = taskScores.filter(isNum).concat(newsScores);
@@ -782,6 +883,7 @@ function computeMetrics() {
     scoredCount: all.length,
     perAgent,
     done,
+    total: state.tasks.length,
     completion: pct(done, state.tasks.length),
     newsQuality: mean(newsScores),
     coverage: pct(taskScores.filter(isNum).length, state.tasks.length),
@@ -790,7 +892,8 @@ function computeMetrics() {
     todayTasks: state.tasks.filter(r => dayKey(r[1]) === today).length,
     todayNews: state.news.filter(r => dayKey(r[0]) === today).length,
     trend: state.tasks.slice().reverse().map(r => salemScore(r[5])).filter(isNum),
-    alerts: alertItems().length
+    alerts: alertItems().length,
+    series: null
   };
 }
 
@@ -914,7 +1017,7 @@ function renderGauge(m) {
   document.querySelectorAll("#gaugeSvg .tk").forEach((t, i) => t.classList.toggle("on", i < on));
   $("#gauge").setAttribute("aria-label", v === null ? "المؤشر العام: لا توجد بيانات" : `المؤشر العام ${v}%`);
   $("#gaugeSub").textContent = !state.url ? "غير متصل بالخادم" : !state.loaded ? (state.loading ? "جاري التحميل…" : "تعذر التحميل")
-    : m.scoredCount ? `متوسط ${m.scoredCount} تقديراً من سالم` : "لا توجد تقديرات بعد";
+    : (m.scoredCount ? `متوسط ${m.scoredCount} تقديراً من سالم` : "لا توجد تقديرات") + (state.stats ? " · " + rangeNote() : "");
   $("#gConnect").hidden = !!state.url;
   cancelAnimationFrame(gaugeAnim);
   if (v === null) { val.textContent = "—"; val.classList.add("none"); gaugeShown = null; return; }
@@ -936,7 +1039,7 @@ function metricCard(slot, m) {
     const p = m.perAgent[slot.agent];
     title = slot.agent; value = p.avg;
     sub = `${p.a.role} · ${tasksWord(p.count)}`;
-    hint = `${slot.agent}: متوسط تقدير سالم لـ ${p.scored} من ${p.count} مهام في السجل`;
+    hint = `${slot.agent}: متوسط تقدير سالم لـ ${p.scored} من ${p.count} مهام — ${state.stats ? rangeNote() : "أحدث المهام"}`;
     open = `data-open="tasks" data-filter-agent="${esc(slot.agent)}" data-sort="new"`;
   } else {
     const s = SYS[slot.sys];
@@ -984,13 +1087,148 @@ function renderTiles(m) {
   $("#tvCompare").innerHTML = miniBars(m);
   setNum("#tnActive", ready ? `${m.activeAgents}/${AGENTS.length}` : "—", !ready || !m.activeAgents ? "none" : m.activeAgents >= 5 ? "ok" : "warn");
   setNum("#tnToday", ready ? (m.todayTasks ? "+" + m.todayTasks : "0") : "—", ready && m.todayTasks ? "ok" : "none");
-  setNum("#tnDone", ready ? `${m.done}/${state.tasks.length}` : "—", !ready || !state.tasks.length ? "none" : m.done === state.tasks.length ? "ok" : "warn");
+  setNum("#tnDone", ready ? `${m.done}/${m.total}` : "—", !ready || !m.total ? "none" : m.done === m.total ? "ok" : "warn");
   setNum("#tnNewsToday", ready ? String(m.todayNews) : "—", ready && m.todayNews ? "ok" : "none");
   setNum("#tnAlerts", ready ? String(m.alerts) : "—", ready && m.alerts ? "bad" : ready ? "ok" : "none");
   const badge = $("#fabBadge");
   badge.hidden = !(ready && m.alerts);
   badge.textContent = m.alerts;
   badge.title = m.alerts + " تنبيه";
+}
+
+// ---------------- فلتر الفترة ----------------
+const dm = iso => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : "";
+function renderFilters() {
+  $("#rangeCtl").innerHTML = RANGES.map(r =>
+    `<button type="button" data-range="${r.id}" aria-pressed="${r.id === state.range}">${esc(r.label)}</button>`).join("");
+  const s = state.stats;
+  $("#rangeNote").textContent = !s || s.range !== state.range ? ""
+    : s.from ? (s.from === s.to ? dm(s.to) : `${dm(s.from)} – ${dm(s.to)}`) : "";
+}
+async function setRange(id) {
+  if (id === state.range || !RANGES.some(r => r.id === id)) return;
+  state.range = id;
+  store.set(KEYS.range, id);
+  renderFilters();
+  if (!state.url) return;
+  // نُبقي الرسم السابق ظاهراً بشفافية أقل أثناء الجلب بدل مسحه
+  document.querySelectorAll(".scoped").forEach(e => e.classList.add("refetching"));
+  try { await refresh(); }
+  finally { document.querySelectorAll(".scoped").forEach(e => e.classList.remove("refetching")); }
+}
+
+// ---------------- تطور الأداء ----------------
+// لوحتان بمحور زمني واحد: متوسط تقدير سالم (0–100) وعدد المخرجات؛ لا محور ثانٍ على نفس الرسم
+let trendTableOn = false, trendGeom = null;
+const fx = n => n.toFixed(1);
+const niceMax = v => { if (v <= 5) return Math.max(1, v); const p = Math.pow(10, Math.floor(Math.log10(v))); return Math.ceil(v / p) * p; };
+function barPath(x, y, w, h, r) {
+  r = Math.max(0, Math.min(r, w / 2, h));
+  return `M${fx(x)} ${fx(y + h)}V${fx(y + r)}Q${fx(x)} ${fx(y)} ${fx(x + r)} ${fx(y)}H${fx(x + w - r)}Q${fx(x + w)} ${fx(y)} ${fx(x + w)} ${fx(y + r)}V${fx(y + h)}Z`;
+}
+function trendSvg(pts, W) {
+  const n = pts.length, ml = 34, mr = 8, iw = Math.max(60, W - ml - mr), band = iw / n;
+  const cx = i => ml + (i + .5) * band;
+  const t1 = 24, h1 = 150, y1 = v => t1 + h1 * (1 - v / 100);
+  const top = niceMax(Math.max(...pts.map(p => p.tasks + p.news)));
+  const t2 = t1 + h1 + 46, h2 = 74, y2 = v => t2 + h2 * (1 - v / top);
+  const H = t2 + h2 + 26;
+  trendGeom = { ml, band, t1, bottom: t2 + h2, n };
+
+  let g = `<text class="ptitle" x="${fx(W - mr)}" y="${t1 - 10}" text-anchor="end">متوسط تقدير سالم</text>`;
+  [0, 50, 100].forEach(v => { g += `<line class="grid" x1="${ml}" x2="${fx(W - mr)}" y1="${fx(y1(v))}" y2="${fx(y1(v))}"/><text class="tick" x="${ml - 6}" y="${fx(y1(v) + 4)}" text-anchor="end">${v}</text>`; });
+  // حدود التقييم المستخدمة في البطاقات: 85 جيد، 70 متوسط
+  [70, 85].forEach(v => { g += `<line class="ref" x1="${ml}" x2="${fx(W - mr)}" y1="${fx(y1(v))}" y2="${fx(y1(v))}"/><text class="tick" x="${ml - 6}" y="${fx(y1(v) + 4)}" text-anchor="end">${v}</text>`; });
+
+  let d = "", pen = false, last = -1;
+  pts.forEach((p, i) => {
+    if (p.avg === null) { pen = false; return; }
+    d += (pen ? "L" : "M") + fx(cx(i)) + " " + fx(y1(p.avg));
+    pen = true; last = i;
+  });
+  g += `<path class="line" d="${d}"/>`;
+  const r = n <= 40 ? 4 : 3;
+  pts.forEach((p, i) => { if (p.avg !== null) g += `<circle class="dot" cx="${fx(cx(i))}" cy="${fx(y1(p.avg))}" r="${r}"/>`; });
+  if (last >= 0) {
+    const lx = cx(last), anchor = lx > W - mr - 24 ? "end" : lx < ml + 24 ? "start" : "middle";
+    g += `<text class="vlabel" x="${fx(lx)}" y="${fx(y1(pts[last].avg) - 10)}" text-anchor="${anchor}">${pts[last].avg}%</text>`;
+  }
+
+  g += `<text class="ptitle" x="${fx(W - mr)}" y="${t2 - 12}" text-anchor="end">عدد المخرجات</text>`;
+  g += `<rect class="bar-t" x="${ml}" y="${t2 - 21}" width="10" height="10" rx="2"/><text class="tick" x="${ml + 15}" y="${t2 - 12}">المهام</text>`;
+  g += `<rect class="bar-n" x="${ml + 62}" y="${t2 - 21}" width="10" height="10" rx="2"/><text class="tick" x="${ml + 77}" y="${t2 - 12}">الأخبار</text>`;
+  g += `<text class="tick" x="${ml - 6}" y="${fx(y2(top) + 4)}" text-anchor="end">${top}</text><text class="tick" x="${ml - 6}" y="${fx(y2(0) + 4)}" text-anchor="end">0</text>`;
+  g += `<line class="grid" x1="${ml}" x2="${fx(W - mr)}" y1="${fx(y2(top))}" y2="${fx(y2(top))}"/>`;
+  const bw = Math.max(3, Math.min(26, band * .62));
+  pts.forEach((p, i) => {
+    const x = cx(i) - bw / 2;
+    if (p.tasks) {
+      const h = y2(0) - y2(p.tasks);
+      g += `<path class="bar-t" d="${barPath(x, y2(p.tasks), bw, h, p.news ? 0 : 4)}"/>`;
+    }
+    if (p.news) {
+      // فاصل 2px بين المهام والأخبار في نفس العمود
+      const yTop = y2(p.tasks + p.news), h = y2(p.tasks) - yTop - (p.tasks ? 2 : 0);
+      if (h > 0) g += `<path class="bar-n" d="${barPath(x, yTop, bw, h, 4)}"/>`;
+    }
+  });
+  g += `<line class="base" x1="${ml}" x2="${fx(W - mr)}" y1="${fx(y2(0))}" y2="${fx(y2(0))}"/>`;
+
+  const step = Math.max(1, Math.ceil(46 / band));
+  pts.forEach((p, i) => { if ((n - 1 - i) % step === 0) g += `<text class="tick" x="${fx(cx(i))}" y="${t2 + h2 + 18}" text-anchor="middle">${esc(p.label)}</text>`; });
+
+  g += `<rect class="hl" id="trendHl" x="0" y="${t1}" width="${fx(band)}" height="${t2 + h2 - t1}" visibility="hidden"/>`;
+  g += `<line class="cross" id="trendCross" x1="0" x2="0" y1="${t1}" y2="${t2 + h2}" visibility="hidden"/>`;
+  pts.forEach((p, i) => {
+    const label = `${p.label}: ${p.avg === null ? "بلا تقدير" : "متوسط " + p.avg + "%"}، ${p.tasks} مهام، ${p.news} أخبار`;
+    g += `<rect class="hit" data-i="${i}" x="${fx(ml + i * band)}" y="${t1}" width="${fx(band)}" height="${t2 + h2 - t1}" tabindex="0" aria-label="${esc(label)}"/>`;
+  });
+  return `<svg viewBox="0 0 ${fx(W)} ${H}" role="img" aria-label="تطور متوسط تقدير سالم وعدد المخرجات">${g}</svg>`;
+}
+function showTrendTip(i) {
+  const p = state.stats && state.stats.series.points[i];
+  const tip = $("#trendTip");
+  if (!p || !tip || !trendGeom) return;
+  const x = trendGeom.ml + (i + .5) * trendGeom.band;
+  ["#trendCross", "#trendHl"].forEach(id => $(id).setAttribute("visibility", "visible"));
+  $("#trendCross").setAttribute("x1", fx(x)); $("#trendCross").setAttribute("x2", fx(x));
+  $("#trendHl").setAttribute("x", fx(x - trendGeom.band / 2));
+  tip.innerHTML = `<div class="tip-h">${esc(p.label)}</div>
+    <div class="tip-row"><span><i class="tip-key" style="background:#e9edf1"></i>متوسط التقدير</span><b>${p.avg === null ? "—" : p.avg + "%"}</b></div>
+    <div class="tip-row"><span><i class="tip-key" style="background:#3987e5"></i>المهام</span><b>${p.tasks}</b></div>
+    <div class="tip-row"><span><i class="tip-key" style="background:#d95926"></i>الأخبار</span><b>${p.news}</b></div>`;
+  tip.hidden = false;
+  const box = $("#trendCharts"), scale = box.clientWidth / parseFloat(box.querySelector("svg").viewBox.baseVal.width);
+  const px = x * scale, w = tip.offsetWidth;
+  tip.style.left = (px + 14 + w > box.clientWidth ? px - 14 - w : px + 14) + "px";
+  tip.style.top = (trendGeom.t1 * scale) + "px";
+}
+function hideTrendTip() {
+  const tip = $("#trendTip");
+  if (tip) tip.hidden = true;
+  ["#trendCross", "#trendHl"].forEach(id => { const el = $(id); if (el) el.setAttribute("visibility", "hidden"); });
+}
+function trendTableHtml(pts) {
+  return `<table><thead><tr><th>الفترة</th><th>متوسط التقدير</th><th>المهام</th><th>الأخبار</th></tr></thead><tbody>` +
+    pts.slice().reverse().map(p => `<tr><td>${esc(p.label)}</td><td>${p.avg === null ? "—" : p.avg + "%"}</td><td>${p.tasks}</td><td>${p.news}</td></tr>`).join("") +
+    "</tbody></table>";
+}
+function renderTrend(m) {
+  const box = $("#trendCharts"), table = $("#trendTable"), btn = $("#btnTrendTable");
+  const series = m.series;
+  const unit = series ? { hour: "لكل ساعة", day: "لكل يوم", month: "لكل شهر" }[series.unit] + " · " : "";
+  $("#trendSub").textContent = `متوسط تقدير سالم وعدد المخرجات ${unit}${rangeNote()}`;
+  const empty = text => { box.innerHTML = `<div class="trend-empty">${esc(text)}</div>`; table.hidden = true; btn.hidden = true; trendGeom = null; };
+  if (!state.url) return empty("اربط اللوحة بالخادم لعرض تطور الأداء.");
+  if (!state.loaded) return empty(state.loading ? "جاري التحميل…" : "تعذر تحميل البيانات.");
+  if (!series) return empty("حدّث الخادم إلى الإصدار الجديد لعرض تطور الأداء.");
+  if (!series.points.some(p => p.tasks || p.news)) return empty("لا توجد مهام أو أخبار في هذه الفترة.");
+  btn.hidden = false;
+  btn.setAttribute("aria-pressed", String(trendTableOn));
+  btn.textContent = trendTableOn ? "إخفاء الجدول" : "عرض كجدول";
+  box.innerHTML = trendSvg(series.points, box.clientWidth || 600) + '<div class="tip" id="trendTip" hidden></div>';
+  table.hidden = !trendTableOn;
+  table.innerHTML = trendTableOn ? trendTableHtml(series.points) : "";
 }
 
 // ---------------- شريط الأحداث والأخبار السفلية ----------------
@@ -1169,9 +1407,11 @@ function renderStatus() {
 }
 function renderBoard() {
   const m = computeMetrics();
+  renderFilters();
   renderTiles(m);
   renderGauge(m);
   renderStage(m);
+  renderTrend(m);
   renderTicker();
   renderStrip();
 }
@@ -1184,12 +1424,19 @@ async function refresh(opts) {
   if (!state.loaded) renderGauge(computeMetrics());
   let changed = !state.loaded;
   try {
-    const data = await api({ action: "list" });
+    let data;
+    try { data = await api({ action: "dashboard", range: state.range }); }
+    catch (e) {
+      // خادم أقدم لا يعرف "dashboard" فيعامله كمهمة فارغة: نرجع لأحدث العناصر فقط
+      if (/نص المهمة فارغ/.test(e.message)) data = await api({ action: "list" });
+      else throw e;
+    }
     const tasks = Array.isArray(data.tasks) ? data.tasks : [];
     const news = Array.isArray(data.news) ? data.news : [];
-    const sig = JSON.stringify([tasks, news]);
+    const stats = data.stats && data.stats.series ? data.stats : null;
+    const sig = JSON.stringify([tasks, news, stats]);
     changed = changed || sig !== state.sig;
-    Object.assign(state, { tasks, news, sig, loaded: true, error: "", lastSync: new Date() });
+    Object.assign(state, { tasks, news, stats, sig, loaded: true, error: "", lastSync: new Date() });
   } catch (e) {
     state.error = e.message;
     changed = true;
@@ -1387,8 +1634,23 @@ document.addEventListener("click", async e => {
   }
 });
 
+document.addEventListener("click", e => {
+  const r = e.target.closest("[data-range]");
+  if (r) setRange(r.dataset.range);
+});
+$("#btnTrendTable").addEventListener("click", () => { trendTableOn = !trendTableOn; renderTrend(computeMetrics()); });
+const trendBox = $("#trendCharts");
+const trendIndex = e => { const hit = e.target.closest && e.target.closest(".hit"); return hit ? Number(hit.dataset.i) : -1; };
+trendBox.addEventListener("pointermove", e => { const i = trendIndex(e); if (i >= 0) showTrendTip(i); });
+trendBox.addEventListener("pointerleave", hideTrendTip);
+trendBox.addEventListener("focusin", e => { const i = trendIndex(e); if (i >= 0) showTrendTip(i); });
+trendBox.addEventListener("focusout", hideTrendTip);
+
 let resizeTimer = 0;
-addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(renderTicker, 250); });
+addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { renderTicker(); renderTrend(computeMetrics()); }, 250);
+});
 
 // ---------------- البداية ----------------
 buildGauge();
