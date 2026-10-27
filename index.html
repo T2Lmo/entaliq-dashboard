@@ -1129,13 +1129,14 @@ function barPath(x, y, w, h, r) {
 function trendSvg(pts, W) {
   const n = pts.length, ml = 34, mr = 8, iw = Math.max(60, W - ml - mr), band = iw / n;
   const cx = i => ml + (i + .5) * band;
-  const t1 = 24, h1 = 150, y1 = v => t1 + h1 * (1 - v / 100);
+  // مسافة كافية فوق اللوحة حتى لا تتداخل قيمة قريبة من 100 مع العنوان
+  const t1 = 46, h1 = 150, y1 = v => t1 + h1 * (1 - v / 100);
   const top = niceMax(Math.max(...pts.map(p => p.tasks + p.news)));
   const t2 = t1 + h1 + 46, h2 = 74, y2 = v => t2 + h2 * (1 - v / top);
   const H = t2 + h2 + 26;
   trendGeom = { ml, band, t1, bottom: t2 + h2, n };
 
-  let g = `<text class="ptitle" x="${fx(W - mr)}" y="${t1 - 10}" text-anchor="end">متوسط تقدير سالم</text>`;
+  let g = `<text class="ptitle" x="${fx(W - mr)}" y="${t1 - 30}" text-anchor="end">متوسط تقدير سالم</text>`;
   [0, 50, 100].forEach(v => { g += `<line class="grid" x1="${ml}" x2="${fx(W - mr)}" y1="${fx(y1(v))}" y2="${fx(y1(v))}"/><text class="tick" x="${ml - 6}" y="${fx(y1(v) + 4)}" text-anchor="end">${v}</text>`; });
   // حدود التقييم المستخدمة في البطاقات: 85 جيد، 70 متوسط
   [70, 85].forEach(v => { g += `<line class="ref" x1="${ml}" x2="${fx(W - mr)}" y1="${fx(y1(v))}" y2="${fx(y1(v))}"/><text class="tick" x="${ml - 6}" y="${fx(y1(v) + 4)}" text-anchor="end">${v}</text>`; });
