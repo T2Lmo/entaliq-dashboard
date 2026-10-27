@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- خطوط هوية العلامات لتصاميم المنشورات: Alexandria لانطلق وأثر، Tajawal و Manrope لوهج -->
+<link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@500;800&family=Tajawal:wght@500;800&family=Manrope:wght@700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #050607;
@@ -135,6 +137,7 @@
   .pos-l1 { grid-column: 3; grid-row: 1; } .pos-l2 { grid-column: 3; grid-row: 2; } .pos-l3 { grid-column: 3; grid-row: 3; }
   .pos-l4 { grid-column: 3; grid-row: 4; } .pos-l5 { grid-column: 3; grid-row: 5; }
   .pos-c5 { grid-column: 2; grid-row: 5; }
+  .pos-r6 { grid-column: 1; grid-row: 6; } .pos-c6 { grid-column: 2; grid-row: 6; } .pos-l6 { grid-column: 3; grid-row: 6; }
   @media (max-width: 1180px) {
     .stage { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .stage > * { grid-column: auto !important; grid-row: auto !important; }
@@ -398,6 +401,12 @@
   .tag { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 4px; border: 1px solid var(--line-2); color: var(--text-2); font-size: 11.5px; white-space: nowrap; }
   .tag[data-tone] { color: var(--tone); border-color: color-mix(in srgb, var(--tone) 45%, transparent); }
   .article-text { margin: 0; white-space: pre-line; color: var(--text-2); font-size: 13.5px; line-height: 1.9; }
+  .design-sizes { margin-bottom: 10px; }
+  .design-canvas { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line-2); background: #0f1215; }
+  .design-canvas[data-size="lip"] { max-width: 360px; }
+  .tweet { margin-top: 14px; padding: 10px 12px; border-radius: 8px; background: var(--panel-2); }
+  .tweet p { margin: 4px 0 0; white-space: pre-line; font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
+  .tweet-len { margin-inline-start: auto; color: var(--tone); font-weight: 600; direction: ltr; }
 
   .fold { margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; }
   .fold > summary { list-style: none; cursor: pointer; padding: 9px 12px; font-size: 13.5px; font-weight: 600; color: var(--text-2); display: flex; align-items: center; gap: 8px; }
@@ -702,7 +711,13 @@ const AGENTS = [
     examples: ["راجع هذا المنشور مقابل ملف الشركة: …", "ضع قائمة تدقيق لمحتوى الطاقة قبل نشره"] },
   { name: "خالد", role: "الأنظمة والبرمجيات", c: "#a5b4c8",
     desc: "يجهّز تكامل أنظمة المباني والطاقة (BACnet وModbus) والواجهات ولوحات القياس.",
-    examples: ["اشرح ربط عدادات Modbus بنظام أثر", "اكتب دالة تحسب الوفر مقارنة بخط الأساس"] }
+    examples: ["اشرح ربط عدادات Modbus بنظام أثر", "اكتب دالة تحسب الوفر مقارنة بخط الأساس"] },
+  { name: "ريم", role: "تصميم الهوية", f: true, c: "#ef8a6f",
+    desc: "تصمم صور المنشورات لـ LinkedIn وX بهوية انطلق ووهج وأثر، بنصوص قصيرة من المنشور نفسه.",
+    examples: ["اقترحي ثلاثة عناوين بصرية لمنشور عن أثر في المستشفيات", "ما القالب الأنسب لنصائح ترشيد التكييف لوهج؟"] },
+  { name: "زياد", role: "محتوى منصة X", c: "#8fd3e8",
+    desc: "يحوّل منشورات LinkedIn إلى تغريدات قصيرة بصوت كل علامة ضمن 280 حرفاً.",
+    examples: ["حوّل هذا المنشور إلى تغريدة: …", "اقترح هاشتاقات X مناسبة لمحتوى كفاءة الطاقة في السعودية"] }
 ];
 const AGENT_BY_NAME = Object.fromEntries(AGENTS.map(a => [a.name, a]));
 
@@ -712,13 +727,15 @@ const SLOTS = [
   { pos: "r4", agent: "لمى" }, { pos: "r5", agent: "سلطان" },
   { pos: "l1", agent: "سالم" }, { pos: "l2", agent: "خالد" }, { pos: "l3", sys: "newsQuality" },
   { pos: "l4", sys: "coverage" }, { pos: "l5", sys: "highRate" },
-  { pos: "c5", sys: "completion" }
+  { pos: "c5", sys: "completion" },
+  { pos: "r6", agent: "ريم" }, { pos: "c6", sys: "ready" }, { pos: "l6", agent: "زياد" }
 ];
 const SYS = {
   completion: { title: "معدل الإنجاز", sub: "المهام المكتملة في الفترة", view: "tasks", sort: "new" },
   newsQuality: { title: "جودة الأخبار", sub: "متوسط تقدير سالم للأخبار", view: "news" },
   coverage: { title: "تغطية التدقيق", sub: "مهام لها تقدير رقمي من سالم", view: "tasks", sort: "low" },
-  highRate: { title: "الاعتماد العالي", sub: "مخرجات بتقدير 85% فأكثر", view: "tasks", sort: "high" }
+  highRate: { title: "الاعتماد العالي", sub: "مخرجات بتقدير 85% فأكثر", view: "tasks", sort: "high" },
+  ready: { title: "جاهزية النشر", sub: "معتمدة بتصميم ونسخة X", view: "content", cfilter: "approved" }
 };
 const TONE_LABEL = { ok: "جيد", warn: "متوسط", bad: "ضعيف", none: "لا بيانات" };
 const TONE_COLOR = { ok: "#2bd47d", warn: "#f3b03d", bad: "#ef5350", none: "#3a3f46" };
@@ -751,7 +768,7 @@ const state = {
   agent: AGENT_BY_NAME[store.get(KEYS.agent)] ? store.get(KEYS.agent) : "راكان",
   range: RANGES.some(r => r.id === store.get(KEYS.range)) ? store.get(KEYS.range) : "week",
   tasks: [], news: [], content: [], stats: null, sig: "",
-  contentFilter: "review", editingId: null, askingId: null, askingKind: "", contentBusy: false,
+  contentFilter: "review", editingId: null, askingId: null, askingKind: "", contentBusy: false, designSize: {},
   loaded: false, loading: false, error: "", lastSync: null,
   sending: false, fetching: false,
   view: "", filterAgent: "", query: "", sort: "new"
@@ -883,6 +900,7 @@ function computeMetrics() {
     newsQuality: s.news.avg,
     coverage: pct(s.tasks.scored, s.tasks.total),
     highRate: pct(s.overall.high, s.overall.scored),
+    ready: readyRate(),
     activeAgents: AGENTS.filter(a => perAgent[a.name].count).length,
     todayTasks: s.today.tasks,
     todayNews: s.today.news,
@@ -890,6 +908,12 @@ function computeMetrics() {
     alerts: s.alerts,
     series: s.series
   };
+}
+
+// نسبة المنشورات المعتمدة التي جهّزت لها ريم التصميم وزياد نسخة X (من آخر 40 منشوراً)
+function readyRate() {
+  const approved = state.content.filter(r => r[9] === "معتمد");
+  return pct(approved.filter(r => r[12] && r[13]).length, approved.length);
 }
 
 function metricsFromRecent() {
@@ -914,6 +938,7 @@ function metricsFromRecent() {
     newsQuality: mean(newsScores),
     coverage: pct(taskScores.filter(isNum).length, state.tasks.length),
     highRate: pct(all.filter(s => s >= 85).length, all.length),
+    ready: readyRate(),
     activeAgents: AGENTS.filter(a => perAgent[a.name].count).length,
     todayTasks: state.tasks.filter(r => dayKey(r[1]) === today).length,
     todayNews: state.news.filter(r => dayKey(r[0]) === today).length,
@@ -1085,7 +1110,7 @@ function metricCard(slot, m) {
   } else {
     const s = SYS[slot.sys];
     title = s.title; value = m[slot.sys]; sub = s.sub; hint = s.sub;
-    open = `data-open="${s.view}"` + (s.sort ? ` data-filter-agent="" data-sort="${s.sort}"` : "");
+    open = `data-open="${s.view}"` + (s.sort ? ` data-filter-agent="" data-sort="${s.sort}"` : "") + (s.cfilter ? ` data-cfilter-open="${s.cfilter}"` : "");
   }
   const t = tone(value);
   return `<button type="button" class="metric pos-${slot.pos}" data-tone="${t}" title="${esc(hint)}" ${open}>
@@ -1437,14 +1462,15 @@ const CONTENT_FILTERS = [
 const STATUS_TONE = { "فكرة": "none", "مسودة": "warn", "معتمد": "ok", "منشور": "none", "مرفوض": "bad" };
 
 function contentItem(row) {
-  const [id, , scheduled, pillar, audience, service, idea, text, audit, status, source, note] = row;
+  const [id, , scheduled, pillar, audience, service, idea, text, audit, status, source, note, designCell, tweet] = row;
   const editing = state.editingId === id, asking = state.askingId === id ? state.askingKind : "";
   const btn = (act, label, cls) => `<button type="button" class="btn ${cls || "btn-line"} sm" data-cact="${act}" data-id="${esc(id)}"><span class="lbl-text">${esc(label)}</span></button>`;
   const actions = {
     "فكرة": [btn("write", "اكتب المنشور", "btn-primary")],
-    "مسودة": [btn("approve", "اعتماد", "btn-primary"), btn("edit", "تعديل"), btn("rewrite", "إعادة كتابة"), btn("reject", "رفض")],
+    "مسودة": [btn("approve", "اعتماد", "btn-primary"), btn("edit", "تعديل"), btn("rewrite", "إعادة كتابة"), btn("reject", "رفض"),
+      designCell ? "" : btn("prepare", "جهّز التصميم ونسخة X")],
     "معتمد": [text ? `<button type="button" class="btn btn-primary sm" data-li-open="${copyable(linkedinText(text))}">${ICON.ext}<span class="lbl-text">انسخ وافتح LinkedIn</span></button>` : "",
-      btn("publish", "تم النشر"), btn("edit", "تعديل"), btn("draft", "إرجاع لمسودة")],
+      btn("publish", "تم النشر"), btn("edit", "تعديل"), btn("draft", "إرجاع لمسودة"), designCell ? "" : btn("prepare", "جهّز التصميم ونسخة X")],
     "مرفوض": [btn("rewrite", "إعادة كتابة", "btn-primary"), btn("draft", "إرجاع لمسودة")]
   }[status] || [];
   const href = /^https?:\/\//i.test(String(source || "")) ? String(source) : "";
@@ -1474,8 +1500,218 @@ function contentItem(row) {
     ${body}
     ${note ? `<p class="hint">ملاحظات المراجع: ${esc(note)}</p>` : ""}
     ${audit && !editing ? `<details class="fold"><summary>${avatar("سالم", "xs")} تدقيق سالم</summary><div class="fold-body"><div class="md">${md(audit)}</div></div></details>` : ""}
+    ${!editing ? designPanel(id, designCell, tweet, status) : ""}
     ${footer}
   </article>`;
+}
+
+// تصميم ريم بالقالب المختار ومقاس المنصة، ونسخة زياد على X بعدّاد حروفها
+function designPanel(id, designCell, tweet, status) {
+  const d = parseDesign(designCell);
+  if (!d) return "";
+  const size = state.designSize[id] || "li";
+  const sizes = Object.keys(DESIGN_SIZES).map(k =>
+    `<button type="button" data-dsize="${k}" data-id="${esc(id)}" aria-pressed="${k === size}">${esc(DESIGN_SIZES[k].label)}</button>`).join("");
+  const len = xLength(tweet);
+  return `<details class="fold"${status === "معتمد" ? " open" : ""}><summary>${avatar("ريم", "xs")}${avatar("زياد", "xs")} التصميم ونسخة X · ${esc(d.brand)}</summary>
+    <div class="fold-body">
+      <div class="seg-ctl design-sizes" role="group" aria-label="مقاس التصميم">${sizes}</div>
+      <canvas class="design-canvas" data-design="${esc(id)}" data-size="${size}" role="img" aria-label="${esc(d.headline)}"></canvas>
+      <div class="row-actions">
+        <button type="button" class="btn btn-line sm" data-ddownload="${esc(id)}">${ICON.download}<span class="lbl-text">تنزيل الصورة</span></button>
+        <button type="button" class="btn btn-line sm" data-cact="prepare" data-id="${esc(id)}"><span class="lbl-text">أعد التصميم ونسخة X</span></button>
+      </div>
+      ${tweet ? `<div class="tweet">
+        <div class="by">${avatar("زياد", "xs")} نسخة X <small class="tweet-len" data-tone="${len > 280 ? "bad" : "ok"}">${len}/280</small></div>
+        <p>${esc(tweet)}</p>
+        <div class="row-actions">
+          <button type="button" class="btn btn-primary sm" data-x-open="${copyable(tweet)}">${ICON.ext}<span class="lbl-text">افتح X بالتغريدة</span></button>
+          ${copyButton(tweet, "نسخ")}
+        </div>
+      </div>` : ""}
+    </div>
+  </details>`;
+}
+function parseDesign(cell) {
+  if (!cell) return null;
+  try { const d = JSON.parse(cell); return d && d.headline ? d : null; } catch (e) { return null; }
+}
+// طول التغريدة كما يحسبه X تقريباً (نفس xLength_ في الخادم)
+function xLength(text) {
+  return Array.from(String(text || "").replace(/https?:\/\/\S+/g, "x".repeat(23))).reduce((n, ch) => n + (ch.codePointAt(0) > 0xFFFF ? 2 : 1), 0);
+}
+
+// ---------------- رسم التصاميم بهوية كل علامة ----------------
+// الألوان والخطوط من مواقع العلامات: انطلق (كحلي وفيروزي، Alexandria)، وهج (كحلي وذهبي، Tajawal)، أثر (فيروزي غامق على فاتح)
+const BRANDS = {
+  "انطلق": { bg: ["#030b18", "#061329"], ink: "#f4f5f2", muted: "#adc0d1", accent: "#19d3c5", accentInk: "#030b18", font: "Alexandria",
+    mark: "انطلق للطاقة", markEn: "ENTALIQ ENERGY", url: "entaliq.com.sa", motif: "grid", slug: "entaliq" },
+  "وهج": { bg: ["#0b2742", "#081a2a"], ink: "#fffdf8", muted: "#d0d7df", accent: "#f5b233", accentInk: "#12263a", font: "Tajawal",
+    mark: "وهج", markEn: "WAHAJ", url: "wahaj-solar.netlify.app", motif: "sun", tagline: "طاقة أنظف. حياة أكثر إشراقًا.", slug: "wahaj" },
+  "أثر": { bg: ["#eef7f5", "#dfeeea"], ink: "#10383d", muted: "#375e60", accent: "#087970", accentInk: "#ffffff", font: "Alexandria",
+    mark: "أثر", markEn: "ATHAR · ENTALIQ ENERGY", url: "entaliq.com.sa", motif: "curve", slug: "athar" }
+};
+const DESIGN_SIZES = {
+  li: { label: "LinkedIn أفقي", w: 1200, h: 627 },
+  lip: { label: "LinkedIn عمودي", w: 1080, h: 1350 },
+  x: { label: "X", w: 1600, h: 900 }
+};
+
+function wrapLines(ctx, text, maxW) {
+  const lines = [];
+  let line = "";
+  String(text || "").split(/\s+/).filter(Boolean).forEach(word => {
+    const next = line ? line + " " + word : word;
+    if (!line || ctx.measureText(next).width <= maxW) line = next;
+    else { lines.push(line); line = word; }
+  });
+  if (line) lines.push(line);
+  return lines;
+}
+// أكبر خط يتسع فيه النص ضمن عدد الأسطر، وإلا يُقص آخر سطر بنقاط
+function fitText(ctx, text, weight, family, size, minSize, maxW, maxLines) {
+  for (let s = size; s >= minSize; s *= 0.92) {
+    ctx.font = `${weight} ${s}px ${family}`;
+    const lines = wrapLines(ctx, text, maxW);
+    if (lines.length <= maxLines) return { lines, size: s };
+  }
+  ctx.font = `${weight} ${minSize}px ${family}`;
+  const lines = wrapLines(ctx, text, maxW);
+  if (lines.length > maxLines) { lines.length = maxLines; lines[maxLines - 1] += "…"; }
+  return { lines, size: minSize };
+}
+
+function drawMotif(ctx, b, W, H, u) {
+  ctx.save();
+  if (b.motif === "grid") {
+    // خطوط معمارية دقيقة وتوهج فيروزي خفيف كما في موقع انطلق
+    const glow = ctx.createRadialGradient(W * 0.1, H * 0.95, 0, W * 0.1, H * 0.95, 60 * u);
+    glow.addColorStop(0, "rgba(25,211,197,.22)"); glow.addColorStop(1, "rgba(25,211,197,0)");
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = "rgba(25,211,197,.09)"; ctx.lineWidth = Math.max(1, u * 0.12);
+    for (let x = 0; x <= W; x += 9 * u) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = 0; y <= H; y += 9 * u) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+    ctx.strokeStyle = "rgba(25,211,197,.35)"; ctx.lineWidth = Math.max(1.5, u * 0.25);
+    [[0.05, 0.62], [0.2, 0.62], [0.35, 0.62]].forEach(([fx]) => { ctx.beginPath(); ctx.moveTo(W * fx, H); ctx.lineTo(W * (fx + 0.12), H * 0.62); ctx.stroke(); });
+  } else if (b.motif === "sun") {
+    // شمس وهج في الزاوية بتدرج ذهبي إلى كهرماني
+    const cx = 0, cy = 0, r = 30 * u;
+    const glow = ctx.createRadialGradient(cx, cy, r * 0.3, cx, cy, r * 2.4);
+    glow.addColorStop(0, "rgba(245,178,51,.35)"); glow.addColorStop(1, "rgba(245,178,51,0)");
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+    const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    core.addColorStop(0, "#ffd978"); core.addColorStop(1, "#e98b2a");
+    ctx.fillStyle = core; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(245,178,51,.28)"; ctx.lineWidth = Math.max(1.5, u * 0.3);
+    [1.45, 1.9].forEach(k => { ctx.beginPath(); ctx.arc(cx, cy, r * k, 0, Math.PI * 2); ctx.stroke(); });
+  } else if (b.motif === "curve") {
+    // منحنى استهلاك تحت خط أساس متقطع: فكرة أثر في قياس الوفر، رسم زخرفي بلا أرقام
+    const top = H * 0.69, bottom = H * 0.81, x0 = W * 0.04, x1 = W * 0.96;
+    ctx.globalAlpha = 0.55;
+    ctx.setLineDash([2 * u, 1.4 * u]); ctx.strokeStyle = "#375e60"; ctx.lineWidth = Math.max(1.5, u * 0.3);
+    ctx.beginPath(); ctx.moveTo(x0, top); ctx.lineTo(x1, top); ctx.stroke(); ctx.setLineDash([]);
+    const pts = [0, 0.02, 0.05, 0.04, 0.09, 0.12, 0.11, 0.15, 0.17, 0.16].map((v, i, a) => [x0 + (x1 - x0) * i / (a.length - 1), top + (bottom - top) * v * 5]);
+    ctx.fillStyle = "rgba(8,121,112,.12)";
+    ctx.beginPath(); ctx.moveTo(x0, top); pts.forEach(p => ctx.lineTo(p[0], p[1])); ctx.lineTo(x1, top); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = "#087970"; ctx.lineWidth = Math.max(2, u * 0.45);
+    ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+async function drawDesign(canvas, d, sizeKey) {
+  const b = BRANDS[d.brand] || BRANDS["انطلق"];
+  const { w: W, h: H } = DESIGN_SIZES[sizeKey] || DESIGN_SIZES.li;
+  await Promise.all([`800 40px ${b.font}`, `500 40px ${b.font}`, "700 20px Manrope"].map(f => document.fonts.load(f).catch(() => null)));
+  canvas.width = W; canvas.height = H;
+  canvas.dataset.size = sizeKey;
+  const ctx = canvas.getContext("2d");
+  const u = Math.min(W, H) / 100, pad = 7 * u, portrait = H > W;
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, b.bg[0]); bg.addColorStop(1, b.bg[1]);
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  drawMotif(ctx, b, W, H, u);
+
+  const right = W - pad;
+  const textW = portrait ? W - 2 * pad : W * 0.68;
+  const say = (text, x, y, font, color, align, dir) => {
+    ctx.font = font; ctx.fillStyle = color; ctx.textAlign = align || "right"; ctx.direction = dir || "rtl"; ctx.fillText(text, x, y);
+  };
+  // العلامة في الأعلى يميناً واسمها اللاتيني تحتها
+  say(b.mark, right, pad + 5 * u, `800 ${5.4 * u}px ${b.font}`, b.motif === "sun" ? b.accent : b.ink);
+  ctx.letterSpacing = `${0.35 * u}px`;
+  say(b.markEn, right, pad + 8.6 * u, `700 ${1.9 * u}px Manrope`, b.muted, "right", "ltr");
+  ctx.letterSpacing = "0px";
+  if (b.tagline) say(b.tagline, right, pad + 12 * u, `500 ${2.3 * u}px ${b.font}`, b.muted);
+
+  // جسم التصميم حسب القالب، محاذى عمودياً في منتصف المساحة بين الرأس والتذييل
+  const top = pad + (b.tagline ? 17 : 14) * u, bottom = H - pad - (b.motif === "curve" ? 24 : 12) * u;
+  const blocks = [];
+  // marker: رقم النقطة بلون التمييز يسبق نصها، ويُحجز له عرض ثابت
+  const add = (text, weight, size, min, color, lines, gap, marker) => {
+    if (!text) return;
+    const indent = marker ? size * u * 1.6 : 0;
+    const fit = fitText(ctx, text, weight, b.font, size * u, min * u, textW - indent, lines);
+    blocks.push({ ...fit, weight, color, gap: gap * u, family: b.font, marker, indent });
+  };
+  const big = portrait ? 1.25 : 1;
+  if (d.template === "رقم") {
+    add(d.headline, 800, 5.2 * big, 3.6, b.ink, 2, 3);
+    add(d.figure, 800, 17 * big, 9, b.accent, 1, 1.2);
+    add(d.figureLabel, 500, 3.6 * big, 2.8, b.muted, 2, 0);
+  } else if (d.template === "نقاط") {
+    add(d.headline, 800, 6 * big, 3.8, b.ink, 2, 3.4);
+    (d.points || []).forEach((p, i) => add(p, 500, 3.6 * big, 2.6, b.ink, 2, 1.8, String(i + 1)));
+  } else {
+    add(d.headline, 800, 8.5 * big, 4.5, b.ink, 3, 3);
+    add(d.subline, 500, 3.8 * big, 2.8, b.muted, 3, 0);
+  }
+  const lh = 1.38;
+  const total = blocks.reduce((s, k) => s + k.lines.length * k.size * lh + k.gap, 0);
+  let y = top + Math.max(0, (bottom - top - total) / 2);
+  ctx.fillStyle = b.accent;
+  ctx.fillRect(right - 10 * u, y - 2.2 * u, 10 * u, 0.9 * u);
+  blocks.forEach(k => {
+    k.lines.forEach((line, i) => {
+      y += k.size * lh;
+      if (k.marker && i === 0) say(k.marker, right, y - k.size * 0.32, `800 ${k.size * 1.15}px ${k.family}`, b.accent);
+      say(line, right - k.indent, y - k.size * 0.32, `${k.weight} ${k.size}px ${k.family}`, k.color);
+    });
+    y += k.gap;
+  });
+
+  // التذييل: الدعوة في زر بلون التمييز يميناً والرابط يساراً
+  const fy = H - pad;
+  if (d.cta) {
+    ctx.font = `800 ${2.8 * u}px ${b.font}`; ctx.direction = "rtl";
+    const cw = ctx.measureText(d.cta).width + 5 * u, ch = 6 * u;
+    ctx.fillStyle = b.accent;
+    ctx.beginPath(); ctx.roundRect(right - cw, fy - ch, cw, ch, ch / 2); ctx.fill();
+    say(d.cta, right - 2.5 * u, fy - ch / 2 + 1 * u, `800 ${2.8 * u}px ${b.font}`, b.accentInk);
+  }
+  say(b.url, pad, fy - 2 * u, `700 ${2.3 * u}px Manrope`, b.muted, "left", "ltr");
+}
+
+function drawDesigns(root) {
+  root.querySelectorAll("canvas[data-design]").forEach(canvas => {
+    const row = state.content.find(r => r[0] === canvas.dataset.design);
+    const d = row && parseDesign(row[12]);
+    if (d) drawDesign(canvas, d, canvas.dataset.size).catch(() => {});
+  });
+}
+function downloadDesign(id) {
+  const canvas = document.querySelector(`canvas[data-design="${CSS.escape(id)}"]`);
+  const row = state.content.find(r => r[0] === id);
+  const d = row && parseDesign(row[12]);
+  if (!canvas || !d) return;
+  canvas.toBlob(blob => {
+    if (!blob) { toast("تعذر تجهيز الصورة", "bad"); return; }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${(BRANDS[d.brand] || BRANDS["انطلق"]).slug}-${id}-${canvas.dataset.size}.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }, "image/png");
 }
 function renderContentView() {
   $("#contentFilter").innerHTML = CONTENT_FILTERS.map(f => {
@@ -1491,6 +1727,7 @@ function renderContentView() {
   el.innerHTML = rows.length ? rows.map(contentItem).join("")
     : empty(ICON.clip, f.id === "review" ? "لا يوجد ما يحتاج مراجعتك" : "لا توجد منشورات بهذه الحالة",
       f.id === "review" ? "اطلب «خطة الأسبوع» أو «نصائح موسمية»، أو انتظر دورة الأخبار القادمة." : "");
+  drawDesigns(el);
 }
 
 async function contentAction(btn) {
@@ -1514,18 +1751,22 @@ async function contentAction(btn) {
     draft: [{ action: "content_update", id, status: "مسودة" }, "أُعيد إلى المسودات"],
     save: [{ action: "content_update", id, text: editEl ? editEl.value : "" }, "حُفظ التعديل"],
     write: [{ action: "content_rewrite", id }, "كُتب المنشور وينتظر مراجعتك"],
+    prepare: [{ action: "content_prepare", id }, "جهّزت ريم التصميم وزياد نسخة X"],
     "send-note": rejecting ? [{ action: "content_update", id, status: "مرفوض", note }, "رُفض المنشور"]
       : [{ action: "content_rewrite", id, note }, "أُعيدت الكتابة وتنتظر مراجعتك"]
   }[act];
   if (!request) return;
-  const writing = request[0].action === "content_rewrite";
+  const writing = request[0].action === "content_rewrite", preparing = act === "prepare";
   state.contentBusy = true;
-  const stop = busy(btn, writing ? "لمى تكتب" : "جاري الحفظ");
+  const stop = busy(btn, writing ? "لمى تكتب" : preparing ? "ريم وزياد يجهّزان" : "جاري الحفظ");
   if (writing) toast("تكتب لمى المنشور ثم يدققه سالم؛ قد يستغرق ذلك نصف دقيقة إلى دقيقة.");
+  if (preparing) toast("تصمم ريم الصورة بهوية العلامة ويكتب زياد نسخة X؛ قرابة نصف دقيقة.");
   try {
-    await api(request[0]);
+    const data = await api(request[0]);
     Object.assign(state, { editingId: null, askingId: null });
     toast(request[1], "ok");
+    // تنبيهات الخادم: رقم حُذف من التصميم لأنه غير موجود في المنشور، أو تغريدة أطول من الحد
+    (data.warnings || []).forEach(w => toast(w, "warn"));
     await refresh({ quiet: true });
   } catch (e) {
     toast(e.message, "bad");
@@ -1566,6 +1807,7 @@ function openView(view, opts) {
   state.view = view;
   if (opts.agent !== undefined) { state.filterAgent = opts.agent; $("#taskFilter").value = opts.agent; }
   if (opts.sort !== undefined) { state.sort = opts.sort; $("#taskSort").value = opts.sort; }
+  if (opts.cfilter) state.contentFilter = opts.cfilter;
   $("#sheetTitle").textContent = VIEWS[view].title;
   $("#sheetSub").textContent = VIEWS[view].sub;
   document.querySelectorAll("[data-view]").forEach(v => { v.hidden = v.dataset.view !== view; });
@@ -1806,7 +2048,7 @@ $("#taskSort").addEventListener("change", e => { state.sort = e.target.value; re
 document.addEventListener("click", async e => {
   const t = e.target;
   const opener = t.closest("[data-open]");
-  if (opener) { openView(opener.dataset.open, { agent: opener.dataset.filterAgent, sort: opener.dataset.sort }); return; }
+  if (opener) { openView(opener.dataset.open, { agent: opener.dataset.filterAgent, sort: opener.dataset.sort, cfilter: opener.dataset.cfilterOpen }); return; }
   const pick = t.closest("[data-pick]");
   if (pick) {
     state.agent = pick.dataset.pick; store.set(KEYS.agent, state.agent); renderCompose();
@@ -1825,6 +2067,25 @@ document.addEventListener("click", async e => {
   if (cact) { contentAction(cact); return; }
   const cfilter = t.closest("[data-cfilter]");
   if (cfilter) { state.contentFilter = cfilter.dataset.cfilter; renderContentView(); return; }
+  // مقاس التصميم يُحفظ لكل منشور ويُعاد رسم صورته فقط
+  const dsize = t.closest("[data-dsize]");
+  if (dsize) {
+    const id = dsize.dataset.id;
+    state.designSize[id] = dsize.dataset.dsize;
+    dsize.parentElement.querySelectorAll("[data-dsize]").forEach(b => b.setAttribute("aria-pressed", String(b === dsize)));
+    const canvas = document.querySelector(`canvas[data-design="${CSS.escape(id)}"]`);
+    if (canvas) { canvas.dataset.size = dsize.dataset.dsize; drawDesigns(canvas.parentElement); }
+    return;
+  }
+  const dl = t.closest("[data-ddownload]");
+  if (dl) { downloadDesign(dl.dataset.ddownload); return; }
+  // نافذة النشر في X تفتح والتغريدة مكتوبة فيها؛ الصورة تُرفق يدوياً بعد تنزيلها
+  const xo = t.closest("[data-x-open]");
+  if (xo) {
+    window.open("https://x.com/intent/post?text=" + encodeURIComponent(copyMap.get(Number(xo.dataset.xOpen)) || ""), "_blank", "noopener");
+    toast("فُتحت نافذة X بالتغريدة. أرفق صورة التصميم بعد تنزيلها ثم انشر.", "ok");
+    return;
+  }
   // النسخ أولاً ثم فتح LinkedIn في تبويب جديد؛ المستخدم يلصق في صفحة الشركة ثم يضغط «تم النشر»
   const li = t.closest("[data-li-open]");
   if (li) {
