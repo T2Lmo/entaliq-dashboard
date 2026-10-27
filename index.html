@@ -394,6 +394,8 @@
   .by { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--text-2); margin-bottom: 4px; }
 
   .badge { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 4px; font-size: 11.5px; font-weight: 600; white-space: nowrap; color: var(--tone); background: color-mix(in srgb, var(--tone) 13%, transparent); }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 10px; }
+  .tag { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 4px; border: 1px solid var(--line-2); color: var(--text-2); font-size: 11.5px; white-space: nowrap; }
 
   .fold { margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; }
   .fold > summary { list-style: none; cursor: pointer; padding: 9px 12px; font-size: 13.5px; font-weight: 600; color: var(--text-2); display: flex; align-items: center; gap: 8px; }
@@ -617,7 +619,7 @@
     </div>
     <div data-view="news" hidden>
       <div class="toolbar">
-        <span class="note">يرصد نواف أخبار التقنية والذكاء الاصطناعي في السعودية، ثم يحللها فيصل وتكتب لمى منشوراً ويدققه سالم.</span>
+        <span class="note">يرصد نواف أخبار كفاءة الطاقة والطاقة الشمسية في السعودية ويستبعد ضعيف الصلة بخدماتنا، ثم يحلل فيصل وتكتب لمى منشوراً مرتبطاً بخدمة ويدققه سالم.</span>
         <button class="btn btn-line sm" type="button" data-action="fetch-news"><span class="ico-plus"></span><span class="lbl-text">رصد الأخبار الآن</span></button>
       </div>
       <div class="list" id="newsList"></div>
@@ -660,26 +662,26 @@
 // نفس أسماء الوكلاء في AGENTS_PROMPTS داخل Code.gs
 const AGENTS = [
   { name: "راكان", role: "مدير المكتب", c: "#5cc7b1",
-    desc: "يدير الفريق ويتخذ القرارات التنفيذية ويلخّص التقارير للإدارة العليا.",
-    examples: ["لخّص أولويات المكتب لهذا الأسبوع في تقرير تنفيذي قصير", "اقترح خطة توزيع مهام الفريق للشهر القادم"] },
-  { name: "نواف", role: "وحدة الأخبار", c: "#7fb2ec",
-    desc: "يرصد أخبار التقنية والذكاء الاصطناعي في السعودية ويلخّصها بدقة.",
-    examples: ["ما المحاور التقنية التي يجب أن نتابع أخبارها هذا الربع؟", "لخّص هذا الخبر في 3 نقاط: …"] },
-  { name: "فيصل", role: "محلل السوق", c: "#b89af0",
-    desc: "يحلل الأخبار والبيانات ويستخرج الفرص والأثر الاقتصادي والتقني.",
-    examples: ["حلّل فرص حلول الذكاء الاصطناعي في القطاع الصحي بالسعودية", "ما أبرز تحديات الشركات التقنية الناشئة محلياً؟"] },
-  { name: "لمى", role: "التواصل الاجتماعي", f: true, c: "#f08fb8",
-    desc: "تكتب منشورات LinkedIn احترافية ملائمة لبيئة الأعمال السعودية.",
-    examples: ["اكتبي منشوراً يعلن عن خدمة جديدة من انطلق", "منشور عن أهمية التحول الرقمي للمنشآت الصغيرة"] },
+    desc: "يدير الفريق ويلخّص التقارير ويقترح أولويات المحتوى والفرص في كفاءة الطاقة.",
+    examples: ["لخّص أبرز أخبار الطاقة هذا الأسبوع في تقرير تنفيذي قصير", "اقترح خطة محتوى أسبوعية لانطلق ووهج"] },
+  { name: "نواف", role: "رصد أخبار الطاقة", c: "#7fb2ec",
+    desc: "يرصد أخبار كفاءة الطاقة والطاقة الشمسية والتنظيمات في السعودية، ويقيّم صلتها بخدماتنا.",
+    examples: ["ما أبرز تنظيمات كفاءة الطاقة التي يجب أن نتابعها؟", "لخّص هذا الخبر وحدد الخدمة المرتبطة به: …"] },
+  { name: "فيصل", role: "محلل سوق الطاقة", c: "#b89af0",
+    desc: "يحلل أثر الأخبار والتعرفة والتنظيمات على عملائنا، ويستخرج الفرص لكل قطاع.",
+    examples: ["ما فرص تدقيق الطاقة في المستشفيات الخاصة؟", "كيف يؤثر صافي القياس على الطلب على وهج؟"] },
+  { name: "لمى", role: "المحتوى والتواصل", f: true, c: "#f08fb8",
+    desc: "تكتب منشورات LinkedIn تربط كل فكرة بخدمة أو منتج من انطلق أو وهج.",
+    examples: ["منشور يعرّف بأثر لقياس الوفر في المباني الحكومية", "نصائح ترشيد التكييف في ذروة الصيف لأصحاب المنازل"] },
   { name: "سلطان", role: "تطوير الأعمال", c: "#f0b766",
-    desc: "يصوغ مسودات العقود واتفاقيات SLA وعروض الشراكات الاستراتيجية.",
-    examples: ["مسودة اتفاقية SLA لدعم فني بزمن استجابة 4 ساعات", "عرض شراكة لتدريب الكوادر التقنية لجهة حكومية"] },
+    desc: "يصوغ عروض تدقيق الطاقة وخطط القياس والتحقق وعقود الأداء والصيانة.",
+    examples: ["مسودة عرض تدقيق طاقة لمبنى حكومي", "اتفاقية مستوى خدمة لنظام ساعد لإدارة المباني"] },
   { name: "سالم", role: "الجودة والامتثال", c: "#6fd09a",
-    desc: "يفحص النصوص ويكشف المبالغات والأخطاء ويعطي ملاحظات التدقيق.",
-    examples: ["راجع هذا النص وحدد المبالغات فيه: …", "ضع قائمة تدقيق لمراجعة المنشورات قبل نشرها"] },
-  { name: "خالد", role: "مطور البرمجيات", c: "#a5b4c8",
-    desc: "يكتب الأكواد ويحل المشاكل التقنية ويجهّز ربط الأنظمة والـ APIs.",
-    examples: ["اكتب دالة JavaScript تتحقق من رقم الجوال السعودي", "كيف أربط Google Sheets مع واتساب للأعمال؟"] }
+    desc: "يدقق النصوص مقابل المصدر وملف الشركة، ويمنع الأرقام والوعود غير الموثقة.",
+    examples: ["راجع هذا المنشور مقابل ملف الشركة: …", "ضع قائمة تدقيق لمحتوى الطاقة قبل نشره"] },
+  { name: "خالد", role: "الأنظمة والبرمجيات", c: "#a5b4c8",
+    desc: "يجهّز تكامل أنظمة المباني والطاقة (BACnet وModbus) والواجهات ولوحات القياس.",
+    examples: ["اشرح ربط عدادات Modbus بنظام أثر", "اكتب دالة تحسب الوفر مقارنة بخط الأساس"] }
 ];
 const AGENT_BY_NAME = Object.fromEntries(AGENTS.map(a => [a.name, a]));
 
@@ -702,7 +704,7 @@ const TONE_COLOR = { ok: "#2bd47d", warn: "#f3b03d", bad: "#ef5350", none: "#3a3
 const VIEWS = {
   compose: { title: "تكليف وكيل", sub: "اختر الوكيل واكتب المهمة، ويدقق سالم المخرجات تلقائياً." },
   tasks: { title: "سجل المهام", sub: "آخر 20 مهمة يعيدها الخادم." },
-  news: { title: "الأخبار", sub: "آخر 10 أخبار رصدها نواف وحللها الفريق." },
+  news: { title: "الأخبار", sub: "آخر 10 أخبار طاقة رصدها نواف وربطها الفريق بخدماتنا." },
   team: { title: "فريق الوكلاء", sub: "متوسط تقدير سالم لكل وكيل خلال الفترة المختارة، الأعلى أولاً." },
   alerts: { title: "التنبيهات", sub: "مخرجات بتقدير أقل من 70% أو لم يكتمل تدقيقها، من أحدث 20 مهمة و10 أخبار." }
 };
@@ -1261,7 +1263,7 @@ function stripCell(row) {
   const s = salemScore(row[6]);
   return `<button type="button" class="cell" data-tone="${tone(s)}" data-open="news" title="${esc(row[1])}">
     <span class="c-ico">${ICON.news}</span>
-    <span class="c-main"><span class="c-title">${esc(row[1])}</span><span class="c-date">${esc(fmtDate(row[0]))} · تقدير سالم</span></span>
+    <span class="c-main"><span class="c-title">${esc(row[1])}</span><span class="c-date">${esc(fmtDate(row[0]))} · ${esc(row[7] || "تقدير سالم")}</span></span>
     ${valueHtml(s, "c-val")}
     ${segbar(s, 22)}
   </button>`;
@@ -1294,11 +1296,18 @@ function taskItem(row, reason) {
   </article>`;
 }
 function newsItem(row, reason) {
-  const [date, title, link, nawaf, faisal, lama, salem] = row;
+  // الأعمدة 8–10 (الخدمة المرتبطة، الصلة، الجمهور) موجودة في الأخبار الجديدة فقط
+  const [date, title, link, nawaf, faisal, lama, salem, service, relevance, audience] = row;
   const href = /^https?:\/\//i.test(String(link ?? "")) ? String(link) : "";
+  const tags = [
+    service && `<span class="tag" title="الخدمة المرتبطة">${esc(service)}</span>`,
+    audience && `<span class="tag" title="الجمهور">${esc(audience === "وهج" ? "وهج · المنازل" : "انطلق · الشركات والجهات")}</span>`,
+    relevance !== undefined && relevance !== "" && `<span class="tag" title="صلة الخبر بخدماتنا كما قدّرها نواف">صلة ${esc(relevance)}%</span>`
+  ].filter(Boolean).join("");
   return `<article class="item">
     <div class="item-head"><small class="muted" style="margin-inline-end:auto">${esc(fmtDate(date))}</small>${reason ? `<span class="badge" data-tone="bad">${esc(reason)}</span>` : ""}${scoreBadge(salem)}</div>
     <h3 class="news-title">${href ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(title)}${ICON.ext}</a>` : esc(title)}</h3>
+    ${tags ? `<div class="tags">${tags}</div>` : ""}
     <div class="by">${avatar("نواف", "xs")} ملخص نواف</div>
     <div class="md">${md(nawaf)}</div>
     <details class="fold"><summary>${avatar("فيصل", "xs")} تحليل فيصل للسوق</summary><div class="fold-body"><div class="md">${md(faisal)}</div></div></details>
@@ -1499,7 +1508,7 @@ async function fetchNews(btn) {
   if (state.fetching) { toast("دورة الرصد تعمل حالياً", "warn"); return; }
   state.fetching = true;
   const stop = busy(btn, "جاري الرصد");
-  toast("بدأ الرصد: كل خبر يمر على 4 وكلاء، فقد يستغرق ذلك دقيقة إلى ثلاث.");
+  toast("بدأ الرصد: يقيّم نواف صلة كل خبر أولاً، ثم يمر المناسب على بقية الفريق؛ قد يستغرق ذلك دقيقة إلى أربع.");
   try {
     const data = await api({ action: "fetch_news" });
     toast(data.message || "اكتمل رصد الأخبار", "ok");
