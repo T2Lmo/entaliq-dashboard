@@ -634,6 +634,7 @@
           <option value="low">الأقل تقديراً</option>
         </select>
       </div>
+      <div class="sh-pad" id="taskFeedback" role="status" hidden style="white-space:pre-wrap"></div>
       <div class="list" id="taskList"></div>
     </div>
     <div data-view="news" hidden>
@@ -645,7 +646,7 @@
       <div class="list" id="newsList"></div>
     </div>
     <div data-view="team" hidden><div class="list" id="teamList"></div></div>
-    <div data-view="alerts" hidden><div class="list" id="alertList"></div></div>
+    <div data-view="alerts" hidden><div class="sh-pad" id="alertFeedback" role="status" hidden style="white-space:pre-wrap"></div><div class="list" id="alertList"></div></div>
     <div data-view="content" hidden>
       <div class="toolbar">
         <div class="seg-ctl" id="contentFilter" role="group" aria-label="تصفية حسب الحالة"></div>
@@ -773,6 +774,7 @@ const state = {
   agent: AGENT_BY_NAME[store.get(KEYS.agent)] ? store.get(KEYS.agent) : "راكان",
   range: RANGES.some(r => r.id === store.get(KEYS.range)) ? store.get(KEYS.range) : "week",
   tasks: [], news: [], content: [], stats: null, alerts: null, sig: "",
+  taskVersions: {}, taskBusyId: null, taskOpenId: null,
   contentVersions: {}, contentMeta: null, contentFloor: null, contentPageLoading: false, connectionEpoch: 0, refreshSeq: 0,
   editingVersion: "", editingDraft: "", askingVersion: "", askingDraft: "", conflictId: null, recoveryDraft: null,
   contentFilter: "review", editingId: null, askingId: null, askingKind: "", contentBusy: false, designSize: {},
@@ -862,13 +864,39 @@ function md(text) {
 
 // يستخرج النسبة المئوية من نص تدقيق سالم (يدعم الأرقام العربية و ٪)
 function salemScore(text) {
-  // النسبة يجب أن تبدأ السطر الأول، أو تأتي بعد تسمية صريحة؛ لا نقرأ نسبة وفر داخل الشرح كدرجة تدقيق.
-  const t = String(text || "").trim().split(/\r?\n/)[0].replace(/[*_#]/g, "").trim()
-    .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/٫/g, ".");
-  const m = t.match(/^(?:(?:نسبة\s+)?(?:الدقة|دقة|الجودة|جودة|التقييم|تقييم)(?:\s+(?:المحتوى|العمل))?\s*[:：\-–]?\s*)?(\d{1,3}(?:\.\d+)?)\s*[%٪](?:\s|$|[،:.\-])/);
-  if (!m) return null;
-  const n = Math.round(parseFloat(m[1]));
-  return n >= 0 && n <= 100 ? n : null;
+  // توافق محافظ مع التدقيق القديم: تسمية درجة صريحة، دون الكود أو الاقتباسات أو سجل التدقيق السابق.
+  const current = String(text === undefined || text === null ? "" : text).split(AUDIT_HISTORY_MARKER)[0];
+  if (/^حالة التدقيق:\s*تعذر التقييم/.test(current.trim())) return null;
+  // الرد المنظم الذي صاغه الخادم يحدد درجته في الرأس؛ الأرقام المقتبسة داخل الأسباب ليست درجات بديلة.
+  const lines = current.trim().split(/\r?\n/);
+  if (/^نوع التدقيق: (?:تدقيق برمجي|فحص روابط|تدقيق محتوى|تدقيق عام)$/.test(lines[1] || "")) {
+    const header = lines[0].match(/^نسبة الدقة: ([+-]?\d+(?:\.\d+)?)%$/);
+    const number = header ? Number(header[1]) : NaN;
+    return isFinite(number) && number >= 0 && number <= 100 ? Math.round(number) : null;
+  }
+  const tick = String.fromCharCode(96);
+  const clean = current.replace(new RegExp(tick + "{3}[\\s\\S]*?(?:" + tick + "{3}|$)|~~~[\\s\\S]*?(?:~~~|$)", "g"), " ")
+    .replace(/^\s*>.*$/gm, " ").replace(/^\s*(?:مثال|مقتطف|اقتباس|النص الأصلي|النص المنقول)\s*[:：].*$/gm, " ")
+    .replace(new RegExp(tick + "[^" + tick + "\\r\\n]*" + tick, "g"), " ")
+    .replace(/"[^"\r\n]*"|'[^'\r\n]*'|“[^”]*”|«[^»]*»/g, " ")
+    .replace(/<[^>]*>/g, " ").replace(/[*_#]/g, "")
+    .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d))
+    .replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/٫/g, ".");
+  const label = /(^|[^\p{L}\p{N}_])(?:نسبة\s+(?:الدقة(?:\s+المئوية)?|الجودة)|درجة\s+(?:الدقة|الجودة)|تقدير\s+سالم|الدقة|دقة|الجودة|جودة|التقييم|تقييم)\s*[:：–]?\s*(?:([+-]?\d+(?:\.\d+)?)\s*[%٪]|[%٪]\s*([+-]?\d+(?:\.\d+)?))/gu;
+  const values = [];
+  let match;
+  while ((match = label.exec(clean)) !== null) {
+    if (/^\s*(?:[-–—]|إلى|الى|to)\s*[+-]?\d/i.test(clean.slice(label.lastIndex))) return null;
+    values.push(Number(match[2] === undefined ? match[3] : match[2]));
+  }
+  if (!values.length) {
+    // درجة عارية مسموحة فقط إن كانت وحدها في أول سطر؛ «0% من الاستهلاك» ليس تقييماً.
+    const first = clean.trim().split(/\r?\n/)[0];
+    const bare = first.match(/^([+-]?\d+(?:\.\d+)?)\s*[%٪](?:\s*$|\s*[:|]\s*\S)/);
+    if (bare) values.push(Number(bare[1]));
+  }
+  if (!values.length || values.some(n => !isFinite(n) || n < 0 || n > 100) || new Set(values).size !== 1) return null;
+  return Math.round(values[0]);
 }
 
 const isNum = v => typeof v === "number";
@@ -1366,27 +1394,73 @@ function renderStrip() {
 }
 
 // ---------------- القوائم داخل اللوحة الجانبية ----------------
+const AUDIT_HISTORY_MARKER = "<!-- AUDIT_HISTORY_V1 -->";
+function splitTaskAudit(audit) {
+  const text = String(audit || ""), cut = text.indexOf(AUDIT_HISTORY_MARKER);
+  return { current: (cut < 0 ? text : text.slice(0, cut)).trim(), history: cut < 0 ? "" : text.slice(cut + AUDIT_HISTORY_MARKER.length).replace(/^\s*###\s*سجل التدقيق السابق\s*/, "").trim() };
+}
+function taskAuditHtml(audit) {
+  const parts = splitTaskAudit(audit);
+  return '<div class="audit"><div class="audit-h">' + avatar("سالم", "xs") + ' التدقيق الحالي</div><div class="md">' + md(parts.current || "لم تُسجل نتيجة تدقيق لهذه المهمة.") + '</div></div>'
+    + (parts.history ? '<details class="fold"><summary>سجل التدقيق السابق</summary><div class="fold-body"><div class="md">' + md(parts.history) + '</div></div></details>' : "");
+}
 function taskItem(row, reason) {
   const [id, date, agent, task, output, audit, status] = row;
-  return `<article class="item">
-    <div class="item-head">
-      ${avatar(agent, "sm")}
-      <div class="item-meta"><strong>${esc(agent)}</strong><small>${esc(fmtDate(date))} · <span class="mono">${esc(id)}</span></small></div>
-      ${reason ? `<span class="badge" data-tone="bad">${esc(reason)}</span>` : ""}
-      ${scoreBadge(audit)}
-      ${reason ? "" : statusBadge(status)}
-    </div>
-    <p class="item-task">${esc(task)}</p>
-    <details class="fold">
-      <summary>المخرجات وتدقيق سالم</summary>
-      <div class="fold-body">
-        <div class="md">${md(output)}</div>
-        <div class="audit"><div class="audit-h">${avatar("سالم", "xs")} تدقيق سالم</div><div class="md">${md(audit)}</div></div>
-        <div class="row-actions">${copyButton(output, "نسخ المخرجات")}</div>
-      </div>
-    </details>
-  </article>`;
+  const current = splitTaskAudit(audit).current, score = salemScore(current), pending = state.taskBusyId === id;
+  const auditAction = '<button type="button" class="btn btn-line sm" data-task-reaudit="' + esc(id) + '" data-version="' + esc(state.taskVersions[id] || "") + '"' + (state.taskBusyId ? ' disabled' : '') + '><span class="lbl-text">' + (pending ? "جاري إعادة التدقيق…" : "إعادة التدقيق") + '</span></button>';
+  return '<article class="item"><div class="item-head">' + avatar(agent, "sm")
+    + '<div class="item-meta"><strong>' + esc(agent) + '</strong><small>' + esc(fmtDate(date)) + ' · <span class="mono">' + esc(id) + '</span></small></div>'
+    + (reason ? '<span class="badge" data-tone="bad">' + esc(reason) + '</span>' : '')
+    + (score === null ? '<span class="badge" data-tone="warn">لا تقدير حالي</span>' : scoreBadge(current))
+    + (reason ? '' : statusBadge(status)) + '</div><p class="item-task">' + esc(task) + '</p>'
+    + (score === null ? '<p class="hint">' + esc(clip(current || "لم تُسجل نتيجة تدقيق؛ يمكنك إعادة تدقيق المخرجات المحفوظة.", 220)) + '</p>' : '')
+    + '<details class="fold"' + (state.taskOpenId === id ? ' open' : '') + '><summary>المخرجات وتدقيق سالم</summary><div class="fold-body"><div class="md">' + md(output) + '</div>'
+    + taskAuditHtml(audit) + '<div class="row-actions">' + copyButton(output, "نسخ المخرجات") + auditAction + '</div><p class="hint">إعادة التدقيق تراجع المخرجات المحفوظة فقط؛ لا تعيد إنشاء المهمة.</p></div></details></article>';
 }
+function taskFeedback(text, kind) {
+  contentFeedback(text, kind, "taskFeedback");
+  contentFeedback(text, kind, "alertFeedback");
+}
+async function reauditTask(btn) {
+  if (state.taskBusyId) { toast("انتظر اكتمال إعادة التدقيق الحالية.", "warn"); return; }
+  const id = btn.dataset.taskReaudit, version = btn.dataset.version || "";
+  const row = state.tasks.find(r => r[0] === id) || (state.alerts || []).filter(a => a.kind === "task").map(a => a.row).find(r => r[0] === id);
+  if (!row) { taskFeedback("المهمة غير موجودة في البيانات الحالية؛ حدّث اللوحة.", "warn"); return; }
+  if (!version) { taskFeedback("نسخة المهمة غير متوفرة؛ حدّث اللوحة قبل إعادة التدقيق.", "warn"); await refresh({ quiet: true }); return; }
+  const epoch = state.connectionEpoch, url = state.url, token = state.token;
+  state.taskBusyId = id; state.taskOpenId = id;
+  const stop = busy(btn, "سالم يعيد التدقيق");
+  taskFeedback("يعيد سالم تدقيق المخرجات المحفوظة للمهمة " + id + "؛ ستُحفظ النتيجة السابقة في سجل التدقيق.", "none");
+  try {
+    const data = await api({ action: "task_reaudit", id, version });
+    if (!sameConnection(epoch, url, token)) return;
+    if (!Array.isArray(data.task) || data.task[0] !== id || !data.version) throw new Error("عاد رد غير مكتمل بعد إعادة التدقيق؛ حدّث اللوحة للتحقق قبل المحاولة مجدداً.");
+    const at = state.tasks.findIndex(r => r[0] === id);
+    if (at >= 0) state.tasks[at] = data.task;
+    if (state.alerts) state.alerts.forEach(a => { if (a.kind === "task" && a.row[0] === id) a.row = data.task; });
+    state.taskVersions[id] = data.version;
+    const score = salemScore(data.task[5]), warnings = (data.warnings || []).map(String);
+    const message = score === null ? "حُفظت نتيجة إعادة التدقيق دون درجة رقمية؛ راجع السبب في التدقيق الحالي." : "أُعيد تدقيق المهمة " + id + "؛ التقدير الحالي " + score + "%.";
+    if (!await refresh({ quiet: true })) warnings.push("تعذر تحديث المؤشرات والتنبيهات: " + state.error);
+    if (!sameConnection(epoch, url, token)) return;
+    const kind = score === null || warnings.length ? "warn" : "ok";
+    taskFeedback([message, ...warnings.map(w => "• " + w)].join("\n"), kind);
+    toast(message, kind);
+  } catch (e) {
+    if (!sameConnection(epoch, url, token)) return;
+    const message = e.message + (e.code === "CONFLICT" ? " لم تُعد كتابة المهمة؛ حدّث بياناتها ثم أعد التدقيق." : "");
+    taskFeedback(message, e.code === "CONFLICT" ? "warn" : "bad");
+    toast(message, e.code === "CONFLICT" ? "warn" : "bad");
+    if (e.code === "CONFLICT") await refresh({ quiet: true });
+  } finally {
+    stop();
+    if (sameConnection(epoch, url, token)) {
+      if (state.taskBusyId === id) state.taskBusyId = null;
+      if (["tasks", "alerts"].includes(state.view)) renderView();
+    }
+  }
+}
+
 function newsItem(row, reason) {
   // الأعمدة 8–10 (الخدمة، الصلة، الجمهور) و11–13 (رابط الناشر، نص الخبر، عمق المصدر) موجودة في الأخبار الأحدث فقط
   const [date, title, link, nawaf, faisal, lama, salem, service, relevance, audience, pubUrl, article, depthCell] = row;
@@ -1956,10 +2030,11 @@ async function refresh(opts) {
     const stats = data.stats && data.stats.series ? data.stats : null;
     if (!stats || stats.range !== range) throw new Error("الخادم لم يُرجع مؤشرات الفترة المطلوبة؛ تحقق من نشر النسخة المحدثة.");
     const alerts = Array.isArray(data.alerts) ? data.alerts : null;
-    const sig = JSON.stringify([tasks, news, data.content, stats, alerts, data.contentVersions, data.contentMeta]);
+    const taskVersions = data.taskVersions || {};
+    const sig = JSON.stringify([tasks, news, data.content, stats, alerts, taskVersions, data.contentVersions, data.contentMeta]);
     changed = changed || sig !== state.sig;
     acceptContent(data, false);
-    Object.assign(state, { tasks, news, stats, alerts, sig, loaded: true, error: "", lastSync: new Date() });
+    Object.assign(state, { tasks, news, stats, alerts, taskVersions, sig, loaded: true, error: "", lastSync: new Date() });
     return true;
   } catch (e) {
     if (!current()) return false;
@@ -2082,7 +2157,7 @@ function setAuto(on) {
   b.title = on ? "إيقاف التحديث التلقائي" : "تشغيل التحديث التلقائي (كل دقيقة)";
   b.setAttribute("aria-label", b.title);
   clearInterval(autoTimer);
-  if (on) autoTimer = setInterval(() => { if (document.visibilityState === "visible" && !state.loading && !state.contentPageLoading && !state.contentBusy) refresh({ quiet: true }); }, 60000);
+  if (on) autoTimer = setInterval(() => { if (document.visibilityState === "visible" && !state.loading && !state.contentPageLoading && !state.contentBusy && !state.taskBusyId) refresh({ quiet: true }); }, 60000);
 }
 
 // ---------------- الإعدادات ----------------
@@ -2104,12 +2179,12 @@ async function saveSettings(ev) {
   catch (e) { settingsMsg("استخدم رابط HTTPS لتطبيق Google Apps Script المنشور والمنتهي بـ /exec.", "bad"); return; }
   if (!token) { settingsMsg("رمز ACCESS_TOKEN مطلوب.", "bad"); return; }
   if (state.editingId || state.askingId) { settingsMsg("احفظ النص المفتوح أو ألغِ تحريره قبل تغيير الاتصال.", "bad"); return; }
-  if (state.sending || state.contentBusy || state.fetching) { settingsMsg("انتظر اكتمال العملية الحالية قبل تغيير الخادم.", "bad"); return; }
+  if (state.sending || state.contentBusy || state.fetching || state.taskBusyId) { settingsMsg("انتظر اكتمال العملية الحالية قبل تغيير الخادم.", "bad"); return; }
   if (linkedin && !/^https:\/\/([\w-]+\.)?linkedin\.com\//i.test(linkedin)) { settingsMsg("رابط LinkedIn يجب أن يبدأ بـ https://www.linkedin.com/", "bad"); return; }
   state.linkedin = linkedin;
   store.set(KEYS.linkedin, linkedin);
 
-  Object.assign(state, { url, token, loaded: false, error: "", sig: "", connectionEpoch: state.connectionEpoch + 1, contentFloor: null, contentVersions: {}, contentMeta: null, tasks: [], news: [], content: [], stats: null, alerts: null, lastSync: null, editingId: null, askingId: null, conflictId: null });
+  Object.assign(state, { url, token, loaded: false, error: "", sig: "", connectionEpoch: state.connectionEpoch + 1, contentFloor: null, contentVersions: {}, contentMeta: null, taskVersions: {}, tasks: [], news: [], content: [], stats: null, alerts: null, lastSync: null, editingId: null, askingId: null, conflictId: null });
   store.set(KEYS.url, url); store.set(KEYS.token, token);
   const btn = $("#btnSaveSettings");
   btn.disabled = true;
@@ -2188,6 +2263,8 @@ document.addEventListener("click", async e => {
   if (fetchBtn) { fetchNews(fetchBtn); return; }
   const planBtn = t.closest('[data-action="weekly-plan"], [data-action="seasonal-tips"]');
   if (planBtn) { contentJob(planBtn, planBtn.dataset.action === "weekly-plan" ? "plan" : "tips"); return; }
+  const reaudit = t.closest("[data-task-reaudit]");
+  if (reaudit) { reauditTask(reaudit); return; }
   const cact = t.closest("[data-cact]");
   if (cact) { contentAction(cact); return; }
   const cfilter = t.closest("[data-cfilter]");
