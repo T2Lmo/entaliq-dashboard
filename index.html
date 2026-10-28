@@ -595,7 +595,7 @@
   <div class="ticker-view"><div class="ticker-track" id="tickerTrack"></div></div>
 </section>
 <section class="strip" id="strip" aria-label="أحدث الأخبار"></section>
-<p class="foot">مؤشرات الوكلاء والإنجاز تخص التكليفات المباشرة، والمؤشر العام والرسم يجمعان المهام والأخبار خلال الفترة. التنبيهات تشمل كل عناصر الفترة. سجل المهام والأخبار يعرض أحدث 20 مهمة و10 أخبار. عدادات المحتوى وجاهزية النشر تشمل جميع المنشورات، ويمكن تحميل الأقدم من قائمة المحتوى. نسب «تقدير سالم» يقدّرها نموذج ذكاء اصطناعي، وهي مؤشر للمراجعة وليست قياساً مؤكداً للدقة.</p>
+<p class="foot">مؤشرات الوكلاء والإنجاز تخص التكليفات المباشرة، والمؤشر العام والرسم يجمعان المهام والأخبار خلال الفترة. التنبيهات تشمل كل عناصر الفترة. سجل المهام يعرض أحدث 20 مهمة وكل الأبحاث الجارية؛ قائمة الأخبار تعرض أحدث 10 أخبار. عدادات المحتوى وجاهزية النشر تشمل جميع المنشورات، ويمكن تحميل الأقدم من قائمة المحتوى. نسب «تقدير سالم» يقدّرها نموذج ذكاء اصطناعي، وهي مؤشر للمراجعة وليست قياساً مؤكداً للدقة.</p>
 
 <button class="fab" type="button" data-open="compose" aria-label="المساعد: تكليف وكيل" title="تكليف وكيل">
   <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -616,11 +616,12 @@
       <form class="sh-pad" id="taskForm">
         <div class="picks" id="pickGrid" role="group" aria-label="اختر الوكيل"></div>
         <div class="agent-info" id="agentInfo"></div>
+        <div id="researchBanner" class="note-box" role="status" hidden></div>
         <label class="lbl" for="taskInput">المهمة</label>
         <textarea class="field" id="taskInput" rows="5"></textarea>
         <div class="chips" id="examples" aria-label="أمثلة"></div>
         <button class="btn btn-primary wide" id="btnSend" type="submit"><span id="sendIcon"></span><span class="lbl-text" id="sendLabel">تكليف</span></button>
-        <p class="hint" style="margin:8px 0 0">يدقق سالم كل مخرجات تلقائياً بعد التنفيذ · <span class="kbd">Ctrl + Enter</span> للإرسال</p>
+        <p class="hint" id="composeHint" style="margin:8px 0 0">يدقق سالم كل مخرجات تلقائياً بعد التنفيذ · <span class="kbd">Ctrl + Enter</span> للإرسال</p>
         <div class="result" id="result" hidden aria-live="polite"></div>
       </form>
     </div>
@@ -721,6 +722,9 @@ const AGENTS = [
   { name: "ريم", role: "تصميم الهوية", f: true, c: "#ef8a6f",
     desc: "تصمم صور المنشورات لـ LinkedIn وX بهوية انطلق ووهج وأثر، بنصوص قصيرة من المنشور نفسه.",
     examples: ["اقترحي ثلاثة عناوين بصرية لمنشور عن أثر في المستشفيات", "ما القالب الأنسب لنصائح ترشيد التكييف لوهج؟"] },
+  { name: "الباحث", role: "باحث الإنترنت", c: "#75c7dd",
+    desc: "يبحث على الإنترنت في الشركات والمنتجات والأسواق والموضوعات العامة، ويعرض مصادره وتاريخ البحث وما أمكن التحقق منه.",
+    examples: ["ابحث عن شركة سابك: نشاطها ومنتجاتها وأحدث المعلومات المنشورة عنها مع المصادر", "قارن بين ثلاثة أنظمة لإدارة المشاريع باستخدام مصادرها الرسمية، واذكر تاريخ المعلومات"] },
   { name: "زياد", role: "محتوى منصة X", c: "#8fd3e8",
     desc: "يحوّل منشورات LinkedIn إلى تغريدات قصيرة بصوت كل علامة ضمن 280 حرفاً.",
     examples: ["حوّل هذا المنشور إلى تغريدة: …", "اقترح هاشتاقات X مناسبة لمحتوى كفاءة الطاقة في السعودية"] }
@@ -747,7 +751,7 @@ const TONE_LABEL = { ok: "جيد", warn: "متوسط", bad: "ضعيف", none: "�
 const TONE_COLOR = { ok: "#2bd47d", warn: "#f3b03d", bad: "#ef5350", none: "#3a3f46" };
 const VIEWS = {
   compose: { title: "تكليف وكيل", sub: "اختر الوكيل واكتب المهمة، ويدقق سالم المخرجات تلقائياً." },
-  tasks: { title: "سجل المهام", sub: "آخر 20 مهمة يعيدها الخادم." },
+  tasks: { title: "سجل المهام", sub: "أحدث 20 مهمة، مع الأبحاث الجارية حتى اكتمالها." },
   news: { title: "الأخبار", sub: "آخر 10 أخبار طاقة رصدها نواف وربطها الفريق بخدماتنا." },
   team: { title: "التكليفات المباشرة للوكلاء", sub: "التكليفات المباشرة خلال الفترة؛ لا تشمل الأدوار الآلية في الأخبار وخطط المحتوى والتصاميم." },
   alerts: { title: "تنبيهات الفترة", sub: "كل المخرجات منخفضة التقدير أو غير مكتملة التدقيق في الفترة المختارة." },
@@ -761,7 +765,7 @@ const RANGES = [
   { id: "all", label: "الكل", note: "كل البيانات" }
 ];
 
-const KEYS = { url: "entaliq.url", token: "entaliq.token", agent: "entaliq.agent", draft: "entaliq.draft", auto: "entaliq.auto", range: "entaliq.range", linkedin: "entaliq.linkedin" };
+const KEYS = { url: "entaliq.url", token: "entaliq.token", agent: "entaliq.agent", draft: "entaliq.draft", auto: "entaliq.auto", range: "entaliq.range", linkedin: "entaliq.linkedin", research: "entaliq.research" };
 const store = {
   get(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
   set(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch (e) {} }
@@ -775,6 +779,7 @@ const state = {
   range: RANGES.some(r => r.id === store.get(KEYS.range)) ? store.get(KEYS.range) : "week",
   tasks: [], news: [], content: [], stats: null, alerts: null, sig: "",
   taskVersions: {}, taskBusyId: null, taskOpenId: null,
+  researchTasks: {}, researchIntents: {}, researchFocus: "", researchTimer: 0, researchPollSeq: 0, researchPolling: false, researchRevision: 0, resultOwner: "",
   contentVersions: {}, contentMeta: null, contentFloor: null, contentPageLoading: false, connectionEpoch: 0, refreshSeq: 0,
   editingVersion: "", editingDraft: "", askingVersion: "", askingDraft: "", conflictId: null, recoveryDraft: null,
   contentFilter: "review", editingId: null, askingId: null, askingKind: "", contentBusy: false, designSize: {},
@@ -821,9 +826,9 @@ const GLYPH = {
 async function api(body) {
   if (!state.url) throw new Error("أضف رابط الخادم من الإعدادات أولاً");
   if (!state.token) throw new Error("رمز ACCESS_TOKEN مطلوب في إعدادات الاتصال والخادم");
-  const reading = ["dashboard", "list", "content_page"].includes(body.action);
+  const reading = ["dashboard", "list", "content_page", "research_status"].includes(body.action);
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), reading ? 45000 : 390000);
+  const timer = setTimeout(() => controller.abort(), reading || body.action === "research_start" ? 45000 : 390000);
   const url = state.url, token = state.token;
   try {
     let res;
@@ -999,6 +1004,7 @@ function metricsFromRecent() {
 function alertItems() {
   const out = [];
   state.tasks.forEach(r => {
+    if (r[2] === "الباحث" && researchIsPending(state.researchTasks[r[0]])) return;
     const s = salemScore(r[5]);
     if (r[6] && r[6] !== "مكتمل") out.push({ kind: "task", row: r, reason: String(r[6]) });
     else if (s !== null && s < 70) out.push({ kind: "task", row: r, reason: "تقدير منخفض" });
@@ -1394,6 +1400,185 @@ function renderStrip() {
 }
 
 // ---------------- القوائم داخل اللوحة الجانبية ----------------
+const RESEARCH_PENDING = ["queued", "searching", "auditing"];
+const RESEARCH_TERMINAL = ["completed", "failed", "partial"];
+const RESEARCH_LABEL = { submitting: "جارٍ حفظ الطلب", unknown: "جارٍ التحقق من استلام الطلب", queued: "بانتظار بدء البحث", searching: "يجري البحث في المصادر", auditing: "اكتمل البحث وجارٍ تدقيقه", completed: "اكتمل البحث", partial: "نتيجة جزئية تحتاج مراجعة", failed: "تعذر إكمال البحث" };
+const researchStoreKey = () => KEYS.research + ":" + encodeURIComponent(state.url || "unconfigured");
+const researchIsPending = meta => !!meta && !RESEARCH_TERMINAL.includes(meta.status);
+function saveResearchIntents() {
+  const entries = Object.entries(state.researchIntents);
+  const ended = entries.filter(([, v]) => !researchIsPending(v)).sort((a, b) => String(b[1].submittedAt || "").localeCompare(String(a[1].submittedAt || ""))).slice(0, 10);
+  const kept = Object.fromEntries(entries.filter(([, v]) => researchIsPending(v)).concat(ended));
+  const text = JSON.stringify(kept);
+  try { localStorage.setItem(researchStoreKey(), text); return localStorage.getItem(researchStoreKey()) === text; } catch (e) { return false; }
+}
+function restoreResearchTracking() {
+  clearTimeout(state.researchTimer); state.researchPollSeq++; state.researchPolling = false;
+  state.researchIntents = {}; state.researchTasks = {}; state.researchFocus = "";
+  try {
+    const saved = JSON.parse(store.get(researchStoreKey()) || "{}");
+    Object.entries(saved).forEach(([id, item]) => {
+      if (/^[A-Za-z0-9_-]{16,100}$/.test(id) && item && typeof item.taskText === "string") state.researchIntents[id] = { ...item, requestId: id, status: item.status === "submitting" ? "unknown" : item.status, paused: false, readErrors: 0 };
+    });
+  } catch (e) {}
+  const pending = Object.values(state.researchIntents).filter(researchIsPending);
+  if (pending.length) { state.researchFocus = pending[0].requestId; state.resultOwner = "research"; }
+  renderResearchBanner(); scheduleResearchPoll(1000);
+}
+function researchSafeUrl(value) {
+  try { const u = new URL(String(value || "")); return ["http:", "https:"].includes(u.protocol) && !u.username && !u.password ? u.href : ""; } catch (e) { return ""; }
+}
+function researchSuggestions(html) {
+  if (!html || !window.DOMPurify) return "";
+  const clean = DOMPurify.sanitize(String(html), { ADD_TAGS: ["style"], FORBID_TAGS: ["script", "iframe", "object", "embed", "form", "input", "button", "base", "meta"], FORBID_ATTR: ["srcdoc"] });
+  const policy = "default-src 'none'; script-src 'none'; style-src 'unsafe-inline'; img-src https: data:; font-src https:; base-uri 'none'; form-action 'none'";
+  const doc = '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="' + policy + '"></head><body>' + clean + '</body></html>';
+  return '<div class="by">اقتراحات بحث Google</div><iframe title="اقتراحات بحث Google" sandbox="allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" srcdoc="' + esc(doc) + '" style="width:100%;height:220px;border:0;background:#fff;border-radius:8px"></iframe>';
+}
+function researchPanelHtml(meta) {
+  if (!meta) return '<p class="hint">جارٍ تحميل تفاصيل البحث المحفوظ.</p>';
+  const sources = (Array.isArray(meta.sources) ? meta.sources : []).map(s => ({ title: String(s.title || s.url || "المصدر"), url: researchSafeUrl(s.url) })).filter(s => s.url);
+  const queries = (Array.isArray(meta.queries) ? meta.queries : []).map(String);
+  const date = meta.completedAt || meta.startedAt || meta.createdAt || "";
+  const queryCount = Number.isInteger(meta.queryCount) && meta.queryCount >= 0 ? meta.queryCount : queries.length;
+  const evidence = meta.searchPerformed === true ? "بحث فعلي مسجل على الإنترنت" : researchIsPending(meta) ? "لم يصل دليل البحث بعد" : "لم يثبت إجراء بحث على الإنترنت لهذه النتيجة";
+  const links = sources.map(s => '<li><a href="' + esc(s.url) + '" target="_blank" rel="noopener noreferrer">' + esc(s.title) + '</a></li>').join("");
+  const citations = (Array.isArray(meta.citations) ? meta.citations : []).filter(c => c.quote && researchSafeUrl(c.url)).slice(0, 20).map(c => '<li><q>' + esc(c.quote) + '</q> <a href="' + esc(researchSafeUrl(c.url)) + '" target="_blank" rel="noopener noreferrer">' + esc(c.title || "المصدر") + '</a></li>').join("");
+  return '<div class="note-box"><div class="tags"><span class="tag">' + esc(RESEARCH_LABEL[meta.status] || "حالة البحث غير متاحة") + '</span><span class="tag">' + esc(evidence) + '</span></div>'
+    + '<p class="hint">' + (date ? 'تاريخ البحث: ' + esc(fmtDate(date)) + ' · ' : '') + sources.length + ' مصادر · ' + queryCount + ' عبارات بحث</p>'
+    + (!researchIsPending(meta) && meta.documented !== true ? '<p class="hint">توثيق المصادر غير مكتمل؛ راجع حدود النتيجة قبل الاعتماد عليها.</p>' : '')
+    + (meta.error ? '<p>' + esc(meta.error) + '</p>' : '')
+    + ((meta.warnings || []).length ? '<ul>' + meta.warnings.map(w => '<li>' + esc(w) + '</li>').join('') + '</ul>' : '')
+    + (links ? '<details class="fold" open><summary>المصادر</summary><ul>' + links + '</ul></details>' : '')
+    + (queries.length ? '<details class="fold"><summary>ما الذي جرى البحث عنه؟</summary><ul>' + queries.map(q => '<li>' + esc(q) + '</li>').join('') + '</ul></details>' : '')
+    + (citations ? '<details class="fold"><summary>العبارات المرتبطة بالمصادر</summary><ul>' + citations + '</ul></details>' : '')
+    + researchSuggestions(meta.searchEntryPointHtml) + '</div>';
+}
+function renderResearchBanner() {
+  const box = $("#researchBanner");
+  if (!box) return;
+  const pending = Object.values(state.researchIntents).filter(researchIsPending);
+  box.hidden = !pending.length;
+  box.innerHTML = pending.map(item => '<div><strong>' + esc(RESEARCH_LABEL[item.status] || "بحث جارٍ") + '</strong><p class="hint">' + esc(clip(item.taskText, 130)) + '</p>' + (item.error ? '<p class="hint">' + esc(item.error) + '</p>' : '') + '<button type="button" class="btn btn-line sm" data-research-request="' + esc(item.requestId) + '"><span class="lbl-text">متابعة البحث</span></button>' + (item.status === 'unknown' && item.notFoundCount >= 3 ? '<button type="button" class="btn btn-line sm" data-research-resend="' + esc(item.requestId) + '"><span class="lbl-text">إعادة إرسال الطلب نفسه</span></button>' : '') + '</div>').join('<hr>');
+}
+function renderResearchResult() {
+  renderResearchBanner();
+  if (state.resultOwner !== "research" || !state.researchFocus) return;
+  const intent = state.researchIntents[state.researchFocus];
+  if (!intent) return;
+  const box = $("#result"), row = state.tasks.find(r => r[0] === intent.taskId);
+  box.hidden = false; box.className = "result";
+  if (row) { state.taskOpenId = row[0]; box.innerHTML = taskItem(row); }
+  else box.innerHTML = '<div class="result-body"><strong>' + esc(RESEARCH_LABEL[intent.status] || "متابعة البحث") + '</strong><p>' + esc(intent.taskText) + '</p><p class="hint">' + esc(intent.error || "حُفظ طلبك للمتابعة. قد يستغرق بدء البحث نحو دقيقة، ويستمر العمل بعد إغلاق الصفحة.") + '</p></div>';
+}
+function ingestResearchMetadata(map, tasks) {
+  Object.entries(map || {}).forEach(([id, meta]) => {
+    if (!meta || typeof meta !== "object") return;
+    state.researchTasks[id] = meta;
+    const rid = String(meta.requestId || "");
+    if (!/^[A-Za-z0-9_-]{16,100}$/.test(rid)) return;
+    const old = state.researchIntents[rid];
+    if (!old && !researchIsPending(meta)) return;
+    const row = (tasks || state.tasks).find(r => r[0] === id);
+    state.researchIntents[rid] = { ...(old || {}), requestId: rid, taskId: id, taskText: row ? String(row[3] || "") : old ? old.taskText : "بحث محفوظ", status: meta.status, submittedAt: old ? old.submittedAt : meta.createdAt, error: meta.error || "", paused: false, readErrors: 0 };
+  });
+  saveResearchIntents(); renderResearchBanner(); scheduleResearchPoll();
+}
+function acceptResearchResult(data) {
+  if (!data || !Array.isArray(data.task) || !data.research || !data.taskId || data.task[0] !== data.taskId) throw new Error("لم تصل بيانات البحث كاملة؛ استخدم متابعة البحث للتحقق من حالته.");
+  const previous = state.researchTasks[data.taskId];
+  if (!previous || JSON.stringify(previous) !== JSON.stringify(data.research) || state.taskVersions[data.taskId] !== data.version) state.researchRevision++;
+  const at = state.tasks.findIndex(r => r[0] === data.taskId);
+  if (at >= 0) state.tasks[at] = data.task; else state.tasks.unshift(data.task);
+  if (data.version) state.taskVersions[data.taskId] = data.version;
+  ingestResearchMetadata({ [data.taskId]: data.research }, state.tasks);
+}
+function scheduleResearchPoll(delay) {
+  clearTimeout(state.researchTimer);
+  if (!state.url || !state.token || !Object.values(state.researchIntents).some(i => researchIsPending(i) && !i.paused)) return;
+  state.researchTimer = setTimeout(() => pollResearch(), delay === undefined ? 9000 : delay);
+}
+async function pollResearch() {
+  if (state.researchPolling || !state.url || !state.token) return;
+  if (document.visibilityState === "hidden") { scheduleResearchPoll(); return; }
+  const pending = Object.values(state.researchIntents).filter(i => researchIsPending(i) && !i.paused);
+  if (!pending.length) return;
+  const seq = ++state.researchPollSeq, epoch = state.connectionEpoch, url = state.url, token = state.token;
+  const current = () => seq === state.researchPollSeq && sameConnection(epoch, url, token);
+  state.researchPolling = true;
+  let ended = false;
+  try {
+    for (const intent of pending) {
+      if (!current()) return;
+      try {
+        const data = await api(intent.taskId ? { action: "research_status", id: intent.taskId } : { action: "research_status", requestId: intent.requestId });
+        if (!current()) return;
+        if (!data.research || data.research.requestId !== intent.requestId || (intent.taskId && data.taskId !== intent.taskId)) throw new Error("رد المتابعة لا يطابق طلب البحث؛ حاول متابعة الحالة مجدداً.");
+        acceptResearchResult(data);
+        ended = ended || RESEARCH_TERMINAL.includes(data.research.status);
+      } catch (e) {
+        if (!current()) return;
+        const active = state.researchIntents[intent.requestId];
+        if (active) { active.readErrors = (active.readErrors || 0) + 1; if (e.code === "NOT_FOUND") active.notFoundCount = (active.notFoundCount || 0) + 1; active.error = e.message + " لن يُنشأ بحث آخر عند المتابعة."; active.paused = active.readErrors >= 3 || ["UNAUTHORIZED", "CONFIG_ERROR"].includes(e.code); }
+        saveResearchIntents();
+      }
+    }
+    if (ended) await refresh({ quiet: true });
+    if (!current()) return;
+    renderResearchResult();
+    if (state.view === "tasks" && sheet.open) renderTasksView();
+  } finally {
+    if (current()) { state.researchPolling = false; scheduleResearchPoll(); }
+  }
+}
+async function followResearch(idOrRequest) {
+  let intent = state.researchIntents[idOrRequest] || Object.values(state.researchIntents).find(i => i.taskId === idOrRequest);
+  const meta = state.researchTasks[idOrRequest];
+  if (!intent && meta) { ingestResearchMetadata({ [idOrRequest]: meta }, state.tasks); intent = state.researchIntents[meta.requestId]; }
+  if (!intent) { toast("حدّث قائمة المهام لتحميل بيانات متابعة البحث.", "warn"); return; }
+  state.researchFocus = intent.requestId; state.resultOwner = "research"; intent.paused = false; intent.readErrors = 0;
+  saveResearchIntents(); renderResearchResult();
+  if (researchIsPending(intent)) await pollResearch();
+}
+async function resendResearch(requestId) {
+  const intent = state.researchIntents[requestId];
+  if (state.sending || !intent || intent.status !== "unknown" || !(intent.notFoundCount >= 3)) return;
+  await startResearch(intent.taskText, $("#taskInput"), requestId);
+}
+function researchCanAudit(row, meta) {
+  return !!(meta && ["completed", "partial"].includes(meta.status) && meta.documented === true && meta.searchPerformed === true && row[4] && Array.isArray(meta.citations) && meta.citations.length);
+}
+async function startResearch(task, input, resumeRequestId) {
+  if (state.sending) return;
+  if (!state.url || !state.token) { openSettings(); return; }
+  const existing = Object.values(state.researchIntents).find(i => researchIsPending(i) && i.taskText.trim() === task.trim());
+  if (existing && !resumeRequestId) { await followResearch(existing.requestId); return; }
+  const submitted = input.value, epoch = state.connectionEpoch, url = state.url, token = state.token;
+  let requestId = resumeRequestId;
+  try { if (!requestId) requestId = crypto.randomUUID(); } catch (e) { toast("تعذر إنشاء معرّف آمن للبحث في هذا المتصفح.", "bad"); return; }
+  const previousIntent = state.researchIntents[requestId];
+  state.researchIntents[requestId] = { requestId, taskId: previousIntent ? previousIntent.taskId : "", taskText: task, submittedAt: previousIntent ? previousIntent.submittedAt : new Date().toISOString(), status: "submitting", error: "", paused: false, readErrors: 0, notFoundCount: 0 };
+  if (!saveResearchIntents()) { if (previousIntent) state.researchIntents[requestId] = previousIntent; else delete state.researchIntents[requestId]; toast("تعذر حفظ متابعة البحث في المتصفح؛ فعّل التخزين المحلي ثم حاول مجدداً.", "bad"); return; }
+  state.researchFocus = requestId; state.resultOwner = "research"; state.sending = true;
+  const stop = busy($("#btnSend"), "جارٍ حفظ البحث"); renderResearchResult();
+  try {
+    const data = await api({ action: "research_start", task, requestId });
+    if (!sameConnection(epoch, url, token)) return;
+    if (!data.research || data.research.requestId !== requestId) throw new Error("لم يصل تأكيد مطابق لطلبك؛ استخدم متابعة البحث للتحقق منه.");
+    acceptResearchResult(data);
+    if (!resumeRequestId && input.value === submitted) { input.value = ""; store.set(KEYS.draft, ""); }
+    renderResearchResult();
+  } catch (e) {
+    if (!sameConnection(epoch, url, token)) return;
+    const intent = state.researchIntents[requestId];
+    if (intent) { intent.status = ["VALIDATION_ERROR", "UNAUTHORIZED", "CONFIG_ERROR", "RESEARCH_LIMIT", "CONFLICT", "BUSY"].includes(e.code) ? "failed" : "unknown"; intent.error = e.message + (intent.status === "unknown" ? " حُفظ طلبك؛ المتابعة تتحقق من حالته دون إنشاء بحث جديد." : ""); }
+    saveResearchIntents(); renderResearchResult();
+  } finally {
+    stop();
+    if (sameConnection(epoch, url, token)) { state.sending = false; renderCompose(); scheduleResearchPoll(); }
+  }
+}
+
 const AUDIT_HISTORY_MARKER = "<!-- AUDIT_HISTORY_V1 -->";
 function splitTaskAudit(audit) {
   const text = String(audit || ""), cut = text.indexOf(AUDIT_HISTORY_MARKER);
@@ -1406,17 +1591,23 @@ function taskAuditHtml(audit) {
 }
 function taskItem(row, reason) {
   const [id, date, agent, task, output, audit, status] = row;
+  const research = agent === "الباحث", meta = state.researchTasks[id], researching = research && (!meta || researchIsPending(meta));
   const current = splitTaskAudit(audit).current, score = salemScore(current), pending = state.taskBusyId === id;
-  const auditAction = '<button type="button" class="btn btn-line sm" data-task-reaudit="' + esc(id) + '" data-version="' + esc(state.taskVersions[id] || "") + '"' + (state.taskBusyId ? ' disabled' : '') + '><span class="lbl-text">' + (pending ? "جاري إعادة التدقيق…" : "إعادة التدقيق") + '</span></button>';
+  const canAudit = !research || researchCanAudit(row, meta);
+  const auditAction = canAudit ? '<button type="button" class="btn btn-line sm" data-task-reaudit="' + esc(id) + '" data-version="' + esc(state.taskVersions[id] || "") + '"' + (state.taskBusyId ? ' disabled' : '') + '><span class="lbl-text">' + (pending ? "جاري إعادة التدقيق…" : "إعادة التدقيق") + '</span></button>' : '';
+  const follow = researching ? '<button type="button" class="btn btn-line sm" data-research-follow="' + esc(id) + '"><span class="lbl-text">متابعة البحث</span></button>' : '';
+  const badge = researching ? '<span class="badge" data-tone="none">' + esc(meta ? RESEARCH_LABEL[meta.status] || "بحث جارٍ" : "جارٍ تحميل البحث") + '</span>' : score === null ? '<span class="badge" data-tone="warn">لا تقدير حالي</span>' : scoreBadge(current);
   return '<article class="item"><div class="item-head">' + avatar(agent, "sm")
     + '<div class="item-meta"><strong>' + esc(agent) + '</strong><small>' + esc(fmtDate(date)) + ' · <span class="mono">' + esc(id) + '</span></small></div>'
-    + (reason ? '<span class="badge" data-tone="bad">' + esc(reason) + '</span>' : '')
-    + (score === null ? '<span class="badge" data-tone="warn">لا تقدير حالي</span>' : scoreBadge(current))
-    + (reason ? '' : statusBadge(status)) + '</div><p class="item-task">' + esc(task) + '</p>'
-    + (score === null ? '<p class="hint">' + esc(clip(current || "لم تُسجل نتيجة تدقيق؛ يمكنك إعادة تدقيق المخرجات المحفوظة.", 220)) + '</p>' : '')
-    + '<details class="fold"' + (state.taskOpenId === id ? ' open' : '') + '><summary>المخرجات وتدقيق سالم</summary><div class="fold-body"><div class="md">' + md(output) + '</div>'
-    + taskAuditHtml(audit) + '<div class="row-actions">' + copyButton(output, "نسخ المخرجات") + auditAction + '</div><p class="hint">إعادة التدقيق تراجع المخرجات المحفوظة فقط؛ لا تعيد إنشاء المهمة.</p></div></details></article>';
+    + (reason && !researching ? '<span class="badge" data-tone="bad">' + esc(reason) + '</span>' : '')
+    + badge + (reason || researching ? '' : statusBadge(status)) + '</div><p class="item-task">' + esc(task) + '</p>'
+    + (researching ? '<p class="hint">يستمر البحث بعد إغلاق الصفحة، وستظهر النتيجة ومصادرها عند اكتماله.</p>' : score === null && !research ? '<p class="hint">' + esc(clip(current || "لم تُسجل نتيجة تدقيق؛ يمكنك إعادة تدقيق المخرجات المحفوظة.", 220)) + '</p>' : '')
+    + '<details class="fold"' + (state.taskOpenId === id ? ' open' : '') + '><summary>' + (research ? "نتيجة البحث والمصادر" : "المخرجات وتدقيق سالم") + '</summary><div class="fold-body">'
+    + (output ? '<div class="md">' + md(output) + '</div>' : '') + (research ? researchPanelHtml(meta) : '')
+    + (!researching && audit ? taskAuditHtml(audit) : '') + '<div class="row-actions">' + (output ? copyButton(output, "نسخ المخرجات") : '') + auditAction + follow + '</div>'
+    + (canAudit ? '<p class="hint">إعادة التدقيق تراجع المخرجات المحفوظة فقط؛ لا تعيد إنشاء المهمة.</p>' : '') + '</div></details></article>';
 }
+
 function taskFeedback(text, kind) {
   contentFeedback(text, kind, "taskFeedback");
   contentFeedback(text, kind, "alertFeedback");
@@ -1426,6 +1617,7 @@ async function reauditTask(btn) {
   const id = btn.dataset.taskReaudit, version = btn.dataset.version || "";
   const row = state.tasks.find(r => r[0] === id) || (state.alerts || []).filter(a => a.kind === "task").map(a => a.row).find(r => r[0] === id);
   if (!row) { taskFeedback("المهمة غير موجودة في البيانات الحالية؛ حدّث اللوحة.", "warn"); return; }
+  if (row[2] === "الباحث" && !researchCanAudit(row, state.researchTasks[id])) { taskFeedback("إعادة التدقيق متاحة بعد انتهاء البحث وحفظ نتيجة موثقة بمصادر.", "warn"); return; }
   if (!version) { taskFeedback("نسخة المهمة غير متوفرة؛ حدّث اللوحة قبل إعادة التدقيق.", "warn"); await refresh({ quiet: true }); return; }
   const epoch = state.connectionEpoch, url = state.url, token = state.token;
   state.taskBusyId = id; state.taskOpenId = id;
@@ -1439,6 +1631,7 @@ async function reauditTask(btn) {
     if (at >= 0) state.tasks[at] = data.task;
     if (state.alerts) state.alerts.forEach(a => { if (a.kind === "task" && a.row[0] === id) a.row = data.task; });
     state.taskVersions[id] = data.version;
+    if (data.research) { state.researchRevision++; ingestResearchMetadata({ [id]: data.research }, state.tasks); }
     const score = salemScore(data.task[5]), warnings = (data.warnings || []).map(String);
     const message = score === null ? "حُفظت نتيجة إعادة التدقيق دون درجة رقمية؛ راجع السبب في التدقيق الحالي." : "أُعيد تدقيق المهمة " + id + "؛ التقدير الحالي " + score + "%.";
     if (!await refresh({ quiet: true })) warnings.push("تعذر تحديث المؤشرات والتنبيهات: " + state.error);
@@ -1550,7 +1743,9 @@ function renderCompose() {
   $("#agentInfo").innerHTML = `<b>${esc(a.name)} · ${esc(a.role)}</b> — ${esc(a.desc)}`;
   $("#examples").innerHTML = a.examples.map(x => `<button type="button" class="chip-ex" data-example="${esc(x)}">${esc(x)}</button>`).join("");
   $("#taskInput").placeholder = `اكتب المهمة المطلوبة من ${a.name}…`;
-  if (!state.sending) $("#sendLabel").textContent = "تكليف " + a.name;
+  if (!state.sending) $("#sendLabel").textContent = a.name === "الباحث" ? "ابدأ البحث" : "تكليف " + a.name;
+  $("#composeHint").textContent = a.name === "الباحث" ? "يُحفظ البحث ويستمر بعد إغلاق الصفحة؛ تابع النتيجة ومصادرها هنا. Ctrl + Enter للإرسال." : "يدقق سالم المخرجات بعد التنفيذ · Ctrl + Enter للإرسال";
+  renderResearchBanner();
 }
 // ---------------- المحتوى والاعتماد ----------------
 const CONTENT_FILTERS = [
@@ -2015,7 +2210,7 @@ function sameConnection(epoch, url, token) { return epoch === state.connectionEp
 async function refresh(opts) {
   const quiet = opts && opts.quiet;
   if (!state.url) { renderStatus(); renderBoard(); return false; }
-  const seq = ++state.refreshSeq, epoch = state.connectionEpoch, url = state.url, token = state.token, range = state.range;
+  const seq = ++state.refreshSeq, epoch = state.connectionEpoch, url = state.url, token = state.token, range = state.range, researchRevision = state.researchRevision;
   const current = () => seq === state.refreshSeq && sameConnection(epoch, url, token) && range === state.range;
   state.loading = true;
   renderStatus();
@@ -2024,17 +2219,20 @@ async function refresh(opts) {
     const request = { action: "dashboard", range };
     if (state.contentFloor !== null) request.contentCursor = state.contentFloor;
     const data = await api(request);
-    if (!current()) return false;
+    if (!current() || researchRevision !== state.researchRevision) return false;
     const tasks = Array.isArray(data.tasks) ? data.tasks : [];
     const news = Array.isArray(data.news) ? data.news : [];
     const stats = data.stats && data.stats.series ? data.stats : null;
     if (!stats || stats.range !== range) throw new Error("الخادم لم يُرجع مؤشرات الفترة المطلوبة؛ تحقق من نشر النسخة المحدثة.");
-    const alerts = Array.isArray(data.alerts) ? data.alerts : null;
+    const researchTasks = data.researchTasks || {};
+    const alerts = Array.isArray(data.alerts) ? data.alerts.filter(a => !(a.kind === "task" && a.row[2] === "الباحث" && researchIsPending(researchTasks[a.row[0]]))) : null;
     const taskVersions = data.taskVersions || {};
-    const sig = JSON.stringify([tasks, news, data.content, stats, alerts, taskVersions, data.contentVersions, data.contentMeta]);
+    const sig = JSON.stringify([tasks, news, data.content, stats, alerts, taskVersions, researchTasks, data.contentVersions, data.contentMeta]);
     changed = changed || sig !== state.sig;
     acceptContent(data, false);
     Object.assign(state, { tasks, news, stats, alerts, taskVersions, sig, loaded: true, error: "", lastSync: new Date() });
+    ingestResearchMetadata(researchTasks, tasks);
+    renderResearchResult();
     return true;
   } catch (e) {
     if (!current()) return false;
@@ -2080,6 +2278,8 @@ async function sendTask(ev) {
   if (!state.url) { openSettings(); return; }
 
   const agent = state.agent;
+  if (agent === "الباحث") { await startResearch(task, input); return; }
+  state.resultOwner = "task";
   const submittedDraft = input.value;
   const epoch = state.connectionEpoch, url = state.url, token = state.token;
   const a = AGENT_BY_NAME[agent];
@@ -2186,6 +2386,7 @@ async function saveSettings(ev) {
 
   Object.assign(state, { url, token, loaded: false, error: "", sig: "", connectionEpoch: state.connectionEpoch + 1, contentFloor: null, contentVersions: {}, contentMeta: null, taskVersions: {}, tasks: [], news: [], content: [], stats: null, alerts: null, lastSync: null, editingId: null, askingId: null, conflictId: null });
   store.set(KEYS.url, url); store.set(KEYS.token, token);
+  restoreResearchTracking();
   const btn = $("#btnSaveSettings");
   btn.disabled = true;
   settingsMsg(/\/dev(\?|$)/.test(url) ? "تنبيه: رابط ‎/dev‎ يتطلب تسجيل الدخول، استخدم رابط ‎/exec‎. جاري الاختبار…" : "جاري اختبار الاتصال…");
@@ -2263,6 +2464,10 @@ document.addEventListener("click", async e => {
   if (fetchBtn) { fetchNews(fetchBtn); return; }
   const planBtn = t.closest('[data-action="weekly-plan"], [data-action="seasonal-tips"]');
   if (planBtn) { contentJob(planBtn, planBtn.dataset.action === "weekly-plan" ? "plan" : "tips"); return; }
+  const resend = t.closest("[data-research-resend]");
+  if (resend) { resendResearch(resend.dataset.researchResend); return; }
+  const follow = t.closest("[data-research-follow], [data-research-request]");
+  if (follow) { followResearch(follow.dataset.researchFollow || follow.dataset.researchRequest); return; }
   const reaudit = t.closest("[data-task-reaudit]");
   if (reaudit) { reauditTask(reaudit); return; }
   const cact = t.closest("[data-cact]");
@@ -2329,6 +2534,8 @@ addEventListener("resize", () => {
 });
 
 // ---------------- البداية ----------------
+restoreResearchTracking();
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") scheduleResearchPoll(500); });
 buildGauge();
 paintToday();
 setInterval(paintToday, 60000);
