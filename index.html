@@ -2211,6 +2211,7 @@ async function refresh(opts) {
   const quiet = opts && opts.quiet;
   if (!state.url) { renderStatus(); renderBoard(); return false; }
   const seq = ++state.refreshSeq, epoch = state.connectionEpoch, url = state.url, token = state.token, range = state.range, researchRevision = state.researchRevision;
+  const researchSnapshot = Object.fromEntries(Object.entries(state.researchTasks).map(([id, meta]) => [id, JSON.stringify([meta, state.taskVersions[id]])]));
   const current = () => seq === state.refreshSeq && sameConnection(epoch, url, token) && range === state.range;
   state.loading = true;
   renderStatus();
@@ -2219,14 +2220,29 @@ async function refresh(opts) {
     const request = { action: "dashboard", range };
     if (state.contentFloor !== null) request.contentCursor = state.contentFloor;
     const data = await api(request);
-    if (!current() || researchRevision !== state.researchRevision) return false;
+    if (!current()) return false;
     const tasks = Array.isArray(data.tasks) ? data.tasks : [];
     const news = Array.isArray(data.news) ? data.news : [];
     const stats = data.stats && data.stats.series ? data.stats : null;
     if (!stats || stats.range !== range) throw new Error("الخادم لم يُرجع مؤشرات الفترة المطلوبة؛ تحقق من نشر النسخة المحدثة.");
-    const researchTasks = data.researchTasks || {};
+    const researchTasks = { ...(data.researchTasks || {}) };
+    const taskVersions = { ...(data.taskVersions || {}) };
+    // إذا سبقت متابعة البحث رد اللوحة، نحفظ تقدم ذلك البحث وحده ونحمّل بقية بيانات اللوحة.
+    if (researchRevision !== state.researchRevision) {
+      const phase = { queued: 0, searching: 1, auditing: 2, partial: 3, failed: 3, completed: 4 };
+      Object.entries(state.researchTasks).forEach(([id, meta]) => {
+        if (researchSnapshot[id] === JSON.stringify([meta, state.taskVersions[id]])) return;
+        const incoming = researchTasks[id], row = state.tasks.find(r => r[0] === id);
+        if (!row) return;
+        const time = m => m ? Date.parse(m.updatedAt || m.completedAt || m.startedAt || m.createdAt || "") : NaN;
+        if (incoming && ((time(incoming) > time(meta)) || ((phase[incoming.status] ?? -1) > (phase[meta.status] ?? -1)))) return;
+        researchTasks[id] = meta;
+        taskVersions[id] = state.taskVersions[id];
+        const at = tasks.findIndex(r => r[0] === id);
+        if (at >= 0) tasks[at] = row; else tasks.push(row);
+      });
+    }
     const alerts = Array.isArray(data.alerts) ? data.alerts.filter(a => !(a.kind === "task" && a.row[2] === "الباحث" && researchIsPending(researchTasks[a.row[0]]))) : null;
-    const taskVersions = data.taskVersions || {};
     const sig = JSON.stringify([tasks, news, data.content, stats, alerts, taskVersions, researchTasks, data.contentVersions, data.contentMeta]);
     changed = changed || sig !== state.sig;
     acceptContent(data, false);
