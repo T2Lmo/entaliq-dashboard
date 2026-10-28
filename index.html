@@ -533,7 +533,7 @@
     <div class="tiles">
       <button class="tile" type="button" data-open="news"><span class="t-vis" id="tvNews"></span><span class="t-lbl">الأخبار</span></button>
       <button class="tile" type="button" data-open="tasks" data-filter-agent="" data-sort="new"><span class="t-vis" id="tvTrend"></span><span class="t-lbl">اتجاه الأداء</span></button>
-      <button class="tile" type="button" data-open="team"><span class="t-vis"><span class="t-num" id="tnActive"></span></span><span class="t-lbl">وكلاء نشطون</span></button>
+      <button class="tile" type="button" data-open="team"><span class="t-vis"><span class="t-num" id="tnActive"></span></span><span class="t-lbl">وكلاء كُلّفوا مباشرة</span></button>
       <button class="tile" type="button" data-open="tasks" data-filter-agent="" data-sort="new"><span class="t-vis"><span class="t-num" id="tnToday"></span></span><span class="t-lbl">مهام اليوم</span></button>
       <button class="tile" type="button" data-open="tasks" data-filter-agent="" data-sort="new"><span class="t-vis"><span class="t-num" id="tnDone"></span></span><span class="t-lbl">مكتملة</span></button>
       <button class="tile" type="button" data-open="news"><span class="t-vis"><span class="t-num" id="tnNewsToday"></span></span><span class="t-lbl">أخبار اليوم</span></button>
@@ -595,7 +595,7 @@
   <div class="ticker-view"><div class="ticker-track" id="tickerTrack"></div></div>
 </section>
 <section class="strip" id="strip" aria-label="أحدث الأخبار"></section>
-<p class="foot">المؤشرات والرسم محسوبة من كل المهام والأخبار خلال الفترة المختارة، أما «آخر الأحداث» وشريط الأخبار والقوائم فتعرض أحدث 20 مهمة و10 أخبار. نسب «تقدير سالم» يقدّرها نموذج ذكاء اصطناعي، وهي مؤشر للمراجعة وليست قياساً مؤكداً للدقة.</p>
+<p class="foot">مؤشرات الوكلاء والإنجاز تخص التكليفات المباشرة، والمؤشر العام والرسم يجمعان المهام والأخبار خلال الفترة. التنبيهات تشمل كل عناصر الفترة. سجل المهام والأخبار يعرض أحدث 20 مهمة و10 أخبار. عدادات المحتوى وجاهزية النشر تشمل جميع المنشورات، ويمكن تحميل الأقدم من قائمة المحتوى. نسب «تقدير سالم» يقدّرها نموذج ذكاء اصطناعي، وهي مؤشر للمراجعة وليست قياساً مؤكداً للدقة.</p>
 
 <button class="fab" type="button" data-open="compose" aria-label="المساعد: تكليف وكيل" title="تكليف وكيل">
   <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -641,6 +641,7 @@
         <span class="note">يرصد نواف أخبار كفاءة الطاقة والطاقة الشمسية في السعودية ويستبعد ضعيف الصلة بخدماتنا، ثم يحلل فيصل وتكتب لمى منشوراً مرتبطاً بخدمة ويدققه سالم.</span>
         <button class="btn btn-line sm" type="button" data-action="fetch-news"><span class="ico-plus"></span><span class="lbl-text">رصد الأخبار الآن</span></button>
       </div>
+      <div class="sh-pad" id="newsFeedback" role="status" hidden style="white-space:pre-wrap"></div>
       <div class="list" id="newsList"></div>
     </div>
     <div data-view="team" hidden><div class="list" id="teamList"></div></div>
@@ -652,7 +653,10 @@
         <button class="btn btn-line sm" type="button" data-action="seasonal-tips"><span class="lbl-text">نصائح موسمية</span></button>
         <button class="btn btn-primary sm" type="button" data-action="weekly-plan"><span class="lbl-text">خطة الأسبوع</span></button>
       </div>
+      <div class="sh-pad" id="contentFeedback" role="status" hidden style="white-space:pre-wrap"></div>
+      <div class="sh-pad" id="contentRecovery" hidden></div>
       <div class="list" id="contentList"></div>
+      <div class="sh-pad"><p class="hint" id="contentPageInfo"></p><button class="btn btn-line" type="button" id="btnContentOlder" hidden><span class="lbl-text">تحميل منشورات أقدم</span></button></div>
     </div>
   </div>
 </dialog>
@@ -668,9 +672,10 @@
       <input class="input ltr" id="inUrl" type="url" required placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" spellcheck="false">
       <label class="lbl" for="inToken">رمز الوصول (ACCESS_TOKEN)</label>
       <div class="pw">
-        <input class="input ltr" id="inToken" type="password" placeholder="اتركه فارغاً إن لم تضبطه في الخادم" autocomplete="off" spellcheck="false">
+        <input class="input ltr" id="inToken" type="password" required placeholder="رمز ACCESS_TOKEN المضبوط في الخادم" autocomplete="off" spellcheck="false">
         <button class="rbtn" id="btnShowToken" type="button" aria-label="إظهار الرمز" title="إظهار الرمز"></button>
       </div>
+      <p class="hint">رمز الوصول مطلوب. اضبط ACCESS_TOKEN في Script Properties واستخدم الرمز نفسه هنا. يُحفظ الرمز في هذا المتصفح؛ استخدم جهازاً تثق به.</p>
       <label class="lbl" for="inLinkedin">صفحة الشركة على LinkedIn (اختياري)</label>
       <input class="input ltr" id="inLinkedin" type="url" placeholder="https://www.linkedin.com/company/…/admin/" autocomplete="off" spellcheck="false">
       <div class="msg" id="settingsMsg" role="status"></div>
@@ -731,9 +736,9 @@ const SLOTS = [
   { pos: "r6", agent: "ريم" }, { pos: "c6", sys: "ready" }, { pos: "l6", agent: "زياد" }
 ];
 const SYS = {
-  completion: { title: "معدل الإنجاز", sub: "المهام المكتملة في الفترة", view: "tasks", sort: "new" },
+  completion: { title: "إنجاز التكليفات", sub: "التكليفات المباشرة المكتملة في الفترة", view: "tasks", sort: "new" },
   newsQuality: { title: "جودة الأخبار", sub: "متوسط تقدير سالم للأخبار", view: "news" },
-  coverage: { title: "تغطية التدقيق", sub: "مهام لها تقدير رقمي من سالم", view: "tasks", sort: "low" },
+  coverage: { title: "تدقيق التكليفات", sub: "تكليفات مباشرة لها تقدير رقمي", view: "tasks", sort: "low" },
   highRate: { title: "الاعتماد العالي", sub: "مخرجات بتقدير 85% فأكثر", view: "tasks", sort: "high" },
   ready: { title: "جاهزية النشر", sub: "معتمدة بتصميم ونسخة X", view: "content", cfilter: "approved" }
 };
@@ -743,8 +748,8 @@ const VIEWS = {
   compose: { title: "تكليف وكيل", sub: "اختر الوكيل واكتب المهمة، ويدقق سالم المخرجات تلقائياً." },
   tasks: { title: "سجل المهام", sub: "آخر 20 مهمة يعيدها الخادم." },
   news: { title: "الأخبار", sub: "آخر 10 أخبار طاقة رصدها نواف وربطها الفريق بخدماتنا." },
-  team: { title: "فريق الوكلاء", sub: "متوسط تقدير سالم لكل وكيل خلال الفترة المختارة، الأعلى أولاً." },
-  alerts: { title: "التنبيهات", sub: "مخرجات بتقدير أقل من 70% أو لم يكتمل تدقيقها، من أحدث 20 مهمة و10 أخبار." },
+  team: { title: "التكليفات المباشرة للوكلاء", sub: "التكليفات المباشرة خلال الفترة؛ لا تشمل الأدوار الآلية في الأخبار وخطط المحتوى والتصاميم." },
+  alerts: { title: "تنبيهات الفترة", sub: "كل المخرجات منخفضة التقدير أو غير مكتملة التدقيق في الفترة المختارة." },
   content: { title: "المحتوى والاعتماد", sub: "منشورات الأخبار وخطة الأسبوع والنصائح الموسمية؛ لا يُعتبر شيء جاهزاً للنشر قبل اعتمادك." }
 };
 // نفس قيم RANGE_DAYS في Code.gs
@@ -767,7 +772,9 @@ const state = {
   linkedin: store.get(KEYS.linkedin),
   agent: AGENT_BY_NAME[store.get(KEYS.agent)] ? store.get(KEYS.agent) : "راكان",
   range: RANGES.some(r => r.id === store.get(KEYS.range)) ? store.get(KEYS.range) : "week",
-  tasks: [], news: [], content: [], stats: null, sig: "",
+  tasks: [], news: [], content: [], stats: null, alerts: null, sig: "",
+  contentVersions: {}, contentMeta: null, contentFloor: null, contentPageLoading: false, connectionEpoch: 0, refreshSeq: 0,
+  editingVersion: "", editingDraft: "", askingVersion: "", askingDraft: "", conflictId: null, recoveryDraft: null,
   contentFilter: "review", editingId: null, askingId: null, askingKind: "", contentBusy: false, designSize: {},
   loaded: false, loading: false, error: "", lastSync: null,
   sending: false, fetching: false,
@@ -811,23 +818,30 @@ const GLYPH = {
 // كل الطلبات POST حتى القراءة (action: "list")، فلا يظهر الرمز في الرابط أو سجل المتصفح
 async function api(body) {
   if (!state.url) throw new Error("أضف رابط الخادم من الإعدادات أولاً");
-  let res;
+  if (!state.token) throw new Error("رمز ACCESS_TOKEN مطلوب في إعدادات الاتصال والخادم");
+  const reading = ["dashboard", "list", "content_page"].includes(body.action);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), reading ? 45000 : 390000);
+  const url = state.url, token = state.token;
   try {
-    // text/plain يجعل الطلب "بسيطاً" فلا يرسل المتصفح طلب CORS مسبق (OPTIONS) لا يدعمه Apps Script
-    res = await fetch(state.url, {
-      method: "POST",
-      cache: "no-store",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(Object.assign({}, body, state.token ? { token: state.token } : {}))
-    });
-  } catch (e) {
-    throw new Error("تعذر الوصول للخادم. تأكد من الرابط ومن أن النشر مضبوط على Who has access: Anyone.");
-  }
-  let data;
-  try { data = await res.json(); }
-  catch (e) { throw new Error("رد غير متوقع من الخادم (" + res.status + "). تأكد أن الرابط ينتهي بـ ‎/exec‎ وليس ‎/dev‎."); }
-  if (!data || data.status !== "success") throw new Error((data && data.message) || "حدث خطأ في الخادم");
-  return data;
+    let res;
+    try {
+      res = await fetch(url, { method: "POST", cache: "no-store", signal: controller.signal,
+        headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ ...body, token }) });
+    } catch (e) {
+      const message = e.name === "AbortError" ? "انتهت مهلة انتظار الخادم." : "تعذر الوصول للخادم. تحقق من الرابط وإعدادات النشر.";
+      throw new Error(message + (reading ? " أعد التحديث." : " قد تكون العملية اكتملت؛ حدّث البيانات قبل إعادة إرسالها لتجنب التكرار."));
+    }
+    let data;
+    try { data = await res.json(); }
+    catch (e) { throw new Error("رد غير متوقع من الخادم (" + res.status + "). تحقق من رابط /exec." + (reading ? "" : " حدّث البيانات قبل إعادة العملية.")); }
+    if (!data || data.status !== "success") {
+      const error = new Error((data && data.message) || "حدث خطأ في الخادم");
+      error.code = data && data.code;
+      throw error;
+    }
+    return data;
+  } finally { clearTimeout(timer); }
 }
 
 // ---------------- أدوات الحساب والعرض ----------------
@@ -848,12 +862,15 @@ function md(text) {
 
 // يستخرج النسبة المئوية من نص تدقيق سالم (يدعم الأرقام العربية و ٪)
 function salemScore(text) {
-  const t = String(text ?? "").replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/٫/g, ".");
-  const m = t.match(/(\d{1,3}(?:\.\d+)?)\s*[%٪]/) || t.match(/[%٪]\s*(\d{1,3}(?:\.\d+)?)/);
+  // النسبة يجب أن تبدأ السطر الأول، أو تأتي بعد تسمية صريحة؛ لا نقرأ نسبة وفر داخل الشرح كدرجة تدقيق.
+  const t = String(text || "").trim().split(/\r?\n/)[0].replace(/[*_#]/g, "").trim()
+    .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/٫/g, ".");
+  const m = t.match(/^(?:(?:نسبة\s+)?(?:الدقة|دقة|الجودة|جودة|التقييم|تقييم)(?:\s+(?:المحتوى|العمل))?\s*[:：\-–]?\s*)?(\d{1,3}(?:\.\d+)?)\s*[%٪](?:\s|$|[،:.\-])/);
   if (!m) return null;
   const n = Math.round(parseFloat(m[1]));
   return n >= 0 && n <= 100 ? n : null;
 }
+
 const isNum = v => typeof v === "number";
 const mean = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
 const pct = (part, total) => total ? Math.round(part / total * 100) : null;
@@ -905,15 +922,18 @@ function computeMetrics() {
     todayTasks: s.today.tasks,
     todayNews: s.today.news,
     trend: s.series.points.map(p => p.avg).filter(isNum),
-    alerts: s.alerts,
+    alerts: Array.isArray(state.alerts) ? state.alerts.length : s.alerts,
     series: s.series
   };
 }
 
-// نسبة المنشورات المعتمدة التي جهّزت لها ريم التصميم وزياد نسخة X (من آخر 40 منشوراً)
+// نسبة المنشورات المعتمدة المجهزة بتصميم ونسخة X من جميع منشورات الخادم
 function readyRate() {
-  const approved = state.content.filter(r => r[9] === "معتمد");
-  return pct(approved.filter(r => r[12] && r[13]).length, approved.length);
+  if (!state.contentMeta) return null;
+  return pct(state.contentMeta.approvedPrepared || 0, state.contentMeta.counts["معتمد"] || 0);
+}
+function contentCount(statuses) {
+  return state.contentMeta ? statuses.reduce((n, status) => n + (state.contentMeta.counts[status] || 0), 0) : null;
 }
 
 function metricsFromRecent() {
@@ -1156,8 +1176,8 @@ function renderTiles(m) {
   setNum("#tnDone", ready ? `${m.done}/${m.total}` : "—", !ready || !m.total ? "none" : m.done === m.total ? "ok" : "warn");
   setNum("#tnNewsToday", ready ? String(m.todayNews) : "—", ready && m.todayNews ? "ok" : "none");
   setNum("#tnAlerts", ready ? String(m.alerts) : "—", ready && m.alerts ? "bad" : ready ? "ok" : "none");
-  const review = state.content.filter(r => r[9] === "مسودة" || r[9] === "فكرة").length;
-  setNum("#tnReview", ready ? String(review) : "—", ready && review ? "warn" : ready ? "ok" : "none");
+  const review = contentCount(["مسودة", "فكرة"]);
+  setNum("#tnReview", ready && review !== null ? String(review) : "—", ready && review ? "warn" : ready ? "ok" : "none");
   const badge = $("#fabBadge");
   badge.hidden = !(ready && m.alerts);
   badge.textContent = m.alerts;
@@ -1175,14 +1195,20 @@ function renderFilters() {
 }
 async function setRange(id) {
   if (id === state.range || !RANGES.some(r => r.id === id)) return;
+  const previous = state.stats ? state.stats.range : state.range;
   state.range = id;
   store.set(KEYS.range, id);
   renderFilters();
   if (!state.url) return;
-  // نُبقي الرسم السابق ظاهراً بشفافية أقل أثناء الجلب بدل مسحه
   document.querySelectorAll(".scoped").forEach(e => e.classList.add("refetching"));
-  try { await refresh(); }
-  finally { document.querySelectorAll(".scoped").forEach(e => e.classList.remove("refetching")); }
+  const expected = state.refreshSeq + 1;
+  const ok = await refresh();
+  if (!ok && state.refreshSeq === expected && state.range === id && !state.loading) {
+    state.range = state.stats ? state.stats.range : previous;
+    store.set(KEYS.range, state.range);
+    renderBoard();
+  }
+  if (!state.loading) document.querySelectorAll(".scoped").forEach(e => e.classList.remove("refetching"));
 }
 
 // ---------------- تطور الأداء ----------------
@@ -1436,9 +1462,10 @@ function renderTeamView() {
 function renderAlertsView() {
   const el = $("#alertList");
   if (!state.loaded) { el.innerHTML = notReady(); return; }
-  const items = alertItems();
+  if (!Array.isArray(state.alerts) || !state.stats || state.stats.range !== state.range) { el.innerHTML = empty(ICON.alert, "تحديث التنبيهات مطلوب", state.error || "حدّث البيانات لعرض جميع تنبيهات الفترة المختارة."); return; }
+  const items = Array.isArray(state.alerts) ? state.alerts : [];
   el.innerHTML = items.length ? items.map(x => x.kind === "task" ? taskItem(x.row, x.reason) : newsItem(x.row, x.reason)).join("")
-    : empty(ICON.check, "لا توجد تنبيهات", "كل المخرجات الحالية مكتملة التدقيق وبتقدير 70% فأكثر.");
+    : empty(ICON.check, "لا توجد تنبيهات", "لا توجد تنبيهات ضمن الفترة المختارة.");
 }
 function renderCompose() {
   $("#pickGrid").innerHTML = AGENTS.map(a => `
@@ -1464,12 +1491,13 @@ const STATUS_TONE = { "فكرة": "none", "مسودة": "warn", "معتمد": "o
 function contentItem(row) {
   const [id, , scheduled, pillar, audience, service, idea, text, audit, status, source, note, designCell, tweet] = row;
   const editing = state.editingId === id, asking = state.askingId === id ? state.askingKind : "";
-  const btn = (act, label, cls) => `<button type="button" class="btn ${cls || "btn-line"} sm" data-cact="${act}" data-id="${esc(id)}"><span class="lbl-text">${esc(label)}</span></button>`;
+  const version = state.contentVersions[id] || "";
+  const btn = (act, label, cls) => `<button type="button" class="btn ${cls || "btn-line"} sm" data-cact="${act}" data-id="${esc(id)}" data-version="${esc(version)}"><span class="lbl-text">${esc(label)}</span></button>`;
   const actions = {
     "فكرة": [btn("write", "اكتب المنشور", "btn-primary")],
     "مسودة": [btn("approve", "اعتماد", "btn-primary"), btn("edit", "تعديل"), btn("rewrite", "إعادة كتابة"), btn("reject", "رفض"),
       designCell ? "" : btn("prepare", "جهّز التصميم ونسخة X")],
-    "معتمد": [text ? `<button type="button" class="btn btn-primary sm" data-li-open="${copyable(linkedinText(text))}">${ICON.ext}<span class="lbl-text">انسخ وافتح LinkedIn</span></button>` : "",
+    "معتمد": [text ? `<button type="button" class="btn btn-primary sm" data-li-open="${copyable(linkedinText(text))}" data-id="${esc(id)}" data-version="${esc(version)}">${ICON.ext}<span class="lbl-text">انسخ وافتح LinkedIn</span></button>` : "",
       btn("publish", "تم النشر"), btn("edit", "تعديل"), btn("draft", "إرجاع لمسودة"), designCell ? "" : btn("prepare", "جهّز التصميم ونسخة X")],
     "مرفوض": [btn("rewrite", "إعادة كتابة", "btn-primary"), btn("draft", "إرجاع لمسودة")]
   }[status] || [];
@@ -1479,12 +1507,12 @@ function contentItem(row) {
     .filter(Boolean).map(t => `<span class="tag">${esc(t)}</span>`).join("")
     + (href ? `<a class="tag" href="${esc(href)}" target="_blank" rel="noopener noreferrer">المصدر${ICON.ext}</a>` : source ? `<span class="tag">${esc(source)}</span>` : "");
   let body;
-  if (editing) body = `<textarea class="field" id="edit-${esc(id)}" rows="12" aria-label="نص المنشور">${esc(text)}</textarea><div class="row-actions">${btn("save", "حفظ", "btn-primary")}${btn("cancel", "إلغاء")}</div>`;
+  if (editing) body = `<textarea class="field" id="edit-${esc(id)}" rows="12"${state.contentBusy ? " readonly" : ""} aria-label="نص المنشور">${esc(state.editingDraft)}</textarea><p class="hint">تغيير النص يلغي الاعتماد والتدقيق والتصميم السابق؛ يعود المنشور للمراجعة.</p><div class="row-actions">${btn("save", "حفظ", "btn-primary")}${btn("cancel", "إلغاء")}</div>`;
   else body = text ? `<div class="md">${md(text)}</div>` : `<p class="hint">لم يُكتب المنشور بعد؛ هذه فكرة من خطة الأسبوع.</p>`;
   let footer = "";
   if (asking) {
     footer = `<div class="note-box"><label class="lbl" for="note-${esc(id)}">${asking === "reject" ? "سبب الرفض (اختياري)" : "ملاحظاتك للمى (اختياري)"}</label>
-      <textarea class="field" id="note-${esc(id)}" rows="3"></textarea>
+      <textarea class="field" id="note-${esc(id)}" rows="3"${state.contentBusy ? " readonly" : ""}>${esc(state.askingDraft)}</textarea>
       <div class="row-actions">${btn("send-note", asking === "reject" ? "تأكيد الرفض" : "أعد الكتابة", "btn-primary")}${btn("cancel", "إلغاء")}</div></div>`;
   } else if (!editing) {
     footer = `<div class="row-actions">${actions.join("")}${text && status !== "معتمد" ? copyButton(linkedinText(text), "نسخ") : ""}</div>`;
@@ -1502,6 +1530,7 @@ function contentItem(row) {
     ${audit && !editing ? `<details class="fold"><summary>${avatar("سالم", "xs")} تدقيق سالم</summary><div class="fold-body"><div class="md">${md(audit)}</div></div></details>` : ""}
     ${!editing ? designPanel(id, designCell, tweet, status) : ""}
     ${footer}
+    ${state.conflictId === id ? `<div class="note-box"><p>تغير المنشور منذ فتحه. احتفظنا بنصك؛ افتح أحدث نسخة قبل المحاولة مجدداً.</p><div class="row-actions">${copyButton(state.editingId === id ? state.editingDraft : state.askingId === id ? state.askingDraft : text, "نسخ نصي")}${btn("conflict-open", "افتح الأحدث مع الاحتفاظ بنصي")}</div></div>` : ""}
   </article>`;
 }
 
@@ -1519,13 +1548,13 @@ function designPanel(id, designCell, tweet, status) {
       <canvas class="design-canvas" data-design="${esc(id)}" data-size="${size}" role="img" aria-label="${esc(d.headline)}"></canvas>
       <div class="row-actions">
         <button type="button" class="btn btn-line sm" data-ddownload="${esc(id)}">${ICON.download}<span class="lbl-text">تنزيل الصورة</span></button>
-        <button type="button" class="btn btn-line sm" data-cact="prepare" data-id="${esc(id)}"><span class="lbl-text">أعد التصميم ونسخة X</span></button>
+        <button type="button" class="btn btn-line sm" data-cact="prepare" data-id="${esc(id)}" data-version="${esc(state.contentVersions[id] || "")}"><span class="lbl-text">أعد التصميم ونسخة X</span></button>
       </div>
       ${tweet ? `<div class="tweet">
         <div class="by">${avatar("زياد", "xs")} نسخة X <small class="tweet-len" data-tone="${len > 280 ? "bad" : "ok"}">${len}/280</small></div>
         <p>${esc(tweet)}</p>
         <div class="row-actions">
-          <button type="button" class="btn btn-primary sm" data-x-open="${copyable(tweet)}">${ICON.ext}<span class="lbl-text">افتح X بالتغريدة</span></button>
+          ${status === "معتمد" ? `<button type="button" class="btn btn-primary sm" data-x-open="${copyable(tweet)}" data-id="${esc(id)}" data-version="${esc(state.contentVersions[id] || "")}">${ICON.ext}<span class="lbl-text">افتح X بالتغريدة</span></button>` : `<span class="hint">فتح X متاح بعد اعتماد المنشور.</span>`}
           ${copyButton(tweet, "نسخ")}
         </div>
       </div>` : ""}
@@ -1713,86 +1742,136 @@ function downloadDesign(id) {
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }, "image/png");
 }
+function filterContentCount(filter) {
+  if (!state.contentMeta) return null;
+  return Object.keys(state.contentMeta.counts).filter(status => filter.match(status)).reduce((n, status) => n + state.contentMeta.counts[status], 0);
+}
+function contentFeedback(text, kind, target) {
+  const el = $("#" + (target || "contentFeedback"));
+  el.hidden = !text; el.textContent = text || ""; el.dataset.tone = kind || "none";
+  el.style.color = kind === "bad" ? "var(--red)" : kind === "warn" ? "var(--amber)" : "var(--text-2)";
+}
+function jobFeedback(data, fallback, target) {
+  const warnings = (data.warnings || []).map(String);
+  const partial = !!(data.failed || data.pending || warnings.length);
+  const message = data.message || fallback;
+  contentFeedback([message, ...warnings.map(w => "• " + w)].join("\n"), partial ? "warn" : "ok", target);
+  toast(message, partial ? "warn" : "ok");
+}
+function renderRecovery() {
+  const el = $("#contentRecovery"), saved = state.recoveryDraft;
+  el.hidden = !saved;
+  el.innerHTML = saved ? '<details open><summary>نصك المحفوظ قبل فتح النسخة الأحدث</summary><p class="hint">انسخه أو قارنه بالنسخة الحالية؛ لن يُرسل تلقائياً.</p><textarea class="field" rows="6" readonly aria-label="نص محفوظ">' + esc(saved.text) + '</textarea><div class="row-actions">' + copyButton(saved.text, "نسخ النص المحفوظ") + '</div></details>' : "";
+}
 function renderContentView() {
   $("#contentFilter").innerHTML = CONTENT_FILTERS.map(f => {
-    const n = state.content.filter(r => f.match(r[9])).length;
-    return `<button type="button" data-cfilter="${f.id}" aria-pressed="${f.id === state.contentFilter}">${esc(f.label)}${f.id === "all" ? "" : " " + n}</button>`;
+    const n = filterContentCount(f);
+    return '<button type="button" data-cfilter="' + f.id + '" aria-pressed="' + (f.id === state.contentFilter) + '">' + esc(f.label) + (n === null ? "" : " " + n) + '</button>';
   }).join("");
-  const el = $("#contentList");
+  const el = $("#contentList"), older = $("#btnContentOlder"), pageInfo = $("#contentPageInfo");
+  older.hidden = !state.loaded || !state.contentMeta || state.contentMeta.nextCursor === null;
+  older.disabled = state.contentPageLoading || state.loading || state.contentBusy;
+  older.querySelector(".lbl-text").textContent = state.contentPageLoading ? "جاري تحميل الأقدم…" : "تحميل منشورات أقدم";
+  pageInfo.textContent = state.contentMeta ? "المحمّل " + state.content.length + " من " + state.contentMeta.total + " منشوراً؛ أعداد الحالات تشمل كل المنشورات." : "";
+  renderRecovery();
   if (!state.loaded) { el.innerHTML = notReady(); return; }
   const f = CONTENT_FILTERS.find(x => x.id === state.contentFilter) || CONTENT_FILTERS[0];
   const rows = state.content.filter(r => f.match(r[9]));
-  // في المراجعة: الأقرب موعداً أولاً، وما بلا موعد (منشورات الأخبار) في الأعلى لأنها مرتبطة بخبر حديث
   if (f.id === "review") rows.sort((a, b) => String(a[2] || "0").localeCompare(String(b[2] || "0")));
+  const total = filterContentCount(f), more = !!(state.contentMeta && state.contentMeta.nextCursor !== null);
   el.innerHTML = rows.length ? rows.map(contentItem).join("")
-    : empty(ICON.clip, f.id === "review" ? "لا يوجد ما يحتاج مراجعتك" : "لا توجد منشورات بهذه الحالة",
-      f.id === "review" ? "اطلب «خطة الأسبوع» أو «نصائح موسمية»، أو انتظر دورة الأخبار القادمة." : "");
+    : empty(ICON.clip, more && total ? "توجد منشورات أقدم بهذه الحالة" : "لا توجد منشورات بهذه الحالة", more && total ? "اضغط تحميل منشورات أقدم للوصول إليها." : f.id === "review" ? "يمكنك طلب خطة الأسبوع أو نصائح موسمية." : "");
   drawDesigns(el);
 }
 
 async function contentAction(btn) {
   const id = btn.dataset.id, act = btn.dataset.cact;
-  if (!state.content.some(r => r[0] === id)) return;
-  if (act === "edit") { Object.assign(state, { editingId: id, askingId: null }); renderContentView(); const t = document.getElementById("edit-" + id); if (t) t.focus(); return; }
-  if (act === "cancel") { Object.assign(state, { editingId: null, askingId: null }); renderContentView(); return; }
-  if (act === "reject" || act === "rewrite") {
-    Object.assign(state, { askingId: id, askingKind: act, editingId: null });
-    renderContentView();
-    const n = document.getElementById("note-" + id); if (n) n.focus();
-    return;
+  const row = state.content.find(r => r[0] === id);
+  if (!row) return;
+  if (state.contentBusy || state.contentPageLoading) { toast("انتظر حتى تكتمل العملية الحالية", "warn"); return; }
+  if ((state.editingId && (state.editingId !== id || !["save", "cancel", "conflict-open"].includes(act))) || (state.askingId && (state.askingId !== id || !["send-note", "cancel", "conflict-open"].includes(act)))) { toast("احفظ النص المفتوح أو ألغِ تحريره قبل تنفيذ إجراء آخر.", "warn"); return; }
+  if (act === "cancel") { Object.assign(state, { editingId: null, askingId: null, conflictId: null }); renderContentView(); return; }
+  if (act === "conflict-open") {
+    const saved = state.editingId === id ? state.editingDraft : state.askingId === id ? state.askingDraft : "";
+    if (saved) { state.recoveryDraft = { id, text: saved }; renderRecovery(); }
+    if (!await refresh({ quiet: true })) { contentFeedback(state.error || "تعذر تحميل النسخة الأحدث؛ نصك محفوظ.", "bad"); return; }
+    const latest = state.content.find(r => r[0] === id);
+    if (!latest) { contentFeedback("لم يعد المنشور ضمن البيانات المحملة؛ نصك محفوظ أعلاه.", "warn"); return; }
+    Object.assign(state, { editingId: id, editingDraft: String(latest[7] || ""), editingVersion: state.contentVersions[id] || "", askingId: null, conflictId: null });
+    contentFeedback("فُتحت أحدث نسخة للتحرير. نصك السابق محفوظ أعلاه للمقارنة والنسخ.", "warn");
+    renderContentView(); return;
   }
-  if (state.contentBusy) { toast("انتظر حتى تكتمل العملية الحالية", "warn"); return; }
-  const noteEl = document.getElementById("note-" + id), editEl = document.getElementById("edit-" + id);
-  const note = noteEl ? noteEl.value : "";
+  if (["edit", "reject", "rewrite"].includes(act)) {
+    if ((state.editingId && state.editingId !== id) || (state.askingId && state.askingId !== id)) { toast("احفظ النص المفتوح أو ألغِ تحريره قبل فتح منشور آخر.", "warn"); return; }
+    if (act === "edit") {
+      Object.assign(state, { editingId: id, editingDraft: String(row[7] || ""), editingVersion: btn.dataset.version || "", askingId: null, conflictId: null });
+      renderContentView(); const t = document.getElementById("edit-" + id); if (t) t.focus(); return;
+    }
+    Object.assign(state, { askingId: id, askingKind: act, askingDraft: "", askingVersion: btn.dataset.version || "", editingId: null, conflictId: null });
+    renderContentView(); const n = document.getElementById("note-" + id); if (n) n.focus(); return;
+  }
+  const editField = document.getElementById("edit-" + id), noteField = document.getElementById("note-" + id);
+  if (state.editingId === id && editField) state.editingDraft = editField.value;
+  if (state.askingId === id && noteField) state.askingDraft = noteField.value;
+  const note = state.askingId === id ? state.askingDraft : "";
   const rejecting = act === "send-note" && state.askingKind === "reject";
   const request = {
     approve: [{ action: "content_update", id, status: "معتمد" }, "اعتُمد المنشور"],
     publish: [{ action: "content_update", id, status: "منشور" }, "سُجّل كمنشور"],
     draft: [{ action: "content_update", id, status: "مسودة" }, "أُعيد إلى المسودات"],
-    save: [{ action: "content_update", id, text: editEl ? editEl.value : "" }, "حُفظ التعديل"],
+    save: [{ action: "content_update", id, text: state.editingDraft }, "حُفظ النص"],
     write: [{ action: "content_rewrite", id }, "كُتب المنشور وينتظر مراجعتك"],
     prepare: [{ action: "content_prepare", id }, "جهّزت ريم التصميم وزياد نسخة X"],
     "send-note": rejecting ? [{ action: "content_update", id, status: "مرفوض", note }, "رُفض المنشور"]
       : [{ action: "content_rewrite", id, note }, "أُعيدت الكتابة وتنتظر مراجعتك"]
   }[act];
   if (!request) return;
+  request[0].version = act === "save" ? state.editingVersion : act === "send-note" ? state.askingVersion : btn.dataset.version || "";
+  if (!request[0].version) { state.conflictId = id; contentFeedback("نسخة المنشور غير متوفرة؛ افتح أحدث نسخة قبل الحفظ.", "warn"); renderContentView(); return; }
   const writing = request[0].action === "content_rewrite", preparing = act === "prepare";
+  const epoch = state.connectionEpoch, url = state.url, token = state.token;
   state.contentBusy = true;
   const stop = busy(btn, writing ? "لمى تكتب" : preparing ? "ريم وزياد يجهّزان" : "جاري الحفظ");
-  if (writing) toast("تكتب لمى المنشور ثم يدققه سالم؛ قد يستغرق ذلك نصف دقيقة إلى دقيقة.");
-  if (preparing) toast("تصمم ريم الصورة بهوية العلامة ويكتب زياد نسخة X؛ قرابة نصف دقيقة.");
+  if (editField) editField.readOnly = true;
+  if (noteField) noteField.readOnly = true;
   try {
     const data = await api(request[0]);
-    Object.assign(state, { editingId: null, askingId: null });
-    toast(request[1], "ok");
-    // تنبيهات الخادم: رقم حُذف من التصميم لأنه غير موجود في المنشور، أو تغريدة أطول من الحد
-    (data.warnings || []).forEach(w => toast(w, "warn"));
-    await refresh({ quiet: true });
+    if (!sameConnection(epoch, url, token)) return;
+    if (data.item) { const at = state.content.findIndex(r => r[0] === id); if (at >= 0) state.content[at] = data.item; }
+    if (data.version) state.contentVersions[id] = data.version;
+    Object.assign(state, { editingId: null, askingId: null, conflictId: null });
+    const savedMessage = request[1] + (act === "save" && data.item ? "؛ الحالة: " + data.item[9] : "");
+    jobFeedback(data, savedMessage);
+    if (!await refresh({ quiet: true })) jobFeedback({ ...data, warnings: [...(data.warnings || []), "تعذر تحديث بقية البيانات: " + state.error] }, savedMessage);
   } catch (e) {
-    toast(e.message, "bad");
+    if (!sameConnection(epoch, url, token)) return;
+    if (e.code === "CONFLICT") state.conflictId = id;
+    contentFeedback(e.message + (e.code === "CONFLICT" ? "\nنصك محفوظ؛ افتح النسخة الأحدث من خيارات المنشور." : ""), e.code === "CONFLICT" ? "warn" : "bad");
+    toast(e.message, e.code === "CONFLICT" ? "warn" : "bad");
   } finally {
-    state.contentBusy = false;
-    stop();
+    state.contentBusy = false; stop();
+    if (sameConnection(epoch, url, token)) renderContentView();
   }
 }
 
 async function contentJob(btn, kind) {
   if (!state.url) { openSettings(); return; }
-  if (state.contentBusy) { toast("انتظر حتى تكتمل العملية الحالية", "warn"); return; }
+  if (state.contentBusy || state.contentPageLoading) { toast("انتظر حتى تكتمل العملية الحالية", "warn"); return; }
   state.contentBusy = true;
+  const epoch = state.connectionEpoch, url = state.url, token = state.token;
   const stop = busy(btn, kind === "plan" ? "راكان يخطط" : "لمى تكتب");
-  toast(kind === "plan" ? "يضع راكان خطة 5 منشورات ثم تكتبها لمى ويدققها سالم؛ قد يستغرق ذلك دقيقتين إلى أربع."
-    : "تكتب لمى نصيحتين موسميتين ويدققهما سالم؛ قرابة دقيقة.");
+  contentFeedback(kind === "plan" ? "يضع راكان خطة لأيام العمل المتبقية (حتى 5 منشورات)، ثم تكتبها لمى ويدققها سالم؛ قد يستغرق ذلك دقيقتين إلى أربع." : "تكتب لمى نصيحتين موسميتين ويدققهما سالم؛ قرابة دقيقة.", "none");
   try {
     const data = await api({ action: kind === "plan" ? "weekly_plan" : "seasonal_tips" });
-    toast(data.message || "تم", "ok");
+    if (!sameConnection(epoch, url, token)) return;
+    jobFeedback(data, "اكتملت العملية");
     state.contentFilter = "review";
-    await refresh({ quiet: true });
+    if (!await refresh({ quiet: true })) jobFeedback({ ...data, warnings: [...(data.warnings || []), "تعذر تحديث البيانات: " + state.error] }, "اكتملت العملية");
   } catch (e) {
-    toast(e.message, "bad");
+    if (sameConnection(epoch, url, token)) { contentFeedback(e.message, "bad"); toast(e.message, "bad"); }
   } finally {
-    state.contentBusy = false;
-    stop();
+    state.contentBusy = false; stop();
+    if (sameConnection(epoch, url, token)) renderContentView();
   }
 }
 
@@ -1845,39 +1924,74 @@ function renderBoard() {
   renderStrip();
 }
 
+function acceptContent(data, append) {
+  const rows = Array.isArray(data.content) ? data.content : [];
+  if (append) {
+    const known = new Set(state.content.map(r => r[0]));
+    state.content = state.content.concat(rows.filter(r => !known.has(r[0])));
+    Object.assign(state.contentVersions, data.contentVersions || {});
+  } else {
+    state.content = rows;
+    state.contentVersions = data.contentVersions || {};
+  }
+  state.contentMeta = data.contentMeta || null;
+  state.contentFloor = state.contentMeta ? (state.contentMeta.nextCursor === null ? 2 : state.contentMeta.nextCursor + 1) : null;
+}
+function sameConnection(epoch, url, token) { return epoch === state.connectionEpoch && url === state.url && token === state.token; }
 async function refresh(opts) {
   const quiet = opts && opts.quiet;
-  if (!state.url) { renderStatus(); renderBoard(); return; }
+  if (!state.url) { renderStatus(); renderBoard(); return false; }
+  const seq = ++state.refreshSeq, epoch = state.connectionEpoch, url = state.url, token = state.token, range = state.range;
+  const current = () => seq === state.refreshSeq && sameConnection(epoch, url, token) && range === state.range;
   state.loading = true;
   renderStatus();
-  if (!state.loaded) renderGauge(computeMetrics());
   let changed = !state.loaded;
   try {
-    let data;
-    try { data = await api({ action: "dashboard", range: state.range }); }
-    catch (e) {
-      // خادم أقدم لا يعرف "dashboard" فيعامله كمهمة فارغة: نرجع لأحدث العناصر فقط
-      if (/نص المهمة فارغ/.test(e.message)) data = await api({ action: "list" });
-      else throw e;
-    }
+    const request = { action: "dashboard", range };
+    if (state.contentFloor !== null) request.contentCursor = state.contentFloor;
+    const data = await api(request);
+    if (!current()) return false;
     const tasks = Array.isArray(data.tasks) ? data.tasks : [];
     const news = Array.isArray(data.news) ? data.news : [];
-    const content = Array.isArray(data.content) ? data.content : [];
     const stats = data.stats && data.stats.series ? data.stats : null;
-    const sig = JSON.stringify([tasks, news, content, stats]);
+    if (!stats || stats.range !== range) throw new Error("الخادم لم يُرجع مؤشرات الفترة المطلوبة؛ تحقق من نشر النسخة المحدثة.");
+    const alerts = Array.isArray(data.alerts) ? data.alerts : null;
+    const sig = JSON.stringify([tasks, news, data.content, stats, alerts, data.contentVersions, data.contentMeta]);
     changed = changed || sig !== state.sig;
-    Object.assign(state, { tasks, news, content, stats, sig, loaded: true, error: "", lastSync: new Date() });
+    acceptContent(data, false);
+    Object.assign(state, { tasks, news, stats, alerts, sig, loaded: true, error: "", lastSync: new Date() });
+    return true;
   } catch (e) {
+    if (!current()) return false;
     state.error = e.message;
     changed = true;
     if (!quiet) toast(e.message, "bad");
+    return false;
   } finally {
-    state.loading = false;
-    renderStatus();
-    // لا نعيد رسم القوائم إن لم تتغير البيانات، حتى لا تنطوي الأقسام المفتوحة أثناء التحديث التلقائي
-    // ولا نعيد رسم قائمة المحتوى بينما تكتب تعديلاً أو ملاحظة حتى لا يضيع ما كتبته
-    const typing = state.view === "content" && (state.editingId || state.askingId);
-    if (changed) { renderBoard(); if (sheet.open && state.view !== "compose" && !typing) renderView(); }
+    if (current()) {
+      state.loading = false;
+      renderStatus();
+      const typing = state.view === "content" && (state.editingId || state.askingId);
+      if (changed) { renderBoard(); if (sheet.open && state.view !== "compose" && !typing) renderView(); }
+    }
+  }
+}
+async function loadOlderContent() {
+  if (state.contentPageLoading || state.loading || state.contentBusy || !state.contentMeta || state.contentMeta.nextCursor === null) return;
+  const cursor = state.contentMeta.nextCursor, epoch = state.connectionEpoch, url = state.url, token = state.token, seq = ++state.refreshSeq;
+  state.contentPageLoading = true;
+  renderContentView();
+  try {
+    const data = await api({ action: "content_page", cursor });
+    if (seq !== state.refreshSeq || !sameConnection(epoch, url, token)) return;
+    acceptContent(data, true);
+    state.sig = "";
+    renderBoard();
+  } catch (e) {
+    if (sameConnection(epoch, url, token)) contentFeedback(e.message, "bad");
+  } finally {
+    state.contentPageLoading = false;
+    if (sameConnection(epoch, url, token)) renderContentView();
   }
 }
 
@@ -1891,6 +2005,8 @@ async function sendTask(ev) {
   if (!state.url) { openSettings(); return; }
 
   const agent = state.agent;
+  const submittedDraft = input.value;
+  const epoch = state.connectionEpoch, url = state.url, token = state.token;
   const a = AGENT_BY_NAME[agent];
   const result = $("#result");
   result.hidden = false;
@@ -1903,6 +2019,7 @@ async function sendTask(ev) {
   const stop = busy($("#btnSend"), "جاري التنفيذ");
   try {
     const data = await api({ agent, task });
+    if (!sameConnection(epoch, url, token)) return;
     result.innerHTML = `<div class="result-head">${avatar(data.agent, "sm")}
         <div class="item-meta"><strong>${esc(data.agent)}</strong><small class="mono">${esc(data.taskId)}</small></div>
         ${scoreBadge(data.audit)}</div>
@@ -1911,10 +2028,10 @@ async function sendTask(ev) {
         <div class="audit"><div class="audit-h">${avatar("سالم", "xs")} تدقيق سالم</div><div class="md">${md(data.audit)}</div></div>
         <div class="row-actions">${copyButton(data.output, "نسخ المخرجات")}</div>
       </div>`;
-    input.value = "";
-    store.set(KEYS.draft, "");
+    if (input.value === submittedDraft) { input.value = ""; store.set(KEYS.draft, ""); }
     refresh({ quiet: true });
   } catch (e) {
+    if (!sameConnection(epoch, url, token)) return;
     result.className = "result err";
     result.innerHTML = `<div class="result-head">${ICON.alert}<strong>لم تكتمل المهمة</strong></div>
       <div class="result-body"><p style="margin:0">${esc(e.message)}</p><p class="hint" style="margin:6px 0 0">نص المهمة ما زال في الخانة، يمكنك المحاولة مجدداً.</p></div>`;
@@ -1928,19 +2045,19 @@ async function sendTask(ev) {
 async function fetchNews(btn) {
   if (!state.url) { openSettings(); return; }
   if (state.fetching) { toast("دورة الرصد تعمل حالياً", "warn"); return; }
+  const epoch = state.connectionEpoch, url = state.url, token = state.token;
   state.fetching = true;
   const stop = busy(btn, "جاري الرصد");
-  toast("بدأ الرصد: يقيّم نواف صلة كل خبر أولاً، ثم يمر المناسب على بقية الفريق؛ قد يستغرق ذلك دقيقة إلى أربع.");
+  contentFeedback("بدأ الرصد: يقيّم نواف صلة الأخبار ثم يمر المناسب على الفريق؛ قد يستغرق ذلك دقيقة إلى أربع.", "none", "newsFeedback");
+  toast("بدأ رصد الأخبار؛ ستبقى تفاصيل النتيجة في قائمة الأخبار.");
   try {
     const data = await api({ action: "fetch_news" });
-    toast(data.message || "اكتمل رصد الأخبار", "ok");
-    await refresh({ quiet: true });
+    if (!sameConnection(epoch, url, token)) return;
+    jobFeedback(data, "اكتمل رصد الأخبار", "newsFeedback");
+    if (!await refresh({ quiet: true })) jobFeedback({ ...data, warnings: [...(data.warnings || []), "تعذر تحديث البيانات: " + state.error] }, "اكتمل رصد الأخبار", "newsFeedback");
   } catch (e) {
-    toast(e.message, "bad");
-  } finally {
-    state.fetching = false;
-    stop();
-  }
+    if (sameConnection(epoch, url, token)) { contentFeedback(e.message, "bad", "newsFeedback"); toast(e.message, "bad"); }
+  } finally { state.fetching = false; stop(); }
 }
 
 function exportCsv() {
@@ -1965,7 +2082,7 @@ function setAuto(on) {
   b.title = on ? "إيقاف التحديث التلقائي" : "تشغيل التحديث التلقائي (كل دقيقة)";
   b.setAttribute("aria-label", b.title);
   clearInterval(autoTimer);
-  if (on) autoTimer = setInterval(() => { if (document.visibilityState === "visible" && !state.loading) refresh({ quiet: true }); }, 60000);
+  if (on) autoTimer = setInterval(() => { if (document.visibilityState === "visible" && !state.loading && !state.contentPageLoading && !state.contentBusy) refresh({ quiet: true }); }, 60000);
 }
 
 // ---------------- الإعدادات ----------------
@@ -1983,13 +2100,16 @@ async function saveSettings(ev) {
   const url = $("#inUrl").value.trim();
   const token = $("#inToken").value.trim();
   const linkedin = $("#inLinkedin").value.trim();
-  try { if (!/^https?:$/.test(new URL(url).protocol)) throw new Error(); }
-  catch (e) { settingsMsg("الرابط غير صالح.", "bad"); return; }
+  try { const parsed = new URL(url); if (parsed.protocol !== "https:" || parsed.hostname !== "script.google.com" || parsed.username || parsed.password || !/\/exec\/?$/.test(parsed.pathname)) throw new Error(); }
+  catch (e) { settingsMsg("استخدم رابط HTTPS لتطبيق Google Apps Script المنشور والمنتهي بـ /exec.", "bad"); return; }
+  if (!token) { settingsMsg("رمز ACCESS_TOKEN مطلوب.", "bad"); return; }
+  if (state.editingId || state.askingId) { settingsMsg("احفظ النص المفتوح أو ألغِ تحريره قبل تغيير الاتصال.", "bad"); return; }
+  if (state.sending || state.contentBusy || state.fetching) { settingsMsg("انتظر اكتمال العملية الحالية قبل تغيير الخادم.", "bad"); return; }
   if (linkedin && !/^https:\/\/([\w-]+\.)?linkedin\.com\//i.test(linkedin)) { settingsMsg("رابط LinkedIn يجب أن يبدأ بـ https://www.linkedin.com/", "bad"); return; }
   state.linkedin = linkedin;
   store.set(KEYS.linkedin, linkedin);
 
-  Object.assign(state, { url, token, loaded: false, error: "", sig: "" });
+  Object.assign(state, { url, token, loaded: false, error: "", sig: "", connectionEpoch: state.connectionEpoch + 1, contentFloor: null, contentVersions: {}, contentMeta: null, tasks: [], news: [], content: [], stats: null, alerts: null, lastSync: null, editingId: null, askingId: null, conflictId: null });
   store.set(KEYS.url, url); store.set(KEYS.token, token);
   const btn = $("#btnSaveSettings");
   btn.disabled = true;
@@ -2034,6 +2154,11 @@ $("#sheetClose").addEventListener("click", () => sheet.close());
 sheet.addEventListener("click", e => { if (e.target === sheet) sheet.close(); });
 sheet.addEventListener("close", () => { state.view = ""; });
 $("#taskForm").addEventListener("submit", sendTask);
+$("#btnContentOlder").addEventListener("click", loadOlderContent);
+document.addEventListener("input", e => {
+  if (state.editingId && e.target.id === "edit-" + state.editingId) state.editingDraft = e.target.value;
+  if (state.askingId && e.target.id === "note-" + state.askingId) state.askingDraft = e.target.value;
+});
 
 const input = $("#taskInput");
 input.value = store.get(KEYS.draft);
@@ -2082,6 +2207,8 @@ document.addEventListener("click", async e => {
   // نافذة النشر في X تفتح والتغريدة مكتوبة فيها؛ الصورة تُرفق يدوياً بعد تنزيلها
   const xo = t.closest("[data-x-open]");
   if (xo) {
+    const row = state.content.find(r => r[0] === xo.dataset.id);
+    if (!row || row[9] !== "معتمد" || state.contentVersions[row[0]] !== xo.dataset.version) { toast("حدّث المنشور واعتمده قبل فتح X.", "warn"); return; }
     window.open("https://x.com/intent/post?text=" + encodeURIComponent(copyMap.get(Number(xo.dataset.xOpen)) || ""), "_blank", "noopener");
     toast("فُتحت نافذة X بالتغريدة. أرفق صورة التصميم بعد تنزيلها ثم انشر.", "ok");
     return;
@@ -2089,6 +2216,8 @@ document.addEventListener("click", async e => {
   // النسخ أولاً ثم فتح LinkedIn في تبويب جديد؛ المستخدم يلصق في صفحة الشركة ثم يضغط «تم النشر»
   const li = t.closest("[data-li-open]");
   if (li) {
+    const row = state.content.find(r => r[0] === li.dataset.id);
+    if (!row || row[9] !== "معتمد" || state.contentVersions[row[0]] !== li.dataset.version) { toast("حدّث المنشور واعتمده قبل فتح LinkedIn.", "warn"); return; }
     const ok = await copyText(copyMap.get(Number(li.dataset.liOpen)) || "");
     window.open(linkedinUrl(), "_blank", "noopener");
     toast(ok ? "نُسخ المنشور. الصقه في صفحة الشركة على LinkedIn، ثم اضغط «تم النشر» هنا." : "تعذر النسخ؛ استخدم «تعديل» وانسخ النص يدوياً.", ok ? "ok" : "bad");
