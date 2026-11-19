@@ -219,6 +219,9 @@ function openSettings() {
   $("#inUrl").value = state.url;
   $("#inToken").value = state.token;
   $("#inRemember").checked = tokenStore.remembered();
+  renderGoogleBox();
+  renderSocialBox();
+  if (state.url && hasAuth()) loadSocialStatus();
   $("#inLinkedin").value = state.linkedin;
   settingsMsg("");
   if (!dlg.open) dlg.showModal();
@@ -230,7 +233,7 @@ async function saveSettings(ev) {
   const linkedin = $("#inLinkedin").value.trim();
   try { const parsed = new URL(url); if (parsed.protocol !== "https:" || parsed.hostname !== "script.google.com" || parsed.username || parsed.password || !/\/exec\/?$/.test(parsed.pathname)) throw new Error(); }
   catch (e) { settingsMsg("استخدم رابط HTTPS لتطبيق Google Apps Script المنشور والمنتهي بـ /exec.", "bad"); return; }
-  if (!token) { settingsMsg("رمز ACCESS_TOKEN مطلوب.", "bad"); return; }
+  if (!token && !googleUser()) { settingsMsg(GOOGLE_CLIENT_ID ? "سجّل الدخول بحساب Google أو أدخل رمز ACCESS_TOKEN." : "رمز ACCESS_TOKEN مطلوب.", "bad"); return; }
   if (state.editingId || state.askingId) { settingsMsg("احفظ النص المفتوح أو ألغِ تحريره قبل تغيير الاتصال.", "bad"); return; }
   if (state.sending || state.contentBusy || state.fetching || state.taskBusyId) { settingsMsg("انتظر اكتمال العملية الحالية قبل تغيير الخادم.", "bad"); return; }
   if (linkedin && !/^https:\/\/([\w-]+\.)?linkedin\.com\//i.test(linkedin)) { settingsMsg("رابط LinkedIn يجب أن يبدأ بـ https://www.linkedin.com/", "bad"); return; }
@@ -245,6 +248,6 @@ async function saveSettings(ev) {
   settingsMsg(/\/dev(\?|$)/.test(url) ? "تنبيه: رابط ‎/dev‎ يتطلب تسجيل الدخول، استخدم رابط ‎/exec‎. جاري الاختبار…" : "جاري اختبار الاتصال…");
   await refresh({ quiet: true });
   btn.disabled = false;
-  if (state.loaded) { dlg.close(); toast("تم الاتصال بالخادم بنجاح", "ok"); }
+  if (state.loaded) { dlg.close(); toast("تم الاتصال بالخادم بنجاح", "ok"); loadSocialStatus(); }
   else settingsMsg(state.error, "bad");
 }

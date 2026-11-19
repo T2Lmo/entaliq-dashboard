@@ -90,7 +90,7 @@ async function copyManualResearchPrompt() {
 }
 async function submitManualResearch(resumeRequestId) {
   if (state.sending) return;
-  if (!state.url || !state.token) { openSettings(); return; }
+  if (!state.url || !hasAuth()) { openSettings(); return; }
   const epoch = state.connectionEpoch, url = state.url, token = state.token;
   let payload, payloadKey, requestId = resumeRequestId, previous;
   if (resumeRequestId) {
@@ -214,11 +214,11 @@ function acceptResearchResult(data) {
 }
 function scheduleResearchPoll(delay) {
   clearTimeout(state.researchTimer);
-  if (!state.url || !state.token || !Object.values(state.researchIntents).some(i => researchIsPending(i) && !i.paused)) return;
+  if (!state.url || !hasAuth() || !Object.values(state.researchIntents).some(i => researchIsPending(i) && !i.paused)) return;
   state.researchTimer = setTimeout(() => pollResearch(), delay === undefined ? 9000 : delay);
 }
 async function pollResearch() {
-  if (state.researchPolling || !state.url || !state.token) return;
+  if (state.researchPolling || !state.url || !hasAuth()) return;
   if (document.visibilityState === "hidden") { scheduleResearchPoll(); return; }
   const pending = Object.values(state.researchIntents).filter(i => researchIsPending(i) && !i.paused);
   if (!pending.length) return;

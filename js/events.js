@@ -31,6 +31,7 @@ $("#btnSettings").addEventListener("click", openSettings);
 $("#btnCloseSettings").addEventListener("click", () => dlg.close());
 $("#settingsForm").addEventListener("submit", saveSettings);
 $("#btnShowToken").addEventListener("click", () => { const i = $("#inToken"); i.type = i.type === "password" ? "text" : "password"; });
+$("#btnGoogleOut").addEventListener("click", signOutGoogle);
 $("#sheetClose").addEventListener("click", () => sheet.close());
 sheet.addEventListener("click", e => { if (e.target === sheet) sheet.close(); });
 sheet.addEventListener("close", () => { state.view = ""; });
@@ -81,6 +82,12 @@ document.addEventListener("click", async e => {
   if (reaudit) { reauditTask(reaudit); return; }
   const cact = t.closest("[data-cact]");
   if (cact) { contentAction(cact); return; }
+  const spub = t.closest("[data-spub]");
+  if (spub) { socialPublish(spub); return; }
+  const scon = t.closest("[data-sconnect]");
+  if (scon) { socialConnect(scon); return; }
+  const sdis = t.closest("[data-sdisconnect]");
+  if (sdis) { socialDisconnect(sdis); return; }
   const cfilter = t.closest("[data-cfilter]");
   if (cfilter) { state.contentFilter = cfilter.dataset.cfilter; renderContentView(); return; }
   // مقاس التصميم يُحفظ لكل منشور ويُعاد رسم صورته فقط

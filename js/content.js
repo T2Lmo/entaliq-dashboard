@@ -21,6 +21,7 @@ function contentItem(row) {
     "مسودة": [btn("approve", "اعتماد", "btn-primary"), btn("edit", "تعديل"), btn("rewrite", "إعادة كتابة"), btn("reject", "رفض"),
       designCell ? "" : btn("prepare", "جهّز التصميم ونسخة X")],
     "معتمد": [text ? `<button type="button" class="btn btn-primary sm" data-li-open="${copyable(linkedinText(text))}" data-id="${esc(id)}" data-version="${esc(version)}">${ICON.ext}<span class="lbl-text">انسخ وافتح LinkedIn</span></button>` : "",
+      text ? socialPublishButton("linkedin", id, version) : "",
       btn("publish", "تم النشر"), btn("edit", "تعديل"), btn("draft", "إرجاع لمسودة"), designCell ? "" : btn("prepare", "جهّز التصميم ونسخة X")],
     "مرفوض": [btn("rewrite", "إعادة كتابة", "btn-primary"), btn("draft", "إرجاع لمسودة")]
   }[status] || [];
@@ -77,6 +78,7 @@ function designPanel(id, designCell, tweet, status) {
         <div class="by">${avatar("زياد", "xs")} نسخة X <small class="tweet-len" data-tone="${len > 280 ? "bad" : "ok"}">${len}/280</small></div>
         <p>${esc(tweet)}</p>
         <div class="row-actions">
+          ${status === "معتمد" ? socialPublishButton("x", id, state.contentVersions[id] || "") : ""}
           ${status === "معتمد" ? `<button type="button" class="btn btn-primary sm" data-x-open="${copyable(tweet)}" data-id="${esc(id)}" data-version="${esc(state.contentVersions[id] || "")}">${ICON.ext}<span class="lbl-text">افتح X بالتغريدة</span></button>` : `<span class="hint">فتح X متاح بعد اعتماد المنشور.</span>`}
           ${copyButton(tweet, "نسخ")}
         </div>

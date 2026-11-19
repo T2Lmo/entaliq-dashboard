@@ -70,7 +70,10 @@ const RANGES = [
   { id: "all", label: "الكل", note: "كل البيانات" }
 ];
 
-const KEYS = { url: "entaliq.url", token: "entaliq.token", agent: "entaliq.agent", draft: "entaliq.draft", auto: "entaliq.auto", range: "entaliq.range", linkedin: "entaliq.linkedin", research: "entaliq.research", manualResearch: "entaliq.research.manual" };
+// معرّف عميل OAuth من Google Cloud (عام وليس سراً). فارغ = تسجيل الدخول بـ Google مخفي، ويبقى الرمز المشترك
+const GOOGLE_CLIENT_ID = "";
+
+const KEYS = { url: "entaliq.url", token: "entaliq.token", idToken: "entaliq.idToken", agent: "entaliq.agent", draft: "entaliq.draft", auto: "entaliq.auto", range: "entaliq.range", linkedin: "entaliq.linkedin", research: "entaliq.research", manualResearch: "entaliq.research.manual" };
 const store = {
   get(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
   set(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch (e) {} }
@@ -99,6 +102,8 @@ const state = {
   contentFilter: "review", editingId: null, askingId: null, askingKind: "", contentBusy: false, designSize: {},
   loaded: false, loading: false, error: "", lastSync: null,
   sending: false, fetching: false,
+  idToken: (() => { try { return sessionStorage.getItem(KEYS.idToken) || ""; } catch (e) { return ""; } })(),
+  social: null, socialPosts: {}, socialBusy: false,
   view: "", filterAgent: "", query: "", sort: "new"
 };
 

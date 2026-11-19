@@ -10,5 +10,7 @@ setInterval(paintToday, 60000);
 setAuto(store.get(KEYS.auto) === "1");
 renderStatus();
 renderBoard();
-if (state.url) refresh();
+initGoogleAuth();
+// بدون رمز محفوظ أو جلسة Google صالحة نفتح الإعدادات لتسجيل الدخول بدل محاولة اتصال ستفشل
+if (state.url && hasAuth()) refresh().then(ok => { if (ok) loadSocialStatus(); });
 else openSettings();

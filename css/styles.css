@@ -336,6 +336,11 @@
   .btn.wide { width: 100%; }
   .hint { font-size: 12px; color: var(--text-3); }
   .remember { display: flex; align-items: center; gap: 8px; margin: 12px 0 4px; font-size: 13px; color: var(--text-2); cursor: pointer; }
+  .google-row, .social-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 6px 0; }
+  .social-row b { min-width: 72px; }
+  .social-row .hint { flex: 1; }
+  .google-box, .social-box { border-bottom: 1px solid var(--line, rgba(255,255,255,.08)); padding-bottom: 8px; margin-bottom: 4px; }
+  .social-box { border-bottom: 0; border-top: 1px solid var(--line, rgba(255,255,255,.08)); margin-top: 12px; }
   .remember input { width: 16px; height: 16px; accent-color: currentColor; }
   .kbd { font-family: ui-monospace, Consolas, monospace; font-size: 11px; direction: ltr; unicode-bidi: isolate; }
 
