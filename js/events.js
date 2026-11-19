@@ -1,0 +1,143 @@
+"use strict";
+// ربط الأحداث
+
+// ---------------- الأحداث ----------------
+$("#btnRefresh").innerHTML = ICON.refresh;
+$("#btnCompose").innerHTML = ICON.chat;
+$("#btnCsv").innerHTML = ICON.download;
+$("#btnFull").innerHTML = ICON.full;
+$("#btnSettings").innerHTML = ICON.settings;
+$("#sheetClose").innerHTML = ICON.close;
+$("#btnShowToken").innerHTML = ICON.eye;
+$("#sendIcon").innerHTML = ICON.send;
+document.querySelectorAll(".ico-plus").forEach(e => { e.outerHTML = ICON.plus; });
+$("#tvNews").innerHTML = GLYPH.news;
+$("#tvBest").innerHTML = GLYPH.best;
+$("#tvAssign").innerHTML = GLYPH.assign;
+$("#tvLog").innerHTML = GLYPH.log;
+
+function paintToday() {
+  $("#today").textContent = new Intl.DateTimeFormat("ar-SA-u-ca-gregory-nu-latn", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date());
+}
+
+$("#btnAuto").addEventListener("click", () => setAuto($("#btnAuto").getAttribute("aria-pressed") !== "true"));
+$("#btnRefresh").addEventListener("click", () => refresh());
+$("#btnCsv").addEventListener("click", exportCsv);
+$("#btnFull").addEventListener("click", () => {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+});
+$("#btnSettings").addEventListener("click", openSettings);
+$("#btnCloseSettings").addEventListener("click", () => dlg.close());
+$("#settingsForm").addEventListener("submit", saveSettings);
+$("#btnShowToken").addEventListener("click", () => { const i = $("#inToken"); i.type = i.type === "password" ? "text" : "password"; });
+$("#sheetClose").addEventListener("click", () => sheet.close());
+sheet.addEventListener("click", e => { if (e.target === sheet) sheet.close(); });
+sheet.addEventListener("close", () => { state.view = ""; });
+$("#taskForm").addEventListener("submit", sendTask);
+$("#btnContentOlder").addEventListener("click", loadOlderContent);
+document.addEventListener("input", e => {
+  if (state.editingId && e.target.id === "edit-" + state.editingId) state.editingDraft = e.target.value;
+  if (state.askingId && e.target.id === "note-" + state.askingId) state.askingDraft = e.target.value;
+});
+
+const input = $("#taskInput");
+input.value = store.get(KEYS.draft);
+input.addEventListener("input", () => { if (state.agent === "الباحث") captureManualDraft(); else store.set(KEYS.draft, input.value); });
+$("#manualReport").addEventListener("input", captureManualDraft);
+$("#manualSources").addEventListener("input", () => { captureManualDraft(); renderManualSources(); });
+$("#btnResearchPrompt").addEventListener("click", copyManualResearchPrompt);
+$("#btnExtractSources").addEventListener("click", extractManualSources);
+input.addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) sendTask(e); });
+
+$("#taskSearch").addEventListener("input", e => { state.query = e.target.value; renderTasksView(); });
+$("#taskFilter").innerHTML += AGENTS.map(a => `<option value="${esc(a.name)}">${esc(a.name)} · ${esc(a.role)}</option>`).join("");
+$("#taskFilter").addEventListener("change", e => { state.filterAgent = e.target.value; renderTasksView(); });
+$("#taskSort").addEventListener("change", e => { state.sort = e.target.value; renderTasksView(); });
+
+document.addEventListener("click", async e => {
+  const t = e.target;
+  const opener = t.closest("[data-open]");
+  if (opener) { openView(opener.dataset.open, { agent: opener.dataset.filterAgent, sort: opener.dataset.sort, cfilter: opener.dataset.cfilterOpen }); return; }
+  const pick = t.closest("[data-pick]");
+  if (pick) {
+    state.agent = pick.dataset.pick; store.set(KEYS.agent, state.agent); renderCompose();
+    const again = document.querySelector(`[data-pick="${CSS.escape(state.agent)}"]`); if (again) again.focus();
+    return;
+  }
+  const ex = t.closest("[data-example]");
+  if (ex) { input.value = ex.dataset.example; if (state.agent === "الباحث") captureManualDraft(); else store.set(KEYS.draft, input.value); input.focus(); return; }
+  if (t.closest("[data-open-settings]")) { openSettings(); return; }
+  if (t.closest("[data-refresh]")) { refresh(); return; }
+  const fetchBtn = t.closest('[data-action="fetch-news"]');
+  if (fetchBtn) { fetchNews(fetchBtn); return; }
+  const planBtn = t.closest('[data-action="weekly-plan"], [data-action="seasonal-tips"]');
+  if (planBtn) { contentJob(planBtn, planBtn.dataset.action === "weekly-plan" ? "plan" : "tips"); return; }
+  const resend = t.closest("[data-research-resend]");
+  if (resend) { resendResearch(resend.dataset.researchResend); return; }
+  const follow = t.closest("[data-research-follow], [data-research-request]");
+  if (follow) { followResearch(follow.dataset.researchFollow || follow.dataset.researchRequest); return; }
+  const reaudit = t.closest("[data-task-reaudit]");
+  if (reaudit) { reauditTask(reaudit); return; }
+  const cact = t.closest("[data-cact]");
+  if (cact) { contentAction(cact); return; }
+  const cfilter = t.closest("[data-cfilter]");
+  if (cfilter) { state.contentFilter = cfilter.dataset.cfilter; renderContentView(); return; }
+  // مقاس التصميم يُحفظ لكل منشور ويُعاد رسم صورته فقط
+  const dsize = t.closest("[data-dsize]");
+  if (dsize) {
+    const id = dsize.dataset.id;
+    state.designSize[id] = dsize.dataset.dsize;
+    dsize.parentElement.querySelectorAll("[data-dsize]").forEach(b => b.setAttribute("aria-pressed", String(b === dsize)));
+    const canvas = document.querySelector(`canvas[data-design="${CSS.escape(id)}"]`);
+    if (canvas) { canvas.dataset.size = dsize.dataset.dsize; drawDesigns(canvas.parentElement); }
+    return;
+  }
+  const dl = t.closest("[data-ddownload]");
+  if (dl) { downloadDesign(dl.dataset.ddownload); return; }
+  // نافذة النشر في X تفتح والتغريدة مكتوبة فيها؛ الصورة تُرفق يدوياً بعد تنزيلها
+  const xo = t.closest("[data-x-open]");
+  if (xo) {
+    const row = state.content.find(r => r[0] === xo.dataset.id);
+    if (!row || row[9] !== "معتمد" || state.contentVersions[row[0]] !== xo.dataset.version) { toast("حدّث المنشور واعتمده قبل فتح X.", "warn"); return; }
+    window.open("https://x.com/intent/post?text=" + encodeURIComponent(copyMap.get(Number(xo.dataset.xOpen)) || ""), "_blank", "noopener");
+    toast("فُتحت نافذة X بالتغريدة. أرفق صورة التصميم بعد تنزيلها ثم انشر.", "ok");
+    return;
+  }
+  // النسخ أولاً ثم فتح LinkedIn في تبويب جديد؛ المستخدم يلصق في صفحة الشركة ثم يضغط «تم النشر»
+  const li = t.closest("[data-li-open]");
+  if (li) {
+    const row = state.content.find(r => r[0] === li.dataset.id);
+    if (!row || row[9] !== "معتمد" || state.contentVersions[row[0]] !== li.dataset.version) { toast("حدّث المنشور واعتمده قبل فتح LinkedIn.", "warn"); return; }
+    const ok = await copyText(copyMap.get(Number(li.dataset.liOpen)) || "");
+    window.open(linkedinUrl(), "_blank", "noopener");
+    toast(ok ? "نُسخ المنشور. الصقه في صفحة الشركة على LinkedIn، ثم اضغط «تم النشر» هنا." : "تعذر النسخ؛ استخدم «تعديل» وانسخ النص يدوياً.", ok ? "ok" : "bad");
+    return;
+  }
+  const cp = t.closest("[data-copy]");
+  if (cp) {
+    const ok = await copyText(copyMap.get(Number(cp.dataset.copy)) || "");
+    const lbl = cp.querySelector(".lbl-text");
+    const original = lbl.textContent;
+    lbl.textContent = ok ? "تم النسخ" : "تعذر النسخ";
+    setTimeout(() => { lbl.textContent = original; }, 1500);
+  }
+});
+
+document.addEventListener("click", e => {
+  const r = e.target.closest("[data-range]");
+  if (r) setRange(r.dataset.range);
+});
+$("#btnTrendTable").addEventListener("click", () => { trendTableOn = !trendTableOn; renderTrend(computeMetrics()); });
+const trendBox = $("#trendCharts");
+const trendIndex = e => { const hit = e.target.closest && e.target.closest(".hit"); return hit ? Number(hit.dataset.i) : -1; };
+trendBox.addEventListener("pointermove", e => { const i = trendIndex(e); if (i >= 0) showTrendTip(i); });
+trendBox.addEventListener("pointerleave", hideTrendTip);
+trendBox.addEventListener("focusin", e => { const i = trendIndex(e); if (i >= 0) showTrendTip(i); });
+trendBox.addEventListener("focusout", hideTrendTip);
+
+let resizeTimer = 0;
+addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { renderTicker(); renderTrend(computeMetrics()); }, 250);
+});
