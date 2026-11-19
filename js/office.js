@@ -12,7 +12,9 @@ const hourLabel = h => String(h).padStart(2, "0") + ":00";
 
 function officeError(e) {
   // الخادم القديم يحوّل أي إجراء لا يعرفه إلى مسار التكليف
-  return /نص المهمة فارغ/.test(e.message) ? "الخادم لا يدعم إدارة المكتب بعد: أضف Office.gs وسطر handleOfficeAction_ في doPost ثم انشر نسخة جديدة (SETUP.md)." : e.message;
+  return /نص المهمة فارغ/.test(e.message)
+    ? "الخادم الذي يرد على اللوحة ما زال يعمل بالنسخة القديمة.\nبعد لصق Code-complete.gs وحفظه: Deploy ← Manage deployments ← ✏️ Edit ← Version: New version ← Deploy (وليس New deployment، لأنه ينشئ رابطاً جديداً).\nوتأكد أن رابط /exec في إعدادات اللوحة هو رابط النشر نفسه."
+    : e.message;
 }
 
 async function loadOffice(quiet) {
