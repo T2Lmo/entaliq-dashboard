@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<!-- سياسة أمان المحتوى: تمنع تحميل سكربتات من مصادر أخرى، وتحصر إرسال البيانات (ومنها الرمز) في خادم Apps Script -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
 <title>مكتب انطلق الذكي</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%230b0d10'/%3E%3Cpath d='M8 21 16 13 24 21M10 26 16 20 22 26M6 15 16 5 26 15' stroke='%239cc4ee' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -200,7 +203,8 @@
         <input class="input ltr" id="inToken" type="password" required placeholder="رمز ACCESS_TOKEN المضبوط في الخادم" autocomplete="off" spellcheck="false">
         <button class="rbtn" id="btnShowToken" type="button" aria-label="إظهار الرمز" title="إظهار الرمز"></button>
       </div>
-      <p class="hint">رمز الوصول مطلوب. اضبط ACCESS_TOKEN في Script Properties واستخدم الرمز نفسه هنا. يُحفظ الرمز في هذا المتصفح؛ استخدم جهازاً تثق به.</p>
+      <label class="remember"><input type="checkbox" id="inRemember"> تذكّر الرمز على هذا الجهاز</label>
+      <p class="hint">رمز الوصول مطلوب. اضبط ACCESS_TOKEN في Script Properties واستخدم الرمز نفسه هنا. بدون «التذكّر» يُحفظ الرمز لهذه الجلسة فقط ويُمسح عند إغلاق المتصفح؛ لا تفعّله إلا على جهاز تثق به. لإزالة رمز محفوظ: ألغِ التذكّر واحفظ.</p>
       <label class="lbl" for="inLinkedin">صفحة الشركة على LinkedIn (اختياري)</label>
       <input class="input ltr" id="inLinkedin" type="url" placeholder="https://www.linkedin.com/company/…/admin/" autocomplete="off" spellcheck="false">
       <div class="msg" id="settingsMsg" role="status"></div>
@@ -214,8 +218,8 @@
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js" integrity="sha384-/TQbtLCAerC3jgaim+N78RZSDYV7ryeoBCVqTuzRrFec2akfBkHS7ACQ3PQhvMVi" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js" integrity="sha384-+VfUPEb0PdtChMwmBcBmykRMDd+v6D/oFmB3rZM/puCMDYcIvF968OimRh4KQY9a" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="js/config.js"></script>
 <script src="js/api.js"></script>
 <script src="js/utils.js"></script>

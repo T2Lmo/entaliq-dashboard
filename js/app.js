@@ -218,6 +218,7 @@ function settingsMsg(text, kind) { const m = $("#settingsMsg"); m.textContent = 
 function openSettings() {
   $("#inUrl").value = state.url;
   $("#inToken").value = state.token;
+  $("#inRemember").checked = tokenStore.remembered();
   $("#inLinkedin").value = state.linkedin;
   settingsMsg("");
   if (!dlg.open) dlg.showModal();
@@ -237,7 +238,7 @@ async function saveSettings(ev) {
   store.set(KEYS.linkedin, linkedin);
 
   Object.assign(state, { url, token, loaded: false, error: "", sig: "", connectionEpoch: state.connectionEpoch + 1, contentFloor: null, contentVersions: {}, contentMeta: null, taskVersions: {}, tasks: [], news: [], content: [], stats: null, alerts: null, lastSync: null, editingId: null, askingId: null, conflictId: null });
-  store.set(KEYS.url, url); store.set(KEYS.token, token);
+  store.set(KEYS.url, url); tokenStore.set(token, $("#inRemember").checked);
   restoreResearchTracking();
   const btn = $("#btnSaveSettings");
   btn.disabled = true;

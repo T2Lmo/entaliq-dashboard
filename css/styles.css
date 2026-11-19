@@ -335,6 +335,8 @@
   .btn:disabled { opacity: .65; cursor: progress; }
   .btn.wide { width: 100%; }
   .hint { font-size: 12px; color: var(--text-3); }
+  .remember { display: flex; align-items: center; gap: 8px; margin: 12px 0 4px; font-size: 13px; color: var(--text-2); cursor: pointer; }
+  .remember input { width: 16px; height: 16px; accent-color: currentColor; }
   .kbd { font-family: ui-monospace, Consolas, monospace; font-size: 11px; direction: ltr; unicode-bidi: isolate; }
 
   .picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }

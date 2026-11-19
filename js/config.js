@@ -75,10 +75,19 @@ const store = {
   get(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
   set(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch (e) {} }
 };
+// الرمز في sessionStorage افتراضياً (يُمسح بإغلاق المتصفح)، وفي localStorage فقط إذا اختار المستخدم «تذكّر الرمز»
+const tokenStore = {
+  remembered() { return !!store.get(KEYS.token); },
+  get() { try { return store.get(KEYS.token) || sessionStorage.getItem(KEYS.token) || ""; } catch (e) { return store.get(KEYS.token); } },
+  set(token, remember) {
+    store.set(KEYS.token, remember ? token : "");
+    try { !remember && token ? sessionStorage.setItem(KEYS.token, token) : sessionStorage.removeItem(KEYS.token); } catch (e) {}
+  }
+};
 
 const state = {
   url: store.get(KEYS.url),
-  token: store.get(KEYS.token),
+  token: tokenStore.get(),
   linkedin: store.get(KEYS.linkedin),
   agent: AGENT_BY_NAME[store.get(KEYS.agent)] ? store.get(KEYS.agent) : "راكان",
   range: RANGES.some(r => r.id === store.get(KEYS.range)) ? store.get(KEYS.range) : "week",
