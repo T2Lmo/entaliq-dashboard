@@ -1,9 +1,9 @@
-# تفعيل الدخول بـ Google والنشر على LinkedIn و X
+# تفعيل: Claude Sonnet للوكلاء، الدخول بـ Google، النشر على LinkedIn و X
 
-الواجهة جاهزة. الميزتان تبقيان مخفيتين حتى تُضبط هذه الخطوات.
+الواجهة جاهزة. هذه الميزات لا تعمل حتى تُضبط هذه الخطوات.
 
 ## 1) أضف الملفات إلى مشروع Apps Script
-انسخ `Auth.gs` و`Social.gs` إلى المشروع، ثم عدّل `Code.gs`:
+انسخ `Auth.gs` و`Social.gs` و`ClaudeBridge.gs` إلى المشروع، ثم عدّل `Code.gs`:
 
 ```js
 function doGet(e) {
@@ -13,11 +13,37 @@ function doGet(e) {
 
 function doPost(e) {
   const body = JSON.parse(e.postData.contents);
+  const worker = handleClaudeWorkerAction_(body); if (worker) return worker; // ← عامل Claude (له رمزه)
   const user = authorize_(body);                             // ← بدل فحص ACCESS_TOKEN الحالي
   const social = handleSocialAction_(body, user); if (social) return social;
   // ... بقية الإجراءات كما هي
 }
 ```
+
+## الوكلاء بـ Claude Sonnet (بدون API)
+الخادم يضع طلب الوكيل في طابور، و**عامل على جهازك** ينفذه بـ Claude Code باشتراكك ويعيد الرد.
+الوكلاء يعملون فقط وجهازك شغّال والعامل مفتوح.
+
+1. في `Code.gs` غيّر دالة استدعاء Gemini لتمر عبر Claude (عدّل الأسماء حسب كودك):
+   ```js
+   function callGemini_(system, prompt, opts) {
+     if (claudeEnabled_()) {
+       try { return callClaude_(system, prompt, opts); }   // opts.web = true لنواف والباحث (بحث الإنترنت)
+       catch (e) { if (e.code !== "WORKER_OFFLINE" || !claudeFallbackAllowed_()) throw e; }
+     }
+     return callGeminiOriginal_(system, prompt, opts);      // الدالة القديمة بعد إعادة تسميتها
+   }
+   ```
+2. Script Properties: `AI_ENGINE` = `claude`، و`WORKER_TOKEN` = رمز عشوائي طويل.
+   اختياري: `CLAUDE_MODEL` (الافتراضي `sonnet`)، و`CLAUDE_FALLBACK` = `gemini` ليُستخدم Gemini إذا كان جهازك مطفأ.
+3. على جهازك: انسخ `worker/.env.example` إلى `worker/.env` واملأ `EXEC_URL` و`WORKER_TOKEN`.
+4. تأكد أن `claude` مسجّل الدخول باشتراكك (شغّل `claude` مرة وسجّل)، ثم شغّل `worker/start-worker.cmd`.
+5. اختبار سريع بدون الخادم: `node worker/claude-worker.mjs --once "سؤال"`
+
+ملاحظات:
+- كل طلب يستهلك من حدود اشتراكك في Claude؛ الطلبات الكثيرة المتتالية قد تصل للحد المؤقت.
+- الطلب الواحد ينتظر حتى 5 دقائق؛ الإجراءات التي تستدعي عدة وكلاء متتالين قد تحتاج تقسيماً.
+- للتشغيل التلقائي مع Windows: ضع اختصاراً لـ `start-worker.cmd` في مجلد `shell:startup`.
 ثم **Deploy ← Manage deployments ← Edit ← New version** (يبقى رابط /exec نفسه).
 
 ## 2) الدخول ببريدك (Google)

@@ -21,7 +21,8 @@ js/                 سكربتات عادية (ليست modules) تتشارك ا
   social.js         ربط LinkedIn و X والنشر المباشر
   events.js         ربط الأحداث
   main.js           البداية (يُشغَّل أخيراً)
-apps-script/        ملفات تُضاف إلى مشروع Apps Script (Auth.gs, Social.gs) وخطوات التفعيل في SETUP.md
+apps-script/        ملفات تُضاف إلى مشروع Apps Script (Auth.gs, Social.gs, ClaudeBridge.gs) وخطوات التفعيل في SETUP.md
+worker/             عامل Claude على جهازك: ينفذ طلبات الوكلاء بـ Claude Sonnet باشتراكك (بدون API)
 ```
 
 > الترتيب في `index.html` مهم: كل ملف يستخدم ما عُرّف في الملفات التي قبله عند التحميل.
