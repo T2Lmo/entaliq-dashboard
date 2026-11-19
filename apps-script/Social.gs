@@ -4,7 +4,7 @@
  * التركيب (مرة واحدة):
  *  1) في بداية doGet(e):
  *       const cb = handleSocialCallback_(e); if (cb) return cb;
- *  2) في doPost بعد التحقق من المستخدم (authorize_ في Auth.gs):
+ *  2) في doPost بعد التحقق من المستخدم (authorizeUser_ في Auth.gs):
  *       const social = handleSocialAction_(body, user); if (social) return social;
  *
  * Script Properties:
@@ -250,6 +250,16 @@ function socialPublish_(network, body, user) {
     props.setProperty(doneKey, JSON.stringify(record));
     return record;
   } finally { lock.releaseLock(); }
+}
+
+// الخادم نفسه يتحقق أن المنشور معتمد ولم يتغير منذ عرضه، ونص X مطابق لنسخة زياد المحفوظة
+// (يستخدم دوال Code.gs: setupSheets, contentRow_, contentItem_, contentVersion_)
+function socialCanPublish_(id, body) {
+  const sheet = setupSheets().getSheetByName("Content");
+  const r = contentItem_(sheet, contentRow_(sheet, id));
+  if (r[9] !== "معتمد" || typeof body.version !== "string" || contentVersion_(r) !== body.version) return false;
+  if (body.network === "x" && String(r[13] || "").trim() !== String(body.text || "").trim()) return false;
+  return true;
 }
 
 // ---------------- أدوات ----------------

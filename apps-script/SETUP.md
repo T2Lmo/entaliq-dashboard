@@ -2,49 +2,64 @@
 
 الواجهة جاهزة. هذه الميزات لا تعمل حتى تُضبط هذه الخطوات.
 
-## 1) أضف الملفات إلى مشروع Apps Script
-انسخ `Auth.gs` و`Social.gs` و`ClaudeBridge.gs` إلى المشروع، ثم عدّل `Code.gs`:
+## 1) أضف الملفات وعدّل Code.gs (3 تعديلات فقط)
+في محرر Apps Script: **+ ← Script** ثلاث مرات، وانسخ فيها `Auth.gs` و`Social.gs` و`ClaudeBridge.gs` كما هي.
+ثم في `Code.gs` (ابحث بـ Ctrl+F):
 
+**أ) سطر دالة Gemini** — غيّر الاسم فقط:
 ```js
-function doGet(e) {
-  const cb = handleSocialCallback_(e); if (cb) return cb;   // ← أضف هذا السطر أولاً
-  // ... الكود الحالي
-}
-
-function doPost(e) {
-  const body = JSON.parse(e.postData.contents);
-  const worker = handleClaudeWorkerAction_(body); if (worker) return worker; // ← عامل Claude (له رمزه)
-  const user = authorize_(body);                             // ← بدل فحص ACCESS_TOKEN الحالي
-  const social = handleSocialAction_(body, user); if (social) return social;
-  // ... بقية الإجراءات كما هي
-}
+function callGemini(systemRole, userPrompt, asJson) {
 ```
+إلى:
+```js
+function callGeminiApi_(systemRole, userPrompt, asJson) {
+```
+`ClaudeBridge.gs` يعرّف `callGemini` الجديدة بنفس التوقيع، فكل الوكلاء (نواف، فيصل، لمى، سالم، ريم، زياد، راكان، خالد، سلطان) يمرون عبرها دون أي تغيير آخر.
+
+**ب) داخل doGet** — استبدل:
+```js
+    authorize_(e && e.parameter && e.parameter.token);
+```
+بـ:
+```js
+    const cb = handleSocialCallback_(e); if (cb) return cb;
+    authorizeUser_({ token: e && e.parameter && e.parameter.token });
+```
+
+**ج) داخل doPost** — استبدل:
+```js
+    authorize_(data.token);
+```
+بـ:
+```js
+    const worker = handleClaudeWorkerAction_(data); if (worker) return worker;
+    const user = authorizeUser_(data);
+    const social = handleSocialAction_(data, user); if (social) return social;
+    if (data.action === "claude_status") return json_(Object.assign({ status: "success" }, claudeStatus_()));
+```
+
+ثم **Deploy ← Manage deployments ← Edit ← Version: New version** (يبقى رابط /exec نفسه).
+
+هذه التعديلات آمنة قبل ضبط أي مفاتيح جديدة: بدون `AI_ENGINE=claude` يبقى Gemini كما هو، والرمز `ACCESS_TOKEN` الحالي يبقى يعمل.
 
 ## الوكلاء بـ Claude Sonnet (بدون API)
 الخادم يضع طلب الوكيل في طابور، و**عامل على جهازك** ينفذه بـ Claude Code باشتراكك ويعيد الرد.
-الوكلاء يعملون فقط وجهازك شغّال والعامل مفتوح.
+التعليمات المرسلة لـ Claude هي نفسها التي كانت تُرسل لـ Gemini: دور الوكيل + القواعد العامة + ملف الشركة من ورقة Company.
 
-1. في `Code.gs` غيّر دالة استدعاء Gemini لتمر عبر Claude (عدّل الأسماء حسب كودك):
-   ```js
-   function callGemini_(system, prompt, opts) {
-     if (claudeEnabled_()) {
-       try { return callClaude_(system, prompt, opts); }   // opts.web = true لنواف والباحث (بحث الإنترنت)
-       catch (e) { if (e.code !== "WORKER_OFFLINE" || !claudeFallbackAllowed_()) throw e; }
-     }
-     return callGeminiOriginal_(system, prompt, opts);      // الدالة القديمة بعد إعادة تسميتها
-   }
-   ```
-2. Script Properties: `AI_ENGINE` = `claude`، و`WORKER_TOKEN` = رمز عشوائي طويل.
-   اختياري: `CLAUDE_MODEL` (الافتراضي `sonnet`)، و`CLAUDE_FALLBACK` = `gemini` ليُستخدم Gemini إذا كان جهازك مطفأ.
-3. على جهازك: انسخ `worker/.env.example` إلى `worker/.env` واملأ `EXEC_URL` و`WORKER_TOKEN`.
-4. تأكد أن `claude` مسجّل الدخول باشتراكك (شغّل `claude` مرة وسجّل)، ثم شغّل `worker/start-worker.cmd`.
-5. اختبار سريع بدون الخادم: `node worker/claude-worker.mjs --once "سؤال"`
+1. Script Properties: `WORKER_TOKEN` = رمز عشوائي طويل (غير ACCESS_TOKEN).
+2. على جهازك: انسخ `worker/.env.example` إلى `worker/.env` واملأ `EXEC_URL` (رابط /exec) و`WORKER_TOKEN`.
+3. شغّل `worker/start-worker.cmd` واتركه مفتوحاً.
+4. Script Properties: `AI_ENGINE` = `claude`. (لإرجاع Gemini: احذفها أو غيّر قيمتها.)
+5. اختياري: `CLAUDE_FALLBACK` = `gemini` ليُستخدم Gemini تلقائياً إذا كان جهازك مطفأ (مفيد لرصد الأخبار كل 6 ساعات وخطة السبت 9 صباحاً). و`CLAUDE_MODEL` (الافتراضي `sonnet`).
+
+اختبار سريع للعامل بدون الخادم: `node worker/claude-worker.mjs --once "سؤال"`
 
 ملاحظات:
-- كل طلب يستهلك من حدود اشتراكك في Claude؛ الطلبات الكثيرة المتتالية قد تصل للحد المؤقت.
-- الطلب الواحد ينتظر حتى 5 دقائق؛ الإجراءات التي تستدعي عدة وكلاء متتالين قد تحتاج تقسيماً.
+- الوكلاء يعملون فقط وجهازك شغّال والعامل مفتوح (أو مع `CLAUDE_FALLBACK=gemini`).
+- كل طلب يُحسب من حدود اشتراكك في Claude. رصد الأخبار يستدعي حتى 4 وكلاء لكل خبر، وتكليف وكيل = وكيل + تدقيق سالم.
+- الانتظار محكوم بميزانية التنفيذ الحالية في Code.gs؛ ما لا يكتمل (مثل بقية خطة الأسبوع) يُستكمل في الدورة التالية كما كان.
+- الباحث يبقى على وضع النقل اليدوي (`RESEARCH_MANUAL_MODE`) ولا يتغير.
 - للتشغيل التلقائي مع Windows: ضع اختصاراً لـ `start-worker.cmd` في مجلد `shell:startup`.
-ثم **Deploy ← Manage deployments ← Edit ← New version** (يبقى رابط /exec نفسه).
 
 ## 2) الدخول ببريدك (Google)
 1. افتح Google Cloud Console ← APIs & Services ← Credentials ← Create credentials ← **OAuth client ID** ← Web application.
@@ -71,6 +86,5 @@ function doPost(e) {
 4. راجع باقة X API الحالية وسعرها: النشر عبر الـ API له حدود حسب الباقة.
 
 ## 5) الاستخدام
-الإعدادات ← «حسابات النشر المباشر» ← ربط. في المنشورات المعتمدة يظهر «انشر الآن على LinkedIn / X»، مع تأكيد قبل النشر، وصورة تصميم ريم تُرفق تلقائياً. الخادم يمنع نشر المنشور نفسه مرتين على الشبكة نفسها.
+الإعدادات ← «حسابات النشر المباشر» ← ربط. في المنشورات المعتمدة يظهر «انشر الآن على LinkedIn / X»، مع تأكيد قبل النشر، وصورة تصميم ريم تُرفق تلقائياً. الخادم يتحقق بنفسه أن المنشور معتمد ولم يتغير، ويمنع نشره مرتين على الشبكة نفسها.
 
-اختياري (موصى به): عرّف في `Code.gs` دالة `socialCanPublish_(id, body)` تعيد `true` فقط إذا كان المنشور معتمداً ونسخته `body.version` هي الحالية، فيتحقق الخادم بنفسه وليس الواجهة فقط.

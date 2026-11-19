@@ -5,21 +5,13 @@
  * (worker/claude-worker.mjs) يسحبه وينفذه بـ Claude Code باشتراكك، ثم يعيد النتيجة.
  * الخادم ينتظر النتيجة (حتى 5 دقائق) فتبقى بقية تدفقات Code.gs كما هي.
  *
- * التركيب:
- *  1) في doPost قبل authorize_ (العامل له رمزه الخاص وليس مستخدماً):
- *       const worker = handleClaudeWorkerAction_(body); if (worker) return worker;
- *  2) استبدل استدعاء Gemini في Code.gs بـ callClaude_(systemPrompt, userPrompt):
- *       مثال: const text = callClaude_(AGENTS_PROMPTS[agent], task);
- *     أو غلّف الدالة الحالية حتى لا تغيّر كل الاستدعاءات (عدّل الأسماء حسب كودك):
- *       function callGemini_(system, prompt, opts) {
- *         if (claudeEnabled_()) {
- *           try { return callClaude_(system, prompt, opts); }
- *           catch (e) { if (e.code !== "WORKER_OFFLINE" || !claudeFallbackAllowed_()) throw e; }
- *         }
- *         return callGeminiOriginal_(system, prompt, opts);   // الدالة القديمة بعد إعادة تسميتها
- *       }
- *  3) اختياري: أضف claude_status لقائمة الإجراءات بعد authorize_:
- *       if (body.action === "claude_status") return claudeJson_(Object.assign({ status: "success" }, claudeStatus_()));
+ * التركيب في Code.gs (التفاصيل في SETUP.md):
+ *  1) أعد تسمية «function callGemini(» إلى «function callGeminiApi_(». هذا الملف يعرّف callGemini
+ *     الجديدة بنفس التوقيع، فيمر كل الوكلاء (لمى، فيصل، نواف، سالم، ريم، زياد، راكان…) عبر Claude دون تغيير آخر.
+ *  2) في doPost قبل التحقق من المستخدم (العامل له رمزه الخاص):
+ *       const worker = handleClaudeWorkerAction_(data); if (worker) return worker;
+ *
+ * يعتمد على دوال Code.gs: companyProfile_, COMMON_RULES, checkBudget_, executionDeadline_, appError_, getSetting_, MAX_CELL_CHARS
  *
  * Script Properties:
  *   AI_ENGINE        claude لتفعيل الجسر (أي قيمة أخرى = النموذج القديم)
@@ -46,8 +38,37 @@ function claudeFallbackAllowed_() {
   return String(PropertiesService.getScriptProperties().getProperty("CLAUDE_FALLBACK") || "").toLowerCase() === "gemini";
 }
 
-// ---------------- الاستدعاء من Code.gs ----------------
-// opts: { web: true للسماح بالبحث في الإنترنت (لنواف والباحث), timeoutMs, model }
+// ---------------- بديل callGemini في Code.gs ----------------
+// نفس التوقيع: (دور الوكيل، الطلب، asJson). AI_ENGINE=claude → Claude عبر جهازك؛ غير ذلك → Gemini كما كان.
+function callGemini(systemRole, userPrompt, asJson) {
+  if (!claudeEnabled_()) return callGeminiApi_(systemRole, userPrompt, asJson);
+  try {
+    return callClaudeAgent_(systemRole, userPrompt, asJson);
+  } catch (e) {
+    if (e.code === "WORKER_OFFLINE" && claudeFallbackAllowed_() && getSetting_("GEMINI_API_KEY")) return callGeminiApi_(systemRole, userPrompt, asJson);
+    throw e;
+  }
+}
+
+// نفس تعليمات النظام التي كانت تُرسل لـ Gemini: دور الوكيل + القواعد العامة + ملف الشركة
+function callClaudeAgent_(systemRole, userPrompt, asJson) {
+  checkBudget_(20000);
+  const profile = companyProfile_();
+  const system = systemRole + "\n" + COMMON_RULES
+    + (profile ? "\n\nملف الشركة (المرجع الوحيد لخدماتنا ومنتجاتنا):\n" + profile : "")
+    + "\n\nتعمل هنا كنموذج نصي داخل نظام المكتب: أعد المطلوب مباشرة بلا مقدمات ولا تعليق على طريقة عملك."
+    + (asJson ? "\nأعد JSON صالحاً فقط، بلا أي نص قبله أو بعده وبلا علامات ```." : "");
+  // لا ننتظر أبعد من ميزانية التنفيذ الحالية (doPost وخطة الأسبوع ورصد الأخبار تضبطها)
+  const remaining = executionDeadline_ ? executionDeadline_ - Date.now() - 15000 : CLAUDE_.waitMs;
+  if (remaining < 20000) throw appError_("BUDGET_EXCEEDED", "اقترب حد التنفيذ؛ حُفظ التقدم ويمكن استكمال المتبقي");
+  const text = String(callClaude_(system, userPrompt, { timeoutMs: Math.min(CLAUDE_.waitMs, remaining) }) || "").trim();
+  if (!text) throw new Error("رد Claude فارغ");
+  if (text.length > MAX_CELL_CHARS) throw appError_("OUTPUT_TOO_LONG", "رد Claude أطول من حد الحفظ؛ لم يُحفظ نص مقتطع");
+  return text;
+}
+
+// ---------------- الطابور ----------------
+// opts: { web: true للسماح بالبحث في الإنترنت, timeoutMs, model }
 function callClaude_(systemPrompt, userPrompt, opts) {
   opts = opts || {};
   if (!claudeWorkerOnline_()) throw claudeError_("WORKER_OFFLINE", "عامل Claude على جهازك غير متصل. شغّل start-worker ثم أعد المحاولة.");

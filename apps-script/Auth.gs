@@ -3,7 +3,7 @@
  *
  * أضف هذا الملف إلى مشروع Apps Script، ثم في بداية doPost استبدل فحص ACCESS_TOKEN الحالي بـ:
  *
- *   const user = authorize_(body);   // يرمي خطأ إن لم يكن المستخدم مسموحاً
+ *   const user = authorizeUser_(data);   // يرمي خطأ إن لم يكن المستخدم مسموحاً
  *
  * Script Properties المطلوبة:
  *   GOOGLE_CLIENT_ID     معرّف عميل OAuth من Google Cloud (نوع Web application)
@@ -13,7 +13,7 @@
  *   ACCESS_TOKEN         الرمز المشترك القديم (يبقى مقبولاً حتى تضبط ALLOW_SHARED_TOKEN=false)
  */
 
-function authorize_(body) {
+function authorizeUser_(body) {
   const props = PropertiesService.getScriptProperties();
   if (body && body.idToken) {
     const email = verifyGoogleIdToken_(String(body.idToken), props.getProperty("GOOGLE_CLIENT_ID"));
