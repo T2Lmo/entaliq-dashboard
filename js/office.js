@@ -80,14 +80,18 @@ function renderOfficeView() {
 }
 
 function officeAgentsHtml(o) {
-  return `<div class="list">${o.agents.map(a => {
+  const working = o.agents.filter(a => a.active).length;
+  const bulk = `<div class="sh-pad row-actions"><span class="hint">يداوم ${working} من ${o.agents.length}</span>
+    ${obtn("all-on", "الكل يداوم", "btn-primary")}${obtn("all-off", "إيقاف الكل", "btn-line")}</div>`;
+  return bulk + `<div class="list">${o.agents.map(a => {
     const info = AGENT_BY_NAME[a.name] || {};
     const tone = !a.active ? "bad" : a.onDuty ? "ok" : "warn";
     const label = !a.active ? "موقوف" : a.onDuty ? "في الدوام" : "خارج الدوام";
     const head = `<div class="item-head">${avatar(a.name, "xs")}<b>${esc(a.name)}</b><small class="muted">${esc(info.role || "")}</small>
       <span class="badge" data-tone="${tone}" style="margin-inline-start:auto">${label}</span></div>
       <p class="hint">الدوام: ${esc(a.name === "الباحث" ? "يدوي (نقل من Claude)" : a.hoursText)}${a.prompt ? " · تعليمات معدّلة" : ""}${a.directions ? " · له توجيهات" : ""}</p>`;
-    if (state.officeEdit !== a.name) return `<article class="item">${head}<div class="row-actions">${obtn("edit-agent", "تعديل", "btn-line", ` data-name="${esc(a.name)}"`)}</div></article>`;
+    const duty = `<label class="duty-switch"><input type="checkbox" data-duty="${esc(a.name)}"${a.active ? " checked" : ""}> يداوم</label>`;
+    if (state.officeEdit !== a.name) return `<article class="item">${head}<div class="row-actions">${duty}${obtn("edit-agent", "تعديل", "btn-line", ` data-name="${esc(a.name)}"`)}</div></article>`;
     return `<article class="item office-form" data-agent-form="${esc(a.name)}">${head}
       <label class="remember"><input type="checkbox" id="oa-active"${a.active ? " checked" : ""}> نشط (إلغاء التفعيل يوقف كل أعماله اليدوية والآلية)</label>
       <label class="lbl" for="oa-prompt">تعليمات الدور</label>
@@ -145,6 +149,10 @@ function officeAutoHtml(o) {
   const every = [1, 2, 4, 6, 8, 12].map(h => `<option value="${h}"${a.news.everyHours === h ? " selected" : ""}>كل ${h} ساعة</option>`).join("");
   const days = DAY_LABELS.map((d, i) => `<option value="${i}"${a.weekly.day === i ? " selected" : ""}>${d}</option>`).join("");
   const trig = o.office.triggers.length ? o.office.triggers.join("، ") : "لا يوجد";
+  const s = a.sites || { enabled: false, day: 0, hour: 10, mode: "full" };
+  const sdays = DAY_LABELS.map((d, i) => `<option value="${i}"${s.day === i ? " selected" : ""}>${d}</option>`).join("");
+  if (!state.officeSites) state.officeSites = (o.office.sites || []).map(x => Object.assign({}, x));
+  const sites = state.officeSites;
   return `<div class="sh-pad office-form" data-auto-form>
     <h3 class="news-title">رصد الأخبار (نواف ← فيصل ← لمى ← سالم)</h3>
     <label class="remember"><input type="checkbox" id="oz-news"${a.news.enabled ? " checked" : ""}> مفعّل</label>
@@ -152,8 +160,21 @@ function officeAutoHtml(o) {
     <h3 class="news-title">خطة الأسبوع (راكان ← لمى ← سالم)</h3>
     <label class="remember"><input type="checkbox" id="oz-weekly"${a.weekly.enabled ? " checked" : ""}> مفعّلة</label>
     <div class="row-actions"><select class="input" id="oz-day">${days}</select>${hourSelect("oz-hour", a.weekly.hour)}</div>
+    <h3 class="news-title">أفكار من مواقعنا (راكان ← لمى ← سالم ← ريم ← زياد)</h3>
+    <label class="remember"><input type="checkbox" id="oz-sites"${s.enabled ? " checked" : ""}> مفعّلة أسبوعياً</label>
+    <div class="row-actions"><select class="input" id="oz-sday">${sdays}</select>${hourSelect("oz-shour", s.hour)}
+      <select class="input" id="oz-smode"><option value="full"${s.mode !== "ideas" ? " selected" : ""}>أفكار + منشورات مصممة</option><option value="ideas"${s.mode === "ideas" ? " selected" : ""}>أفكار فقط</option></select></div>
     <p class="hint">يعمل التشغيل الآلي فقط إذا كان كل الفريق المعني في دوامه وغير موقوف. المشغلات الحالية: ${esc(trig)}</p>
     <div class="row-actions">${obtn("save-auto", "حفظ وتحديث المشغلات", "btn-primary")}</div>
+  </div>
+  <div class="sh-pad office-form" data-sites-form><h3 class="news-title">المواقع التي تُستخرج منها الأفكار</h3>
+    ${sites.map((x, i) => `<div class="row-actions site-row" data-site-row>
+      <select class="input" data-site-brand>${Object.keys(BRANDS).map(b => `<option${b === x.brand ? " selected" : ""}>${esc(b)}</option>`).join("")}</select>
+      <input class="input ltr grow" data-site-url value="${esc(x.url)}" placeholder="https://…">
+      <label class="remember"><input type="checkbox" data-site-on${x.enabled !== false ? " checked" : ""}> مفعّل</label>
+      ${obtn("site-remove", "حذف", "btn-line", ` data-i="${i}"`)}</div>`).join("")}
+    <div class="row-actions">${obtn("site-add", "+ موقع", "btn-line")}${obtn("save-sites", "حفظ المواقع", "btn-primary")}${obtn("run-sites", "استخرج أفكاراً الآن", "btn-primary")}</div>
+    <p class="hint">تُقرأ حتى 10 صفحات من كل موقع، والصفحات الجديدة أو التي تغيّرت لها الأولوية. الصفحات التي لا تعرض نصها إلا بـ JavaScript لا يمكن قراءتها؛ لهذا موقع انطلق هنا www.entaliq.com.sa/ar.</p>
   </div>
   <div class="sh-pad"><h3 class="news-title">هوية التصاميم كما تصفها ريم</h3>
     ${o.office.brandLooks.map(b => `<div class="office-form" data-brand-form="${esc(b.brand)}">
@@ -217,12 +238,57 @@ async function officeAction(btn) {
     const f = formOf("[data-auto-form]");
     return officeSend(btn, { action: "office_save_automation",
       news: { enabled: field(f, "oz-news").checked, everyHours: Number(field(f, "oz-every").value) },
-      weekly: { enabled: field(f, "oz-weekly").checked, day: Number(field(f, "oz-day").value), hour: Number(field(f, "oz-hour").value) } }, "حُفظت الأتمتة وحُدّثت المشغلات");
+      weekly: { enabled: field(f, "oz-weekly").checked, day: Number(field(f, "oz-day").value), hour: Number(field(f, "oz-hour").value) },
+      sites: { enabled: field(f, "oz-sites").checked, day: Number(field(f, "oz-sday").value), hour: Number(field(f, "oz-shour").value), mode: field(f, "oz-smode").value } }, "حُفظت الأتمتة وحُدّثت المشغلات");
+  }
+  if (act === "all-on" || act === "all-off") {
+    const on = act === "all-on";
+    if (!on && !confirm("إيقاف كل الوكلاء؟ لن ينفذ أي منهم مهاماً يدوية أو آلية حتى تعيد تشغيلهم.")) return;
+    return officeSend(btn, { action: "office_set_active", all: true, active: on }, on ? "كل الوكلاء يداومون الآن" : "أُوقف كل الوكلاء");
+  }
+  if (act === "site-add" || act === "site-remove") {
+    state.officeSites = readSites(formOf("[data-sites-form]"));
+    if (act === "site-add") state.officeSites.push({ brand: "انطلق", url: "", enabled: true });
+    else state.officeSites.splice(Number(btn.dataset.i), 1);
+    return renderOfficeView();
+  }
+  if (act === "save-sites") {
+    const sites = readSites(formOf("[data-sites-form]"));
+    const data = await officeSend(btn, { action: "office_save_sites", sites }, "حُفظت المواقع");
+    if (data) state.officeSites = null;
+    return renderOfficeView();
+  }
+  if (act === "run-sites") {
+    const stop = busy(btn, "الفريق يقرأ المواقع ويكتب");
+    toast("يقرأ الفريق صفحات المواقع ويقترح أفكاراً ويكتب أول منشورين ويصممهما؛ قد يستغرق دقيقتين إلى أربع.", "none");
+    try {
+      const data = await api({ action: "sites_run", mode: "full" });
+      toast(data.message + (data.warnings && data.warnings.length ? " · ملاحظات: " + data.warnings.length : ""), data.failed || (data.warnings || []).length ? "warn" : "ok");
+      refresh({ quiet: true });
+    } catch (e) { toast(officeError(e), "bad"); }
+    finally { stop(); }
+    return;
   }
   if (act === "save-brand") {
     const f = formOf("[data-brand-form]");
     return officeSend(btn, { action: "office_save_brand", brand: btn.dataset.brand, look: f.querySelector("[data-brand-look]").value }, "حُفظت هوية " + btn.dataset.brand);
   }
+}
+
+function readSites(f) {
+  return [...f.querySelectorAll("[data-site-row]")].map(r => ({
+    brand: r.querySelector("[data-site-brand]").value, url: r.querySelector("[data-site-url]").value.trim(), enabled: r.querySelector("[data-site-on]").checked }));
+}
+
+// مفتاح «يداوم» في بطاقة الوكيل: يحفظ فوراً دون فتح التعديل
+async function officeDuty(input) {
+  const name = input.dataset.duty, on = input.checked;
+  input.disabled = true;
+  try {
+    acceptOffice(await api({ action: "office_set_active", name, active: on }));
+    toast(on ? name + " يداوم الآن" : "أُوقف " + name, "ok");
+  } catch (e) { input.checked = !on; toast(officeError(e), "bad"); }
+  finally { input.disabled = false; renderOfficeView(); }
 }
 
 // ---------------- تعديل تصميم منشور ونسخة X ----------------

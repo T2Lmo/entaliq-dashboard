@@ -290,10 +290,12 @@ async function contentJob(btn, kind) {
   if (state.contentBusy || state.contentPageLoading) { toast("انتظر حتى تكتمل العملية الحالية", "warn"); return; }
   state.contentBusy = true;
   const epoch = state.connectionEpoch, url = state.url, token = state.token;
-  const stop = busy(btn, kind === "plan" ? "راكان يخطط" : "لمى تكتب");
-  contentFeedback(kind === "plan" ? "يضع راكان خطة لأيام العمل المتبقية (حتى 5 منشورات)، ثم تكتبها لمى ويدققها سالم؛ قد يستغرق ذلك دقيقتين إلى أربع." : "تكتب لمى نصيحتين موسميتين ويدققهما سالم؛ قرابة دقيقة.", "none");
+  const stop = busy(btn, kind === "plan" ? "راكان يخطط" : kind === "sites" ? "الفريق يقرأ المواقع" : "لمى تكتب");
+  contentFeedback(kind === "plan" ? "يضع راكان خطة لأيام العمل المتبقية (حتى 5 منشورات)، ثم تكتبها لمى ويدققها سالم؛ قد يستغرق ذلك دقيقتين إلى أربع."
+    : kind === "sites" ? "يقرأ الفريق صفحات موقعي انطلق ووهج، ويقترح راكان أفكاراً منها، ثم تكتب لمى أول منشورين ويدققهما سالم مقابل الصفحة، وتصممهما ريم ويكتب زياد نسخة X؛ دقيقتان إلى أربع."
+    : "تكتب لمى نصيحتين موسميتين ويدققهما سالم؛ قرابة دقيقة.", "none");
   try {
-    const data = await api({ action: kind === "plan" ? "weekly_plan" : "seasonal_tips" });
+    const data = await api({ action: kind === "plan" ? "weekly_plan" : kind === "sites" ? "sites_run" : "seasonal_tips", mode: "full" });
     if (!sameConnection(epoch, url, token)) return;
     jobFeedback(data, "اكتملت العملية");
     state.contentFilter = "review";

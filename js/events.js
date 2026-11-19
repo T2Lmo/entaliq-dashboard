@@ -73,8 +73,10 @@ document.addEventListener("click", async e => {
   if (t.closest("[data-refresh]")) { refresh(); return; }
   const fetchBtn = t.closest('[data-action="fetch-news"]');
   if (fetchBtn) { fetchNews(fetchBtn); return; }
-  const planBtn = t.closest('[data-action="weekly-plan"], [data-action="seasonal-tips"]');
-  if (planBtn) { contentJob(planBtn, planBtn.dataset.action === "weekly-plan" ? "plan" : "tips"); return; }
+  const planBtn = t.closest('[data-action="weekly-plan"], [data-action="seasonal-tips"], [data-action="site-ideas"]');
+  if (planBtn) { contentJob(planBtn, { "weekly-plan": "plan", "seasonal-tips": "tips", "site-ideas": "sites" }[planBtn.dataset.action]); return; }
+  const duty = t.closest("[data-duty]");
+  if (duty) { officeDuty(duty); return; }
   const resend = t.closest("[data-research-resend]");
   if (resend) { resendResearch(resend.dataset.researchResend); return; }
   const follow = t.closest("[data-research-follow], [data-research-request]");

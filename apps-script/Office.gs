@@ -17,7 +17,9 @@ const OFFICE_ = {
   dayNames: ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"],
   maxPrompt: 2500, maxDirections: 1200, maxTask: 1500, maxTasks: 25,
   newsHours: [1, 2, 4, 6, 8, 12], // القيم التي يقبلها everyHours في Apps Script
-  handlers: ["runAutomatedNewsPipeline", "generateWeeklyPlan", "officeRunNews", "officeRunWeeklyPlan", "officeRunScheduler"],
+  handlers: ["runAutomatedNewsPipeline", "generateWeeklyPlan", "officeRunNews", "officeRunWeeklyPlan", "officeRunScheduler", "officeRunSites"],
+  weekDays: () => [ScriptApp.WeekDay.SUNDAY, ScriptApp.WeekDay.MONDAY, ScriptApp.WeekDay.TUESDAY, ScriptApp.WeekDay.WEDNESDAY, ScriptApp.WeekDay.THURSDAY, ScriptApp.WeekDay.FRIDAY, ScriptApp.WeekDay.SATURDAY],
+  sitesAgents: { full: ["راكان", "لمى", "سالم", "ريم", "زياد"], ideas: ["راكان"] },
   newsAgents: ["نواف", "فيصل", "لمى", "سالم"],
   weeklyAgents: ["راكان", "لمى", "سالم"]
 };
@@ -26,7 +28,7 @@ const OFFICE_DEFAULT_CFG_ = {
   directions: "",
   defaultHours: { days: [0, 1, 2, 3, 4], from: "08:00", to: "17:00" },
   enforceManual: false, // false = ساعات العمل تقيّد العمل الآلي فقط، والتكليف من اللوحة متاح دائماً
-  automation: { news: { enabled: true, everyHours: 6 }, weekly: { enabled: true, day: 6, hour: 9 } },
+  automation: { news: { enabled: true, everyHours: 6 }, weekly: { enabled: true, day: 6, hour: 9 }, sites: { enabled: false, day: 0, hour: 10, mode: "full" } },
   brandLooks: {}
 };
 
@@ -42,6 +44,7 @@ function officeLoad_() {
   try { cfg = JSON.parse(all.OFFICE_CFG || "{}"); } catch (e) {}
   cfg = Object.assign(JSON.parse(JSON.stringify(OFFICE_DEFAULT_CFG_)), cfg);
   cfg.automation = Object.assign(JSON.parse(JSON.stringify(OFFICE_DEFAULT_CFG_.automation)), cfg.automation || {});
+  if (!cfg.automation.sites) cfg.automation.sites = JSON.parse(JSON.stringify(OFFICE_DEFAULT_CFG_.automation.sites));
   const agents = {}, tasks = [];
   Object.keys(all).forEach(k => {
     try {
@@ -148,9 +151,10 @@ function officeInstallTriggers_() {
   ScriptApp.getProjectTriggers().filter(t => OFFICE_.handlers.indexOf(t.getHandlerFunction()) >= 0).forEach(t => ScriptApp.deleteTrigger(t));
   if (a.news.enabled) ScriptApp.newTrigger("officeRunNews").timeBased().everyHours(a.news.everyHours).create();
   if (a.weekly.enabled) ScriptApp.newTrigger("officeRunWeeklyPlan").timeBased()
-    .onWeekDay([ScriptApp.WeekDay.SUNDAY, ScriptApp.WeekDay.MONDAY, ScriptApp.WeekDay.TUESDAY, ScriptApp.WeekDay.WEDNESDAY, ScriptApp.WeekDay.THURSDAY, ScriptApp.WeekDay.FRIDAY, ScriptApp.WeekDay.SATURDAY][a.weekly.day])
+    .onWeekDay(OFFICE_.weekDays()[a.weekly.day])
     .atHour(a.weekly.hour).create();
   if (o.tasks.some(t => t.enabled)) ScriptApp.newTrigger("officeRunScheduler").timeBased().everyHours(1).create();
+  if (a.sites && a.sites.enabled) ScriptApp.newTrigger("officeRunSites").timeBased().onWeekDay(OFFICE_.weekDays()[a.sites.day]).atHour(a.sites.hour).create();
 }
 
 function officeTriggerList_() {
@@ -167,6 +171,12 @@ function officeTeamReady_(team) {
 
 function officeRunNews() { if (officeTeamReady_(OFFICE_.newsAgents)) runAutomatedNewsPipeline(); }
 function officeRunWeeklyPlan() { if (officeTeamReady_(OFFICE_.weeklyAgents)) generateWeeklyPlan(); }
+function officeRunSites() {
+  const mode = (officeLoad_().cfg.automation.sites || {}).mode === "ideas" ? "ideas" : "full";
+  if (!officeTeamReady_(OFFICE_.sitesAgents[mode])) return;
+  executionDeadline_ = Date.now() + PLAN_BUDGET_MS;
+  console.log(JSON.stringify(sitesRun_(mode)));
+}
 
 // كل ساعة: ينفذ المهام المجدولة لهذه الساعة واليوم، مرة واحدة لكل موعد
 function officeRunScheduler() {
@@ -209,7 +219,7 @@ function officeSaveTaskRun_(id, patch) {
 function handleOfficeAction_(data, user) {
   const a = data && data.action;
   if (["office_get", "office_save_agent", "office_reset_agent", "office_save_office", "office_save_automation", "office_save_brand",
-    "office_task_save", "office_task_delete", "office_task_run", "content_design_update"].indexOf(a) < 0) return null;
+    "office_task_save", "office_task_delete", "office_task_run", "content_design_update", "office_save_sites", "sites_run", "office_set_active"].indexOf(a) < 0) return null;
   try {
     officeApply_();
     let out;
@@ -229,6 +239,12 @@ function handleOfficeAction_(data, user) {
       officeSaveTaskRun_(t.id, { lastRun: new Date().toISOString(), lastTaskId: out.run.taskId, lastError: "" });
     }
     else if (a === "content_design_update") return json_(Object.assign({ status: "success" }, officeUpdateDesign_(data)));
+    else if (a === "office_set_active") officeSetActive_(data);
+    else if (a === "office_save_sites") { const cfg = officeLoad_().cfg; cfg.sites = sitesValidate_(data.sites); officeProps_().setProperty("OFFICE_CFG", JSON.stringify(cfg)); }
+    else if (a === "sites_run") {
+      executionDeadline_ = Date.now() + 270000;
+      return json_(Object.assign({ status: "success" }, sitesRun_(data.mode === "ideas" ? "ideas" : "full")));
+    }
     officeCache_ = null;
     return json_(Object.assign({ status: "success" }, out || {}, officeState_()));
   } catch (err) {
@@ -242,7 +258,8 @@ function officeState_() {
   return {
     office: { directions: o.cfg.directions, defaultHours: o.cfg.defaultHours, enforceManual: !!o.cfg.enforceManual, automation: o.cfg.automation,
       brandLooks: Object.keys(officeDefaults_.looks).map(b => ({ brand: b, look: o.cfg.brandLooks[b] || "", defaultLook: officeDefaults_.looks[b] })),
-      timezone: n.tz, now: n.date + " " + n.time, today: n.day, triggers: officeTriggerList_() },
+      timezone: n.tz, now: n.date + " " + n.time, today: n.day, triggers: officeTriggerList_(),
+      sites: typeof sitesList_ === "function" ? sitesList_() : [] },
     agents: Object.keys(officeDefaults_.prompts).map(name => {
       const c = officeAgentCfg_(name), h = officeHoursOf_(name);
       return { name: name, defaultPrompt: officeDefaults_.prompts[name], prompt: c.prompt, directions: c.directions, active: c.active !== false,
@@ -260,6 +277,15 @@ function officeSaveAgent_(d) {
   officeProps_().setProperty("OFFICE_AGENT_" + d.name, JSON.stringify(cfg));
 }
 
+// يداوم أو لا: لوكيل واحد أو عدة وكلاء أو الكل، دون المساس بتعليماتهم وساعاتهم
+function officeSetActive_(d) {
+  const names = d.all ? Object.keys(AGENTS_PROMPTS) : (Array.isArray(d.names) ? d.names : [d.name]);
+  if (!names.length || names.some(n => !AGENTS_PROMPTS[n])) throw appError_("VALIDATION_ERROR", "وكيل غير معروف");
+  const updates = {};
+  names.forEach(n => { updates["OFFICE_AGENT_" + n] = JSON.stringify(Object.assign(officeAgentCfg_(n), { active: d.active !== false })); });
+  officeProps_().setProperties(updates);
+}
+
 function officeSaveOffice_(d) {
   const cfg = officeLoad_().cfg;
   cfg.directions = officeText_(d.directions, "توجيهات المكتب", OFFICE_.maxDirections);
@@ -273,7 +299,10 @@ function officeSaveAutomation_(d) {
   const every = Number(n.everyHours), day = Number(w.day), hour = Number(w.hour);
   if (OFFICE_.newsHours.indexOf(every) < 0) throw appError_("VALIDATION_ERROR", "تكرار الرصد يجب أن يكون " + OFFICE_.newsHours.join(" أو ") + " ساعات");
   if (!(Number.isInteger(day) && day >= 0 && day <= 6 && Number.isInteger(hour) && hour >= 0 && hour <= 23)) throw appError_("VALIDATION_ERROR", "يوم أو ساعة خطة الأسبوع غير صالحة");
-  cfg.automation = { news: { enabled: !!n.enabled, everyHours: every }, weekly: { enabled: !!w.enabled, day: day, hour: hour } };
+  const s = d.sites || {}, sDay = Number(s.day), sHour = Number(s.hour);
+  if (s.enabled && !(Number.isInteger(sDay) && sDay >= 0 && sDay <= 6 && Number.isInteger(sHour) && sHour >= 0 && sHour <= 23)) throw appError_("VALIDATION_ERROR", "يوم أو ساعة أفكار المواقع غير صالحة");
+  cfg.automation = { news: { enabled: !!n.enabled, everyHours: every }, weekly: { enabled: !!w.enabled, day: day, hour: hour },
+    sites: { enabled: !!s.enabled, day: Number.isInteger(sDay) ? sDay : 0, hour: Number.isInteger(sHour) ? sHour : 10, mode: s.mode === "ideas" ? "ideas" : "full" } };
   officeProps_().setProperty("OFFICE_CFG", JSON.stringify(cfg));
 }
 
