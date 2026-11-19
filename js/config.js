@@ -60,6 +60,7 @@ const VIEWS = {
   news: { title: "الأخبار", sub: "آخر 10 أخبار طاقة رصدها نواف وربطها الفريق بخدماتنا." },
   team: { title: "التكليفات المباشرة للوكلاء", sub: "التكليفات المباشرة خلال الفترة؛ لا تشمل الأدوار الآلية في الأخبار وخطط المحتوى والتصاميم." },
   alerts: { title: "تنبيهات الفترة", sub: "كل المخرجات منخفضة التقدير أو غير مكتملة التدقيق في الفترة المختارة." },
+  office: { title: "إدارة المكتب", sub: "تعليمات الوكلاء وتوجيهاتك، ساعات العمل، المهام المجدولة، الأتمتة، وهوية التصاميم." },
   content: { title: "المحتوى والاعتماد", sub: "منشورات الأخبار وخطة الأسبوع والنصائح الموسمية؛ لا يُعتبر شيء جاهزاً للنشر قبل اعتمادك." }
 };
 // نفس قيم RANGE_DAYS في Code.gs
@@ -104,6 +105,7 @@ const state = {
   sending: false, fetching: false,
   idToken: (() => { try { return sessionStorage.getItem(KEYS.idToken) || ""; } catch (e) { return ""; } })(),
   social: null, socialPosts: {}, socialBusy: false,
+  office: null, officeTab: "agents", officeEdit: "", officeTaskEdit: "", officeLoading: false, officeError: "", designEditId: "",
   view: "", filterAgent: "", query: "", sort: "new"
 };
 
@@ -130,6 +132,7 @@ const ICON = {
   search: svg('<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>'),
   alert: svg('<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>'),
   check: svg('<path d="M20 6 9 17l-5-5"/>'),
+  team: svg('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>'),
   eye: svg('<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>')
 };
 // رسومات البلاطات العلوية (64×36)

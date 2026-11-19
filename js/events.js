@@ -7,6 +7,7 @@ $("#btnCompose").innerHTML = ICON.chat;
 $("#btnCsv").innerHTML = ICON.download;
 $("#btnFull").innerHTML = ICON.full;
 $("#btnSettings").innerHTML = ICON.settings;
+$("#btnOffice").innerHTML = ICON.team;
 $("#sheetClose").innerHTML = ICON.close;
 $("#btnShowToken").innerHTML = ICON.eye;
 $("#sendIcon").innerHTML = ICON.send;
@@ -82,6 +83,14 @@ document.addEventListener("click", async e => {
   if (reaudit) { reauditTask(reaudit); return; }
   const cact = t.closest("[data-cact]");
   if (cact) { contentAction(cact); return; }
+  const otab = t.closest("[data-otab]");
+  if (otab) { state.officeTab = otab.dataset.otab; state.officeEdit = ""; state.officeTaskEdit = ""; renderOfficeView(); return; }
+  const oact = t.closest("[data-oact]");
+  if (oact) { officeAction(oact); return; }
+  const dedit = t.closest("[data-dedit]");
+  if (dedit) { state.designEditId = dedit.dataset.dedit; renderContentView(); return; }
+  const dsave = t.closest("[data-dsave]");
+  if (dsave) { saveDesignEdit(dsave); return; }
   const spub = t.closest("[data-spub]");
   if (spub) { socialPublish(spub); return; }
   const scon = t.closest("[data-sconnect]");

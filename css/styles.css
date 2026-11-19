@@ -496,3 +496,12 @@
     *, *::before, *::after { animation: none !important; transition: none !important; }
     .ticker-view { overflow-x: auto; }
   }
+
+  /* إدارة المكتب */
+  .office-tabs { margin: 12px 16px 0; flex-wrap: wrap; }
+  .office-form .input, .office-form .field { margin-bottom: 6px; }
+  .day-checks { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 6px 0; font-size: 13px; color: var(--text-2); }
+  .day-checks label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+  .hours-ed .hours-custom { display: none; }
+  .hours-ed:has(input[value="custom"]:checked) .hours-custom { display: block; }
+  .hours-ed input[type="time"] { width: auto; display: inline-block; }

@@ -72,8 +72,10 @@ function designPanel(id, designCell, tweet, status) {
       <canvas class="design-canvas" data-design="${esc(id)}" data-size="${size}" role="img" aria-label="${esc(d.headline)}"></canvas>
       <div class="row-actions">
         <button type="button" class="btn btn-line sm" data-ddownload="${esc(id)}">${ICON.download}<span class="lbl-text">تنزيل الصورة</span></button>
+        <button type="button" class="btn btn-line sm" data-dedit="${state.designEditId === id ? "" : esc(id)}"><span class="lbl-text">${state.designEditId === id ? "إغلاق التعديل" : "تعديل التصميم"}</span></button>
         <button type="button" class="btn btn-line sm" data-cact="prepare" data-id="${esc(id)}" data-version="${esc(state.contentVersions[id] || "")}"><span class="lbl-text">أعد التصميم ونسخة X</span></button>
       </div>
+      ${state.designEditId === id ? designEditForm(id, d, tweet) : ""}
       ${tweet ? `<div class="tweet">
         <div class="by">${avatar("زياد", "xs")} نسخة X <small class="tweet-len" data-tone="${len > 280 ? "bad" : "ok"}">${len}/280</small></div>
         <p>${esc(tweet)}</p>

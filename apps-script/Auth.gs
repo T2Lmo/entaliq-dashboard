@@ -18,12 +18,18 @@ function authorizeUser_(body) {
   if (body && body.idToken) {
     const email = verifyGoogleIdToken_(String(body.idToken), props.getProperty("GOOGLE_CLIENT_ID"));
     if (!isAllowedEmail_(email, props.getProperty("ALLOWED_EMAILS"))) throw authError_("FORBIDDEN", "البريد " + email + " غير مسموح له بالدخول.");
-    return { email: email, via: "google" };
+    return authorizedUser_({ email: email, via: "google" });
   }
   const shared = props.getProperty("ACCESS_TOKEN");
   const sharedAllowed = String(props.getProperty("ALLOW_SHARED_TOKEN") || "true").toLowerCase() !== "false";
-  if (sharedAllowed && shared && body && body.token && safeEqual_(String(body.token), shared)) return { email: "", via: "token" };
+  if (sharedAllowed && shared && body && body.token && safeEqual_(String(body.token), shared)) return authorizedUser_({ email: "", via: "token" });
   throw authError_("UNAUTHORIZED", sharedAllowed ? "سجّل الدخول بحساب Google أو أدخل رمز ACCESS_TOKEN الصحيح." : "سجّل الدخول بحساب Google.");
+}
+
+// طلب من اللوحة (يدوي): تُطبَّق إعدادات إدارة المكتب قبل أي وكيل (Office.gs)
+function authorizedUser_(user) {
+  if (typeof officeMarkManual_ === "function") officeMarkManual_();
+  return user;
 }
 
 // يتحقق من رمز Google عبر نقطة tokeninfo (توقيع Google + الجمهور + الصلاحية)، ويخزّن النتيجة 5 دقائق

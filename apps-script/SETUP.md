@@ -1,9 +1,9 @@
-# تفعيل: Claude Sonnet للوكلاء، الدخول بـ Google، النشر على LinkedIn و X
+# تفعيل: إدارة المكتب، Claude Sonnet للوكلاء، الدخول بـ Google، النشر على LinkedIn و X
 
 الواجهة جاهزة. هذه الميزات لا تعمل حتى تُضبط هذه الخطوات.
 
 ## 1) أضف الملفات وعدّل Code.gs (3 تعديلات فقط)
-في محرر Apps Script: **+ ← Script** ثلاث مرات، وانسخ فيها `Auth.gs` و`Social.gs` و`ClaudeBridge.gs` كما هي.
+في محرر Apps Script: **+ ← Script** أربع مرات، وانسخ فيها `Auth.gs` و`Social.gs` و`ClaudeBridge.gs` و`Office.gs` كما هي.
 ثم في `Code.gs` (ابحث بـ Ctrl+F):
 
 **أ) سطر دالة Gemini** — غيّر الاسم فقط:
@@ -35,10 +35,21 @@ function callGeminiApi_(systemRole, userPrompt, asJson) {
     const worker = handleClaudeWorkerAction_(data); if (worker) return worker;
     const user = authorizeUser_(data);
     const social = handleSocialAction_(data, user); if (social) return social;
+    const office = handleOfficeAction_(data, user); if (office) return office;
     if (data.action === "claude_status") return json_(Object.assign({ status: "success" }, claudeStatus_()));
 ```
 
 ثم **Deploy ← Manage deployments ← Edit ← Version: New version** (يبقى رابط /exec نفسه).
+
+## إدارة المكتب (زر 👥 في أعلى اللوحة)
+- **الوكلاء:** تعديل تعليمات دور كل وكيل، وتوجيهاتك له، وإيقافه أو تفعيله، وساعات عمله (ساعات المكتب، أو مخصصة، أو دائماً). «استرجاع الأصل» يعيد تعليمات Code.gs.
+- **المهام المجدولة:** مهمة لأي وكيل في أيام وساعة محددة (مثال: راكان كل أحد 9:00 يلخّص أخبار الأسبوع). تُنفَّذ إذا كان الوكيل في دوامه، ويدققها سالم، وتظهر في سجل المهام. «تشغيل الآن» للتجربة.
+- **التوجيهات والدوام:** توجيهات عامة لكل الوكلاء، وساعات المكتب الافتراضية، وخيار تطبيق الساعات على تكليفاتك اليدوية أيضاً.
+- **الأتمتة والهوية:** تكرار رصد الأخبار (كل 1/2/4/6/8/12 ساعة)، ويوم وساعة خطة الأسبوع، ووصف هوية كل علامة الذي تتبعه ريم.
+- **تعديل تصميم منشور:** المحتوى ← التصميم ← «تعديل التصميم»: العنوان والسطر الداعم والرقم والنقاط والدعوة ونسخة X.
+
+بعد التركيب افتح «الأتمتة والهوية» واضغط **حفظ وتحديث المشغلات** مرة واحدة: يستبدل مشغلات installNewsTrigger بمشغلات تحترم ساعات العمل، ويضيف مشغل المهام المجدولة.
+الرصد الآلي يعمل فقط إذا كان نواف وفيصل ولمى وسالم في دوامهم، وخطة الأسبوع إذا كان راكان ولمى وسالم في دوامهم.
 
 هذه التعديلات آمنة قبل ضبط أي مفاتيح جديدة: بدون `AI_ENGINE=claude` يبقى Gemini كما هو، والرمز `ACCESS_TOKEN` الحالي يبقى يعمل.
 

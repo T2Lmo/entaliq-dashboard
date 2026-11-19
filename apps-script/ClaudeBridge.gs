@@ -41,6 +41,8 @@ function claudeFallbackAllowed_() {
 // ---------------- بديل callGemini في Code.gs ----------------
 // نفس التوقيع: (دور الوكيل، الطلب، asJson). AI_ENGINE=claude → Claude عبر جهازك؛ غير ذلك → Gemini كما كان.
 function callGemini(systemRole, userPrompt, asJson) {
+  // إدارة المكتب (Office.gs): الوكيل موقوف أو خارج ساعاته، وتعليماته وتوجيهات المدير المعدّلة
+  if (typeof officeSystemFor_ === "function") systemRole = officeSystemFor_(systemRole);
   if (!claudeEnabled_()) return callGeminiApi_(systemRole, userPrompt, asJson);
   try {
     return callClaudeAgent_(systemRole, userPrompt, asJson);
