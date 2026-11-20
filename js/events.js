@@ -74,6 +74,11 @@ document.addEventListener("click", async e => {
   const xassign = t.closest("[data-exec-assign]");
   if (xassign) { execAssign(xassign); return; }
   if (t.closest("[data-exec-reload]")) { loadExec(); return; }
+  const ptab = t.closest("[data-ptab]");
+  if (ptab) { state.prospectsFilter = ptab.dataset.ptab; state.prospectsEdit = ""; renderProspectsView(); return; }
+  const pact = t.closest("[data-pact]");
+  if (pact) { prospectsAction(pact); return; }
+  if (t.closest('[data-action="studio-run"]')) { runStudioNow(t.closest('[data-action="studio-run"]')); return; }
   const bact = t.closest("[data-bact]");
   if (bact) { brainAction(bact); return; }
   const teach = t.closest("[data-teach]");

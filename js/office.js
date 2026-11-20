@@ -42,6 +42,7 @@ async function syncOffice(force) {
     const data = await api({ action: "office_get" });
     if (epoch !== state.connectionEpoch) return;
     acceptOffice(data); state.officeError = "";
+    syncProspects(); // مؤشرا مازن في البطاقات (prospects.js)
   } catch (e) {
     if (epoch !== state.connectionEpoch) return;
     if (/نص المهمة فارغ/.test(e.message)) state.officeUnsupported = true;
@@ -81,6 +82,7 @@ function agentCtlHtml(name) {
       ${a.active ? btn("stop", ICON.pause, "إيقاف", "إيقاف " + name + " عن كل المهام") : btn("start", ICON.play, "تشغيل", "تشغيل " + name)}
       ${btn("assign", ICON.send, "تكليف", "تكليف " + name + " بمهمة الآن أو مجدولة")}
       ${name === EXEC_AGENT ? btn("exec", ICON.clip, "الملخص", "ملخص راكان لما أنجزه كل وكيل ونتائجه") : ""}
+      ${name === PROSPECTS_AGENT ? btn("prospects", ICON.search, "الفرص", "المنشآت التي وجدها مازن ومسودات رسائلها") : ""}
     </span>
   </div>`;
 }
@@ -95,6 +97,7 @@ const agentDlg = $("#agentDlg");
 async function agentControl(btn) {
   const name = btn.dataset.name, act = btn.dataset.actl;
   if (act === "exec") { openView("exec"); return; }
+  if (act === "prospects") { openView("prospects"); return; }
   if (!state.office) { toast(state.officeError || "حالة الوكلاء لم تُحمَّل بعد.", "warn"); syncOffice(true); return; }
   if (act === "hours" || act === "assign") { openAgentDlg(name, act); return; }
   const on = act === "start";
@@ -348,6 +351,11 @@ function officeAutoHtml(o) {
     <label class="remember"><input type="checkbox" id="oz-xweekly"${a.exec.weekly.enabled ? " checked" : ""}> ملخص أسبوعي</label>
     <div class="row-actions"><select class="input" id="oz-xwday">${DAY_LABELS.map((d, i) => `<option value="${i}"${a.exec.weekly.day === i ? " selected" : ""}>${d}</option>`).join("")}</select>${hourSelect("oz-xwhour", a.exec.weekly.hour)}</div>
     <p class="hint">يُكتب في موعده إذا كان راكان في دوامه (اختر ساعة قبل نهاية دوامه)، ويُتخطى إن لم يكن للفريق نشاط. يظهر من بطاقة راكان ← «الملخص».</p>` : ""}
+    ${a.studio ? `<h3 class="news-title">استوديو المحتوى (لمى ← سالم ← ريم ← زياد)</h3>
+    <label class="remember"><input type="checkbox" id="oz-studio"${a.studio.enabled ? " checked" : ""}> الوكلاء يكملون المنشورات تلقائياً</label>
+    <div class="row-actions"><select class="input" id="oz-severy">${[1, 2, 4, 6].map(h => `<option value="${h}"${a.studio.everyHours === h ? " selected" : ""}>كل ${h} ساعة</option>`).join("")}</select>
+      <select class="input" id="oz-sper">${[1, 2, 3, 4].map(n => `<option value="${n}"${a.studio.perRun === n ? " selected" : ""}>${n} منشورات في الدورة</option>`).join("")}</select></div>
+    <p class="hint">تكتب لمى كل فكرة لم تُكتب ويدققها سالم، ثم تصمم ريم بهوية انطلق أو وهج ويكتب زياد نسخة X. يصلك المنشور جاهزاً في «للمراجعة»: اعتمده أو ارفضه. إعدادات مازن من بطاقته ← «الفرص».</p>` : ""}
     ${a.brain ? `<h3 class="news-title">مراجعة العقل (راكان يقترح دروساً من تدقيقات سالم وملاحظاتك)</h3>
     <label class="remember"><input type="checkbox" id="oz-brain"${a.brain.enabled ? " checked" : ""}> أسبوعياً</label>
     <div class="row-actions"><select class="input" id="oz-bday">${DAY_LABELS.map((d, i) => `<option value="${i}"${a.brain.day === i ? " selected" : ""}>${d}</option>`).join("")}</select>${hourSelect("oz-bhour", a.brain.hour)}</div>
@@ -430,7 +438,8 @@ async function officeAction(btn) {
       sites: { enabled: field(f, "oz-sites").checked, day: Number(field(f, "oz-sday").value), hour: Number(field(f, "oz-shour").value), mode: field(f, "oz-smode").value },
       exec: field(f, "oz-xdaily") ? { daily: { enabled: field(f, "oz-xdaily").checked, hour: Number(field(f, "oz-xdhour").value) },
         weekly: { enabled: field(f, "oz-xweekly").checked, day: Number(field(f, "oz-xwday").value), hour: Number(field(f, "oz-xwhour").value) } } : undefined,
-      brain: field(f, "oz-brain") ? { enabled: field(f, "oz-brain").checked, day: Number(field(f, "oz-bday").value), hour: Number(field(f, "oz-bhour").value) } : undefined }, "حُفظت الأتمتة وحُدّثت المشغلات");
+      brain: field(f, "oz-brain") ? { enabled: field(f, "oz-brain").checked, day: Number(field(f, "oz-bday").value), hour: Number(field(f, "oz-bhour").value) } : undefined,
+      studio: field(f, "oz-studio") ? { enabled: field(f, "oz-studio").checked, everyHours: Number(field(f, "oz-severy").value), perRun: Number(field(f, "oz-sper").value) } : undefined }, "حُفظت الأتمتة وحُدّثت المشغلات");
   }
   if (act === "all-on" || act === "all-off") {
     const on = act === "all-on";

@@ -32,11 +32,16 @@ const AGENTS = [
     examples: ["ابحث عن شركة سابك: نشاطها ومنتجاتها وأحدث المعلومات المنشورة عنها مع المصادر", "قارن بين ثلاثة أنظمة لإدارة المشاريع باستخدام مصادرها الرسمية، واذكر تاريخ المعلومات"] },
   { name: "زياد", role: "محتوى منصة X", c: "#8fd3e8",
     desc: "يحوّل منشورات LinkedIn إلى تغريدات قصيرة بصوت كل علامة ضمن 280 حرفاً.",
-    examples: ["حوّل هذا المنشور إلى تغريدة: …", "اقترح هاشتاقات X مناسبة لمحتوى كفاءة الطاقة في السعودية"] }
+    examples: ["حوّل هذا المنشور إلى تغريدة: …", "اقترح هاشتاقات X مناسبة لمحتوى كفاءة الطاقة في السعودية"] },
+  { name: "مازن", role: "استقطاب العملاء", c: "#e3c565",
+    desc: "يبحث عن فنادق ومستشفيات ومولات ومجمعات وشركات سعودية تناسب وهج وانطلق، ويجمع بريدها الرسمي المنشور، ويكتب مسودة تعريفية ترسلها أنت.",
+    examples: ["اكتب رسالة تعريفية لفندق في جدة عن منصة وهج للطاقة الشمسية للأسطح", "اقترح ثلاث زوايا لمخاطبة مدير مرافق مستشفى خاص عن تدقيق الطاقة"] }
 ];
 const AGENT_BY_NAME = Object.fromEntries(AGENTS.map(a => [a.name, a]));
 // المدير التنفيذي: يعرف ما فعله كل وكيل ويكتب الملخص (Executive.gs)
 const EXEC_AGENT = "راكان";
+// استقطاب العملاء: يبحث عن منشآت سعودية ويكتب مسودات ترسلها أنت (Prospects.gs)
+const PROSPECTS_AGENT = "مازن";
 
 // توزيع البطاقات حول العدّاد: r = العمود الأيمن، l = الأيسر، c5 = أسفل العدّاد
 const SLOTS = [
@@ -45,14 +50,17 @@ const SLOTS = [
   { pos: "l1", agent: "سالم" }, { pos: "l2", agent: "خالد" }, { pos: "l3", sys: "newsQuality" },
   { pos: "l4", sys: "coverage" }, { pos: "l5", sys: "highRate" },
   { pos: "c5", sys: "completion" },
-  { pos: "r6", agent: "ريم" }, { pos: "c6", sys: "ready" }, { pos: "l6", agent: "زياد" }
+  { pos: "r6", agent: "ريم" }, { pos: "c6", sys: "ready" }, { pos: "l6", agent: "زياد" },
+  { pos: "r7", agent: "مازن" }, { pos: "c7", sys: "outreach" }, { pos: "l7", sys: "replyRate" }
 ];
 const SYS = {
   completion: { title: "إنجاز التكليفات", sub: "التكليفات المباشرة المكتملة في الفترة", view: "tasks", sort: "new" },
   newsQuality: { title: "جودة الأخبار", sub: "متوسط تقدير سالم للأخبار", view: "news" },
   coverage: { title: "تدقيق التكليفات", sub: "تكليفات مباشرة لها تقدير رقمي", view: "tasks", sort: "low" },
   highRate: { title: "الاعتماد العالي", sub: "مخرجات بتقدير 85% فأكثر", view: "tasks", sort: "high" },
-  ready: { title: "جاهزية النشر", sub: "معتمدة بتصميم ونسخة X", view: "content", cfilter: "approved" }
+  ready: { title: "جاهزية النشر", sub: "معتمدة بتصميم ونسخة X", view: "content", cfilter: "approved" },
+  outreach: { title: "جودة مسودات التواصل", sub: "متوسط تقدير سالم لرسائل مازن", view: "prospects" },
+  replyRate: { title: "معدل الرد", sub: "من ردّوا من الرسائل التي أرسلتها", view: "prospects" }
 };
 const TONE_LABEL = { ok: "جيد", warn: "متوسط", bad: "ضعيف", none: "لا بيانات" };
 const TONE_COLOR = { ok: "#2bd47d", warn: "#f3b03d", bad: "#ef5350", none: "#3a3f46" };
@@ -62,6 +70,7 @@ const VIEWS = {
   news: { title: "الأخبار", sub: "آخر 10 أخبار طاقة رصدها نواف وربطها الفريق بخدماتنا." },
   team: { title: "التكليفات المباشرة للوكلاء", sub: "التكليفات المباشرة خلال الفترة؛ لا تشمل الأدوار الآلية في الأخبار وخطط المحتوى والتصاميم." },
   alerts: { title: "تنبيهات الفترة", sub: "كل المخرجات منخفضة التقدير أو غير مكتملة التدقيق في الفترة المختارة." },
+  prospects: { title: "مازن · استقطاب العملاء", sub: "منشآت سعودية تناسب وهج وانطلق، ببريدها الرسمي المنشور ومسودة يدققها سالم. لا يُرسل شيء إلا منك." },
   exec: { title: "ملخص راكان التنفيذي", sub: "ما أنجزه كل وكيل ونتائجه في الفترة، مع ما يحتاج انتباهك ومقترحات التكليف. الأرقام من السجلات مباشرة." },
   office: { title: "إدارة المكتب", sub: "تعليمات الوكلاء وتوجيهاتك، ساعات العمل، المهام المجدولة، الأتمتة، وهوية التصاميم." },
   content: { title: "المحتوى والاعتماد", sub: "منشورات الأخبار وخطة الأسبوع والنصائح الموسمية؛ لا يُعتبر شيء جاهزاً للنشر قبل اعتمادك." }
@@ -112,6 +121,7 @@ const state = {
   officeAt: 0, officeSyncing: false, officeUnsupported: false, agentDlg: null,
   exec: null, execSel: "", execLoading: false, execError: "", execBusy: false,
   brain: null, brainLoading: false, brainError: "", brainAgent: "", brainEdit: "",
+  prospects: null, prospectsStats: null, prospectsAt: 0, prospectsLoading: false, prospectsError: "", prospectsFilter: "جاهز للإرسال", prospectsEdit: "", prospectsBusy: false, prospectsCfgOpen: false,
   view: "", filterAgent: "", query: "", sort: "new"
 };
 

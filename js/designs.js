@@ -311,7 +311,7 @@ async function contentJob(btn, kind) {
 }
 
 function renderView() {
-  ({ tasks: renderTasksView, news: renderNewsView, team: renderTeamView, alerts: renderAlertsView, compose: renderCompose, content: renderContentView, office: renderOfficeView, exec: renderExecView }[state.view] || (() => {}))();
+  ({ tasks: renderTasksView, news: renderNewsView, team: renderTeamView, alerts: renderAlertsView, compose: renderCompose, content: renderContentView, office: renderOfficeView, exec: renderExecView, prospects: renderProspectsView }[state.view] || (() => {}))();
 }
 
 const sheet = $("#sheet");
@@ -331,4 +331,5 @@ function openView(view, opts) {
   if (view === "compose") $("#taskInput").focus();
   if (view === "office") loadOffice(!!state.office);
   if (view === "exec") loadExec();
+  if (view === "prospects") loadProspects();
 }

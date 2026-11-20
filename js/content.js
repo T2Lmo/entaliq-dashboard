@@ -32,7 +32,7 @@ function contentItem(row) {
     + (href ? `<a class="tag" href="${esc(href)}" target="_blank" rel="noopener noreferrer">المصدر${ICON.ext}</a>` : source ? `<span class="tag">${esc(source)}</span>` : "");
   let body;
   if (editing) body = `<textarea class="field" id="edit-${esc(id)}" rows="12"${state.contentBusy ? " readonly" : ""} aria-label="نص المنشور">${esc(state.editingDraft)}</textarea><p class="hint">تغيير النص يلغي الاعتماد والتدقيق والتصميم السابق؛ يعود المنشور للمراجعة.</p><div class="row-actions">${btn("save", "حفظ", "btn-primary")}${btn("cancel", "إلغاء")}</div>`;
-  else body = text ? `<div class="md">${md(text)}</div>` : `<p class="hint">لم يُكتب المنشور بعد؛ هذه فكرة من خطة الأسبوع.</p>`;
+  else body = text ? `<div class="md">${md(text)}</div>` : `<p class="hint">لم يُكتب المنشور بعد. يكتبه الوكلاء ويجهّزون تصميمه ونسخة X تلقائياً في دورة الاستوديو القادمة (في دوامهم)، أو اضغط «اكتب المنشور».</p>`;
   let footer = "";
   if (asking) {
     footer = `<div class="note-box"><label class="lbl" for="note-${esc(id)}">${asking === "reject" ? "سبب الرفض (اختياري)" : "ملاحظاتك للمى (اختياري)"}</label>

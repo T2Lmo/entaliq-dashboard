@@ -124,6 +124,7 @@
   .pos-l4 { grid-column: 3; grid-row: 4; } .pos-l5 { grid-column: 3; grid-row: 5; }
   .pos-c5 { grid-column: 2; grid-row: 5; }
   .pos-r6 { grid-column: 1; grid-row: 6; } .pos-c6 { grid-column: 2; grid-row: 6; } .pos-l6 { grid-column: 3; grid-row: 6; }
+  .pos-r7 { grid-column: 1; grid-row: 7; } .pos-c7 { grid-column: 2; grid-row: 7; } .pos-l7 { grid-column: 3; grid-row: 7; }
   @media (max-width: 1180px) {
     .stage { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .stage > * { grid-column: auto !important; grid-row: auto !important; }
@@ -553,3 +554,11 @@
   .b-row:last-child { border-bottom: 0; }
   .b-trend { margin-inline-start: auto; color: var(--text-2); }
   .b-up { color: var(--green); } .b-down { color: var(--red); }
+
+  /* مازن: منشآت ومسودات التواصل */
+  .p-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0 4px; font-size: 13px; }
+  .p-line .ltr { direction: ltr; unicode-bidi: isolate; }
+  .p-note { color: var(--amber); }
+  .p-subject { margin: 10px 0 6px; }
+  .p-body { white-space: pre-wrap; padding: 12px 14px; border: 1px solid var(--line); border-radius: 6px; background: rgb(255 255 255 / .02); font-size: 14px; line-height: 1.8; }
+  .p-item a.btn { text-decoration: none; }

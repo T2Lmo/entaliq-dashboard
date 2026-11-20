@@ -20,7 +20,7 @@ const OFFICE_ = {
   maxPrompt: 2500, maxDirections: 1200, maxTask: 1500, maxTasks: 25,
   logSheet: "OfficeLog", logHeaders: ["التاريخ", "الإجراء", "الوكيل", "التفاصيل", "بواسطة"], logShown: 40,
   newsHours: [1, 2, 4, 6, 8, 12], // القيم التي يقبلها everyHours في Apps Script
-  handlers: ["runAutomatedNewsPipeline", "generateWeeklyPlan", "officeRunNews", "officeRunWeeklyPlan", "officeRunScheduler", "officeRunSites", "officeRunExecDaily", "officeRunExecWeekly", "officeRunBrainReview"],
+  handlers: ["runAutomatedNewsPipeline", "generateWeeklyPlan", "officeRunNews", "officeRunWeeklyPlan", "officeRunScheduler", "officeRunSites", "officeRunExecDaily", "officeRunExecWeekly", "officeRunBrainReview", "officeRunStudio", "officeRunProspects"],
   weekDays: () => [ScriptApp.WeekDay.SUNDAY, ScriptApp.WeekDay.MONDAY, ScriptApp.WeekDay.TUESDAY, ScriptApp.WeekDay.WEDNESDAY, ScriptApp.WeekDay.THURSDAY, ScriptApp.WeekDay.FRIDAY, ScriptApp.WeekDay.SATURDAY],
   sitesAgents: { full: ["راكان", "لمى", "سالم", "ريم", "زياد"], ideas: ["راكان"] },
   newsAgents: ["نواف", "فيصل", "لمى", "سالم"],
@@ -35,7 +35,11 @@ const OFFICE_DEFAULT_CFG_ = {
     // ملخص راكان: يومي قبل نهاية الدوام (16:00–17:00)، وأسبوعي الخميس 14:00
     exec: { daily: { enabled: true, hour: 16 }, weekly: { enabled: true, day: 4, hour: 14 } },
     // مراجعة العقل (Brain.gs): راكان يقترح دروساً من الأسبوعين الأخيرين، الخميس 15:00
-    brain: { enabled: true, day: 4, hour: 15 } },
+    brain: { enabled: true, day: 4, hour: 15 },
+    // استوديو المحتوى (Studio.gs): الوكلاء يكملون الكتابة والتصميم ونسخة X كل ساعة، منشوران في كل دورة
+    studio: { enabled: true, everyHours: 1, perRun: 2 },
+    // مازن (Prospects.gs): بحث ومسودات كل 4 ساعات، 3 منشآت في كل دورة؛ القطاعات والمدن الافتراضية في Prospects.gs
+    prospects: { enabled: true, everyHours: 4, perRun: 3 } },
   brandLooks: {}
 };
 
@@ -54,6 +58,8 @@ function officeLoad_() {
   if (!cfg.automation.sites) cfg.automation.sites = JSON.parse(JSON.stringify(OFFICE_DEFAULT_CFG_.automation.sites));
   if (!cfg.automation.exec) cfg.automation.exec = JSON.parse(JSON.stringify(OFFICE_DEFAULT_CFG_.automation.exec));
   if (!cfg.automation.brain) cfg.automation.brain = JSON.parse(JSON.stringify(OFFICE_DEFAULT_CFG_.automation.brain));
+  if (!cfg.automation.studio) cfg.automation.studio = JSON.parse(JSON.stringify(OFFICE_DEFAULT_CFG_.automation.studio));
+  if (!cfg.automation.prospects) cfg.automation.prospects = JSON.parse(JSON.stringify(OFFICE_DEFAULT_CFG_.automation.prospects));
   const agents = {}, tasks = [];
   Object.keys(all).forEach(k => {
     try {
@@ -108,6 +114,8 @@ function officeSystemFor_(systemRole) {
   const dirs = [o.cfg.directions, agent ? officeAgentCfg_(agent).directions : ""].map(s => String(s || "").trim()).filter(Boolean);
   if (dirs.length) system += "\n\nتوجيهات المدير (التزم بها ما لم تتعارض مع القواعد العامة):\n" + dirs.join("\n");
   // عقل المكتب (Brain.gs): الدروس المعتمدة لهذا الوكيل وللجميع، ومثال معتمد من عمله
+  // أسلوب السوق السعودي للمى وزياد، والتزام ريم بهويتي انطلق ووهج (Studio.gs)
+  if (agent && typeof studioStyleFor_ === "function") { const st = studioStyleFor_(agent); if (st) system += "\n\n" + st; }
   if (agent && typeof brainFor_ === "function") {
     try { const b = brainFor_(agent); if (b) system += "\n\n" + b; }
     catch (e) { console.log("تعذر تحميل عقل المكتب: " + e.message); }
@@ -214,6 +222,8 @@ function officeInstallTriggers_() {
   }
   if (typeof officeRunBrainReview === "function" && a.brain && a.brain.enabled)
     ScriptApp.newTrigger("officeRunBrainReview").timeBased().onWeekDay(OFFICE_.weekDays()[a.brain.day]).atHour(a.brain.hour).create();
+  if (typeof officeRunStudio === "function" && a.studio && a.studio.enabled) ScriptApp.newTrigger("officeRunStudio").timeBased().everyHours(a.studio.everyHours).create();
+  if (typeof officeRunProspects === "function" && a.prospects && a.prospects.enabled) ScriptApp.newTrigger("officeRunProspects").timeBased().everyHours(a.prospects.everyHours).create();
 }
 
 function officeTriggerList_() {
@@ -283,6 +293,8 @@ function handleOfficeAction_(data, user) {
   const a = data && data.action;
   if (typeof a === "string" && a.indexOf("exec_") === 0 && typeof handleExecAction_ === "function") return handleExecAction_(data, user);
   if (typeof a === "string" && a.indexOf("brain_") === 0 && typeof handleBrainAction_ === "function") return handleBrainAction_(data, user);
+  if (typeof a === "string" && a.indexOf("studio_") === 0 && typeof handleStudioAction_ === "function") return handleStudioAction_(data, user);
+  if (typeof a === "string" && a.indexOf("prospects_") === 0 && typeof handleProspectsAction_ === "function") return handleProspectsAction_(data, user);
   if (["office_get", "office_save_agent", "office_reset_agent", "office_save_office", "office_save_automation", "office_save_brand",
     "office_task_save", "office_task_delete", "office_task_run", "content_design_update", "office_save_sites", "sites_run", "office_set_active",
     "office_set_hours"].indexOf(a) < 0) return null;
@@ -411,9 +423,13 @@ function officeSaveAutomation_(d) {
   const bx = d.brain || cfg.automation.brain || OFFICE_DEFAULT_CFG_.automation.brain;
   const brain = { enabled: !!bx.enabled, day: Number(bx.day), hour: Number(bx.hour) };
   if (!okHour(brain.hour) || !okDay(brain.day)) throw appError_("VALIDATION_ERROR", "يوم أو ساعة مراجعة العقل غير صالحة");
+  // استوديو المحتوى (Studio.gs): كل 1/2/4/6 ساعات، 1–4 منشورات في الدورة. إعدادات مازن تُحفظ من نافذته وتبقى كما هي هنا
+  const sx = d.studio || cfg.automation.studio || OFFICE_DEFAULT_CFG_.automation.studio;
+  const studio = { enabled: !!sx.enabled, everyHours: Number(sx.everyHours), perRun: Number(sx.perRun) };
+  if ([1, 2, 4, 6].indexOf(studio.everyHours) < 0 || !(studio.perRun >= 1 && studio.perRun <= 4)) throw appError_("VALIDATION_ERROR", "تكرار الاستوديو 1 أو 2 أو 4 أو 6 ساعات، ومن 1 إلى 4 منشورات");
   cfg.automation = { news: { enabled: !!n.enabled, everyHours: every }, weekly: { enabled: !!w.enabled, day: day, hour: hour },
     sites: { enabled: !!s.enabled, day: Number.isInteger(sDay) ? sDay : 0, hour: Number.isInteger(sHour) ? sHour : 10, mode: s.mode === "ideas" ? "ideas" : "full" },
-    exec: exec, brain: brain };
+    exec: exec, brain: brain, studio: studio, prospects: cfg.automation.prospects || OFFICE_DEFAULT_CFG_.automation.prospects };
   officeProps_().setProperty("OFFICE_CFG", JSON.stringify(cfg));
 }
 

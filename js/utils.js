@@ -101,6 +101,7 @@ function computeMetrics() {
     coverage: pct(s.tasks.scored, s.tasks.total),
     highRate: pct(s.overall.high, s.overall.scored),
     ready: readyRate(),
+    ...outreachRates(),
     activeAgents: AGENTS.filter(a => perAgent[a.name].count).length,
     todayTasks: s.today.tasks,
     todayNews: s.today.news,
@@ -108,6 +109,12 @@ function computeMetrics() {
     alerts: Array.isArray(state.alerts) ? state.alerts.length : s.alerts,
     series: s.series
   };
+}
+
+// مؤشرا مازن (Prospects.gs): متوسط تقدير سالم لمسوداته، ومعدل الرد من الرسائل المرسلة
+function outreachRates() {
+  const p = state.prospectsStats;
+  return { outreach: p ? p.draftAvg : null, replyRate: p ? p.replyRate : null };
 }
 
 // نسبة المنشورات المعتمدة المجهزة بتصميم ونسخة X من جميع منشورات الخادم
@@ -142,6 +149,7 @@ function metricsFromRecent() {
     coverage: pct(taskScores.filter(isNum).length, state.tasks.length),
     highRate: pct(all.filter(s => s >= 85).length, all.length),
     ready: readyRate(),
+    ...outreachRates(),
     activeAgents: AGENTS.filter(a => perAgent[a.name].count).length,
     todayTasks: state.tasks.filter(r => dayKey(r[1]) === today).length,
     todayNews: state.news.filter(r => dayKey(r[0]) === today).length,
