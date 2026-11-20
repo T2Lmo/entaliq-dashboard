@@ -20,7 +20,7 @@ const OFFICE_ = {
   maxPrompt: 2500, maxDirections: 1200, maxTask: 1500, maxTasks: 25,
   logSheet: "OfficeLog", logHeaders: ["التاريخ", "الإجراء", "الوكيل", "التفاصيل", "بواسطة"], logShown: 40,
   newsHours: [1, 2, 4, 6, 8, 12], // القيم التي يقبلها everyHours في Apps Script
-  handlers: ["runAutomatedNewsPipeline", "generateWeeklyPlan", "officeRunNews", "officeRunWeeklyPlan", "officeRunScheduler", "officeRunSites"],
+  handlers: ["runAutomatedNewsPipeline", "generateWeeklyPlan", "officeRunNews", "officeRunWeeklyPlan", "officeRunScheduler", "officeRunSites", "officeRunExecDaily", "officeRunExecWeekly"],
   weekDays: () => [ScriptApp.WeekDay.SUNDAY, ScriptApp.WeekDay.MONDAY, ScriptApp.WeekDay.TUESDAY, ScriptApp.WeekDay.WEDNESDAY, ScriptApp.WeekDay.THURSDAY, ScriptApp.WeekDay.FRIDAY, ScriptApp.WeekDay.SATURDAY],
   sitesAgents: { full: ["راكان", "لمى", "سالم", "ريم", "زياد"], ideas: ["راكان"] },
   newsAgents: ["نواف", "فيصل", "لمى", "سالم"],
@@ -31,7 +31,9 @@ const OFFICE_DEFAULT_CFG_ = {
   directions: "",
   defaultHours: { days: [0, 1, 2, 3, 4], from: "08:00", to: "17:00" },
   enforceManual: false, // false = ساعات العمل تقيّد العمل الآلي فقط، والتكليف من اللوحة متاح دائماً
-  automation: { news: { enabled: true, everyHours: 6 }, weekly: { enabled: true, day: 6, hour: 9 }, sites: { enabled: false, day: 0, hour: 10, mode: "full" } },
+  automation: { news: { enabled: true, everyHours: 6 }, weekly: { enabled: true, day: 6, hour: 9 }, sites: { enabled: false, day: 0, hour: 10, mode: "full" },
+    // ملخص راكان: يومي قبل نهاية الدوام (16:00–17:00)، وأسبوعي الخميس 14:00
+    exec: { daily: { enabled: true, hour: 16 }, weekly: { enabled: true, day: 4, hour: 14 } } },
   brandLooks: {}
 };
 
@@ -48,6 +50,7 @@ function officeLoad_() {
   cfg = Object.assign(JSON.parse(JSON.stringify(OFFICE_DEFAULT_CFG_)), cfg);
   cfg.automation = Object.assign(JSON.parse(JSON.stringify(OFFICE_DEFAULT_CFG_.automation)), cfg.automation || {});
   if (!cfg.automation.sites) cfg.automation.sites = JSON.parse(JSON.stringify(OFFICE_DEFAULT_CFG_.automation.sites));
+  if (!cfg.automation.exec) cfg.automation.exec = JSON.parse(JSON.stringify(OFFICE_DEFAULT_CFG_.automation.exec));
   const agents = {}, tasks = [];
   Object.keys(all).forEach(k => {
     try {
@@ -197,6 +200,10 @@ function officeInstallTriggers_() {
     .atHour(a.weekly.hour).create();
   if (o.tasks.some(t => t.enabled)) ScriptApp.newTrigger("officeRunScheduler").timeBased().everyHours(1).create();
   if (a.sites && a.sites.enabled) ScriptApp.newTrigger("officeRunSites").timeBased().onWeekDay(OFFICE_.weekDays()[a.sites.day]).atHour(a.sites.hour).create();
+  if (typeof officeRunExecDaily === "function" && a.exec) {
+    if (a.exec.daily.enabled) ScriptApp.newTrigger("officeRunExecDaily").timeBased().everyDays(1).atHour(a.exec.daily.hour).create();
+    if (a.exec.weekly.enabled) ScriptApp.newTrigger("officeRunExecWeekly").timeBased().onWeekDay(OFFICE_.weekDays()[a.exec.weekly.day]).atHour(a.exec.weekly.hour).create();
+  }
 }
 
 function officeTriggerList_() {
@@ -242,10 +249,12 @@ function officeRunScheduler() {
 function officeExecuteTask_(t) {
   const ss = setupSheets();
   if (!AGENTS_PROMPTS[t.agent] || t.agent === "الباحث") throw appError_("VALIDATION_ERROR", "وكيل غير صالح للمهام المجدولة");
-  const output = callGemini(AGENTS_PROMPTS[t.agent], t.task);
+  // راكان يرى «مرجع الفريق» مع مهمته (Executive.gs)، ويراه سالم عند التدقيق؛ سجل المهام يحفظ النص الأصلي
+  const input = typeof execTaskContext_ === "function" ? execTaskContext_(t.agent, t.task) : t.task;
+  const output = callGemini(AGENTS_PROMPTS[t.agent], input);
   let audit, status = "مكتمل";
   try {
-    const a = runAudit_({ type: taskAuditType_(t.agent, t.task), agentName: t.agent, task: t.task, output: output });
+    const a = runAudit_({ type: taskAuditType_(t.agent, t.task), agentName: t.agent, task: input, output: output });
     audit = a.text; if (a.score === null) status = "بانتظار التدقيق";
   } catch (err) { audit = "تعذر التدقيق: " + err.message; status = "بانتظار التدقيق"; }
   const taskId = "TSK-" + Utilities.getUuid().slice(0, 8).toUpperCase();
@@ -262,6 +271,7 @@ function officeSaveTaskRun_(id, patch) {
 // ---------------- إجراءات اللوحة ----------------
 function handleOfficeAction_(data, user) {
   const a = data && data.action;
+  if (typeof a === "string" && a.indexOf("exec_") === 0 && typeof handleExecAction_ === "function") return handleExecAction_(data, user);
   if (["office_get", "office_save_agent", "office_reset_agent", "office_save_office", "office_save_automation", "office_save_brand",
     "office_task_save", "office_task_delete", "office_task_run", "content_design_update", "office_save_sites", "sites_run", "office_set_active",
     "office_set_hours"].indexOf(a) < 0) return null;
@@ -381,8 +391,14 @@ function officeSaveAutomation_(d) {
   if (!(Number.isInteger(day) && day >= 0 && day <= 6 && Number.isInteger(hour) && hour >= 0 && hour <= 23)) throw appError_("VALIDATION_ERROR", "يوم أو ساعة خطة الأسبوع غير صالحة");
   const s = d.sites || {}, sDay = Number(s.day), sHour = Number(s.hour);
   if (s.enabled && !(Number.isInteger(sDay) && sDay >= 0 && sDay <= 6 && Number.isInteger(sHour) && sHour >= 0 && sHour <= 23)) throw appError_("VALIDATION_ERROR", "يوم أو ساعة أفكار المواقع غير صالحة");
+  // الملخص التنفيذي (Executive.gs): يومي بساعة، وأسبوعي بيوم وساعة. بدون قيم من اللوحة يبقى كما هو
+  const prev = cfg.automation.exec || OFFICE_DEFAULT_CFG_.automation.exec, x = d.exec || prev;
+  const xd = x.daily || {}, xw = x.weekly || {}, okHour = v => Number.isInteger(v) && v >= 0 && v <= 23, okDay = v => Number.isInteger(v) && v >= 0 && v <= 6;
+  const exec = { daily: { enabled: !!xd.enabled, hour: Number(xd.hour) }, weekly: { enabled: !!xw.enabled, day: Number(xw.day), hour: Number(xw.hour) } };
+  if (!okHour(exec.daily.hour) || !okHour(exec.weekly.hour) || !okDay(exec.weekly.day)) throw appError_("VALIDATION_ERROR", "يوم أو ساعة الملخص التنفيذي غير صالحة");
   cfg.automation = { news: { enabled: !!n.enabled, everyHours: every }, weekly: { enabled: !!w.enabled, day: day, hour: hour },
-    sites: { enabled: !!s.enabled, day: Number.isInteger(sDay) ? sDay : 0, hour: Number.isInteger(sHour) ? sHour : 10, mode: s.mode === "ideas" ? "ideas" : "full" } };
+    sites: { enabled: !!s.enabled, day: Number.isInteger(sDay) ? sDay : 0, hour: Number.isInteger(sHour) ? sHour : 10, mode: s.mode === "ideas" ? "ideas" : "full" },
+    exec: exec };
   officeProps_().setProperty("OFFICE_CFG", JSON.stringify(cfg));
 }
 

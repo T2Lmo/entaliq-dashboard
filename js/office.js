@@ -79,6 +79,7 @@ function agentCtlHtml(name) {
       ${btn("hours", ICON.clock, "الدوام", "ساعات عمل " + name)}
       ${a.active ? btn("stop", ICON.pause, "إيقاف", "إيقاف " + name + " عن كل المهام") : btn("start", ICON.play, "تشغيل", "تشغيل " + name)}
       ${btn("assign", ICON.send, "تكليف", "تكليف " + name + " بمهمة الآن أو مجدولة")}
+      ${name === EXEC_AGENT ? btn("exec", ICON.clip, "الملخص", "ملخص راكان لما أنجزه كل وكيل ونتائجه") : ""}
     </span>
   </div>`;
 }
@@ -92,6 +93,7 @@ function paintAgentControls() {
 const agentDlg = $("#agentDlg");
 async function agentControl(btn) {
   const name = btn.dataset.name, act = btn.dataset.actl;
+  if (act === "exec") { openView("exec"); return; }
   if (!state.office) { toast(state.officeError || "حالة الوكلاء لم تُحمَّل بعد.", "warn"); syncOffice(true); return; }
   if (act === "hours" || act === "assign") { openAgentDlg(name, act); return; }
   const on = act === "start";
@@ -104,7 +106,8 @@ async function agentControl(btn) {
   finally { stop(); renderOfficeView(); }
 }
 
-function openAgentDlg(name, kind) {
+// prefill (اختياري): { task, schedule } — من مقترحات راكان في الملخص التنفيذي
+function openAgentDlg(name, kind, prefill) {
   const a = state.office.agents.find(x => x.name === name);
   if (!a) return;
   state.agentDlg = { name, kind };
@@ -133,6 +136,10 @@ function openAgentDlg(name, kind) {
           <p class="hint">تُنفَّذ في الموعد إذا كان ${esc(name)} في دوامه، وتظهر في إدارة المكتب ← المهام المجدولة.</p></div>
       </div>
       <p class="hint">يدقق سالم النتيجة، ويُسجَّل التكليف في سجل المكتب ليعرفه راكان.</p>`;
+  }
+  if (prefill && kind === "assign") {
+    field($("#agentDlgBody"), "ad-task").value = prefill.task || "";
+    if (prefill.schedule) $("#agentDlgBody").querySelector('input[name="ad-when"][value="schedule"]').checked = true;
   }
   if (!agentDlg.open) agentDlg.showModal();
   const first = agentDlg.querySelector(kind === "hours" ? "input" : "#ad-task");
@@ -190,7 +197,7 @@ function officeLogHtml(o) {
   const n = rows.length, count = n === 1 ? "حدث واحد" : n === 2 ? "حدثان" : n <= 10 ? n + " أحداث" : n + " حدثاً";
   return `<p class="hint sh-pad">آخر ${count}، الأحدث أولاً. ${note}</p><div class="list">${rows.map(r => `<article class="item">
       <div class="item-head">${AGENT_BY_NAME[r.agent] ? avatar(r.agent, "xs") : ""}<b>${esc(r.action)}</b>${r.agent ? `<small class="muted">${esc(r.agent)}</small>` : ""}
-        <small class="muted" style="margin-inline-start:auto">${esc(r.at)} · ${esc(r.by)}</small></div>
+        <small class="muted" style="margin-inline-start:auto">${esc(ltr(r.at))} · ${esc(r.by)}</small></div>
       ${r.details ? `<p class="hint">${esc(r.details)}</p>` : ""}
     </article>`).join("")}</div>`;
 }
@@ -245,7 +252,7 @@ function renderOfficeView() {
   }
   const o = state.office;
   const body = { agents: officeAgentsHtml, tasks: officeTasksHtml, office: officeSettingsHtml, auto: officeAutoHtml, log: officeLogHtml }[state.officeTab] || officeAgentsHtml;
-  box.innerHTML = tabs + `<p class="hint sh-pad">الوقت في الخادم: ${esc(o.office.now)} (${esc(o.office.timezone)})</p>` + body(o);
+  box.innerHTML = tabs + `<p class="hint sh-pad">الوقت في الخادم: ${esc(ltr(o.office.now))} (${esc(o.office.timezone)})</p>` + body(o);
 }
 
 function officeAgentsHtml(o) {
@@ -333,6 +340,12 @@ function officeAutoHtml(o) {
     <label class="remember"><input type="checkbox" id="oz-sites"${s.enabled ? " checked" : ""}> مفعّلة أسبوعياً</label>
     <div class="row-actions"><select class="input" id="oz-sday">${sdays}</select>${hourSelect("oz-shour", s.hour)}
       <select class="input" id="oz-smode"><option value="full"${s.mode !== "ideas" ? " selected" : ""}>أفكار + منشورات مصممة</option><option value="ideas"${s.mode === "ideas" ? " selected" : ""}>أفكار فقط</option></select></div>
+    ${a.exec ? `<h3 class="news-title">ملخص راكان التنفيذي (ما أنجزه كل وكيل ونتائجه)</h3>
+    <label class="remember"><input type="checkbox" id="oz-xdaily"${a.exec.daily.enabled ? " checked" : ""}> ملخص يومي</label>
+    <div class="row-actions">${hourSelect("oz-xdhour", a.exec.daily.hour)}</div>
+    <label class="remember"><input type="checkbox" id="oz-xweekly"${a.exec.weekly.enabled ? " checked" : ""}> ملخص أسبوعي</label>
+    <div class="row-actions"><select class="input" id="oz-xwday">${DAY_LABELS.map((d, i) => `<option value="${i}"${a.exec.weekly.day === i ? " selected" : ""}>${d}</option>`).join("")}</select>${hourSelect("oz-xwhour", a.exec.weekly.hour)}</div>
+    <p class="hint">يُكتب في موعده إذا كان راكان في دوامه (اختر ساعة قبل نهاية دوامه)، ويُتخطى إن لم يكن للفريق نشاط. يظهر من بطاقة راكان ← «الملخص».</p>` : ""}
     <p class="hint">يعمل التشغيل الآلي فقط إذا كان كل الفريق المعني في دوامه وغير موقوف. المشغلات الحالية: ${esc(trig)}</p>
     <div class="row-actions">${obtn("save-auto", "حفظ وتحديث المشغلات", "btn-primary")}</div>
   </div>
@@ -408,7 +421,9 @@ async function officeAction(btn) {
     return officeSend(btn, { action: "office_save_automation",
       news: { enabled: field(f, "oz-news").checked, everyHours: Number(field(f, "oz-every").value) },
       weekly: { enabled: field(f, "oz-weekly").checked, day: Number(field(f, "oz-day").value), hour: Number(field(f, "oz-hour").value) },
-      sites: { enabled: field(f, "oz-sites").checked, day: Number(field(f, "oz-sday").value), hour: Number(field(f, "oz-shour").value), mode: field(f, "oz-smode").value } }, "حُفظت الأتمتة وحُدّثت المشغلات");
+      sites: { enabled: field(f, "oz-sites").checked, day: Number(field(f, "oz-sday").value), hour: Number(field(f, "oz-shour").value), mode: field(f, "oz-smode").value },
+      exec: field(f, "oz-xdaily") ? { daily: { enabled: field(f, "oz-xdaily").checked, hour: Number(field(f, "oz-xdhour").value) },
+        weekly: { enabled: field(f, "oz-xweekly").checked, day: Number(field(f, "oz-xwday").value), hour: Number(field(f, "oz-xwhour").value) } } : undefined }, "حُفظت الأتمتة وحُدّثت المشغلات");
   }
   if (act === "all-on" || act === "all-off") {
     const on = act === "all-on";

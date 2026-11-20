@@ -309,7 +309,7 @@ async function contentJob(btn, kind) {
 }
 
 function renderView() {
-  ({ tasks: renderTasksView, news: renderNewsView, team: renderTeamView, alerts: renderAlertsView, compose: renderCompose, content: renderContentView, office: renderOfficeView }[state.view] || (() => {}))();
+  ({ tasks: renderTasksView, news: renderNewsView, team: renderTeamView, alerts: renderAlertsView, compose: renderCompose, content: renderContentView, office: renderOfficeView, exec: renderExecView }[state.view] || (() => {}))();
 }
 
 const sheet = $("#sheet");
@@ -328,4 +328,5 @@ function openView(view, opts) {
   $(".sh-body").scrollTop = 0;
   if (view === "compose") $("#taskInput").focus();
   if (view === "office") loadOffice(!!state.office);
+  if (view === "exec") loadExec();
 }

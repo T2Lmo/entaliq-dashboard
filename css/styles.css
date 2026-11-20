@@ -530,3 +530,19 @@
   .assign-ed:has(input[value="schedule"]:checked) .assign-schedule { display: block; }
   #agentDlg .examples { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
   #agentDlg .msg:empty { display: none; }
+
+  /* ملخص راكان التنفيذي */
+  .x-report .item-head { margin-bottom: 6px; }
+  .x-headline { margin: 10px 0 6px; font-size: 18px; line-height: 1.5; }
+  .x-nums { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 8px; margin: 14px 0 8px; }
+  .x-num { --tone: var(--text); display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: rgb(255 255 255 / .02); }
+  .x-num[data-tone="ok"] { --tone: var(--green); } .x-num[data-tone="warn"] { --tone: var(--amber); } .x-num[data-tone="bad"] { --tone: var(--red); }
+  .x-num b { font-size: 20px; line-height: 1.2; color: var(--tone); }
+  .x-num span { font-size: 11.5px; color: var(--text-3); }
+  .x-list { margin: 4px 0 8px; padding-inline-start: 20px; }
+  .x-list li { margin: 4px 0; }
+  .x-list.ok li::marker { color: var(--green); }
+  .x-list.warn li::marker { color: var(--amber); }
+  .x-agents { padding-inline: 0; }
+  .x-agents .item p { margin: 4px 0; }
+  .x-avg { font-weight: 700; font-size: 15px; }

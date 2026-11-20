@@ -42,6 +42,7 @@ $("#agentDlgClose").addEventListener("click", () => agentDlg.close());
 agentDlg.addEventListener("click", e => { if (e.target === agentDlg) agentDlg.close(); });
 agentDlg.addEventListener("close", () => { state.agentDlg = null; });
 $("#btnContentOlder").addEventListener("click", loadOlderContent);
+document.addEventListener("change", e => { if (e.target.id === "execPick") { state.execSel = e.target.value; renderExecView(); } });
 document.addEventListener("input", e => {
   if (state.editingId && e.target.id === "edit-" + state.editingId) state.editingDraft = e.target.value;
   if (state.askingId && e.target.id === "note-" + state.askingId) state.askingDraft = e.target.value;
@@ -65,6 +66,11 @@ document.addEventListener("click", async e => {
   const t = e.target;
   const actl = t.closest("[data-actl]");
   if (actl) { agentControl(actl); return; }
+  const xrun = t.closest("[data-exec-run]");
+  if (xrun) { runExec(xrun); return; }
+  const xassign = t.closest("[data-exec-assign]");
+  if (xassign) { execAssign(xassign); return; }
+  if (t.closest("[data-exec-reload]")) { loadExec(); return; }
   const adEx = t.closest("[data-ad-example]");
   if (adEx) { const box = $("#ad-task"); if (box) { box.value = adEx.dataset.adExample; box.focus(); } return; }
   const opener = t.closest("[data-open]");

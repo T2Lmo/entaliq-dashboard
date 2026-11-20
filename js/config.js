@@ -35,6 +35,8 @@ const AGENTS = [
     examples: ["حوّل هذا المنشور إلى تغريدة: …", "اقترح هاشتاقات X مناسبة لمحتوى كفاءة الطاقة في السعودية"] }
 ];
 const AGENT_BY_NAME = Object.fromEntries(AGENTS.map(a => [a.name, a]));
+// المدير التنفيذي: يعرف ما فعله كل وكيل ويكتب الملخص (Executive.gs)
+const EXEC_AGENT = "راكان";
 
 // توزيع البطاقات حول العدّاد: r = العمود الأيمن، l = الأيسر، c5 = أسفل العدّاد
 const SLOTS = [
@@ -60,6 +62,7 @@ const VIEWS = {
   news: { title: "الأخبار", sub: "آخر 10 أخبار طاقة رصدها نواف وربطها الفريق بخدماتنا." },
   team: { title: "التكليفات المباشرة للوكلاء", sub: "التكليفات المباشرة خلال الفترة؛ لا تشمل الأدوار الآلية في الأخبار وخطط المحتوى والتصاميم." },
   alerts: { title: "تنبيهات الفترة", sub: "كل المخرجات منخفضة التقدير أو غير مكتملة التدقيق في الفترة المختارة." },
+  exec: { title: "ملخص راكان التنفيذي", sub: "ما أنجزه كل وكيل ونتائجه في الفترة، مع ما يحتاج انتباهك ومقترحات التكليف. الأرقام من السجلات مباشرة." },
   office: { title: "إدارة المكتب", sub: "تعليمات الوكلاء وتوجيهاتك، ساعات العمل، المهام المجدولة، الأتمتة، وهوية التصاميم." },
   content: { title: "المحتوى والاعتماد", sub: "منشورات الأخبار وخطة الأسبوع والنصائح الموسمية؛ لا يُعتبر شيء جاهزاً للنشر قبل اعتمادك." }
 };
@@ -107,12 +110,15 @@ const state = {
   social: null, socialPosts: {}, socialBusy: false,
   office: null, officeTab: "agents", officeEdit: "", officeTaskEdit: "", officeLoading: false, officeError: "", designEditId: "",
   officeAt: 0, officeSyncing: false, officeUnsupported: false, agentDlg: null,
+  exec: null, execSel: "", execLoading: false, execError: "", execBusy: false,
   view: "", filterAgent: "", query: "", sort: "new"
 };
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const pad = n => String(n).padStart(2, "0");
+// يعزل التاريخ والوقت باتجاه يسار-يمين (LRI…PDI) حتى لا يظهر «2026-11-20 14:02» معكوساً داخل النص العربي
+const ltr = s => "⁦" + String(s ?? "") + "⁩";
 const svg = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const ICON = {
   refresh: svg('<path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/>'),
