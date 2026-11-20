@@ -17,7 +17,7 @@ js/                 سكربتات عادية (ليست modules) تتشارك ا
   content.js        المحتوى والاعتماد
   designs.js        رسم تصاميم المنشورات بهوية كل علامة وإجراءات المحتوى
   app.js            الرسم الكامل والتحديث والإجراءات والإعدادات
-  office.js         إدارة المكتب: الوكلاء والدوام والمهام المجدولة والأتمتة وتعديل التصاميم، وأدوات كل وكيل تحت اسمه وسجل المكتب
+  office.js         إدارة المكتب: الوكلاء والدوام والمهام المجدولة والأتمتة وتعديل التصاميم، وأدوات كل وكيل تحت اسمه وسجل المكتب وإعدادات ملخص الصباح وتنبيه توقف العامل
   executive.js      ملخص راكان التنفيذي: ما أنجزه كل وكيل ونتائجه ومقترحات التكليف
   brain.js          عقل المكتب ومرجعه: الدروس والأمثلة، «علّم الوكيل» من سجل المهام، وحفظ ملاحظاتك على المنشورات
   studio.js         استوديو المحتوى: «أكمل المنشورات الآن» (الوكلاء يكتبون ويصممون، وأنت تعتمد أو ترفض)
@@ -28,7 +28,7 @@ js/                 سكربتات عادية (ليست modules) تتشارك ا
   social.js         ربط LinkedIn و X والنشر المباشر
   events.js         ربط الأحداث
   main.js           البداية (يُشغَّل أخيراً)
-apps-script/        ملفات تُضاف إلى مشروع Apps Script (Auth.gs, Social.gs, ClaudeBridge.gs, Office.gs, Executive.gs, Brain.gs, Studio.gs, Prospects.gs, Tenders.gs, Contracts.gs, Sites.gs) وخطوات التفعيل في SETUP.md
+apps-script/        ملفات تُضاف إلى مشروع Apps Script (Auth.gs, Social.gs, ClaudeBridge.gs, Office.gs, Executive.gs, Brain.gs, Studio.gs, Prospects.gs, Tenders.gs, Contracts.gs, Digest.gs, Sites.gs) وخطوات التفعيل في SETUP.md
 worker/             عامل على جهازك: ينفذ طلبات الوكلاء بـ Claude باشتراكك (بدون API)، ويرسل رسائل مازن المعتمدة من بريد الشركة ويقرأ ردودها
 ```
 

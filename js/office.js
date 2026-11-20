@@ -365,6 +365,7 @@ function officeAutoHtml(o) {
     <label class="remember"><input type="checkbox" id="oz-brain"${a.brain.enabled ? " checked" : ""}> أسبوعياً</label>
     <div class="row-actions"><select class="input" id="oz-bday">${DAY_LABELS.map((d, i) => `<option value="${i}"${a.brain.day === i ? " selected" : ""}>${d}</option>`).join("")}</select>${hourSelect("oz-bhour", a.brain.hour)}</div>
     <p class="hint">المقترحات تنتظر اعتمادك في «العقل والمرجع»، ولا يستخدمها أي وكيل قبل ذلك.</p>` : ""}
+    ${a.digest ? digestFormHtml(a.digest) : ""}
     <p class="hint">يعمل التشغيل الآلي فقط إذا كان كل الفريق المعني في دوامه وغير موقوف. المشغلات الحالية: ${esc(trig)}</p>
     <div class="row-actions">${obtn("save-auto", "حفظ وتحديث المشغلات", "btn-primary")}</div>
   </div>
@@ -384,6 +385,51 @@ function officeAutoHtml(o) {
       <div class="row-actions">${obtn("save-brand", "حفظ", "btn-line", ` data-brand="${esc(b.brand)}"`)}</div></div>`).join("")}
     <p class="hint">يغيّر وصف الهوية الذي تتبعه ريم عند تجهيز التصاميم الجديدة. لتعديل تصميم منشور بعينه: المحتوى ← التصميم ← تعديل التصميم.</p>
   </div>`;
+}
+
+// ---------------- الملخص الصباحي وتنبيه العامل (Digest.gs) ----------------
+async function loadDigest() {
+  state.digestLoading = true;
+  try { state.digest = await api({ action: "digest_get" }); state.digestError = ""; }
+  catch (e) { state.digestError = officeError(e); }
+  finally { state.digestLoading = false; if (state.view === "office" && state.officeTab === "auto") renderOfficeView(); }
+}
+
+function digestStatusHtml() {
+  const g = state.digest;
+  if (!g) {
+    if (!state.digestLoading && !state.digestError) { state.digestLoading = true; setTimeout(loadDigest, 0); }
+    return state.digestError ? `تعذر قراءة حالة الملخص: ${esc(state.digestError)}` : "جاري قراءة الحالة…";
+  }
+  const w = g.worker || {};
+  const worker = w.online ? `<span class="badge" data-tone="ok">العامل متصل</span>`
+    : `<span class="badge" data-tone="${w.last ? "bad" : "none"}">${w.last ? "العامل متوقف منذ " + esc(ltr(w.last)) : "العامل لم يتصل بعد"}</span>`;
+  return `يصل إلى: <b class="ltr">${esc(g.recipient || "غير محدد")}</b> · آخر إرسال: ${g.lastSent ? esc(ltr(g.lastSent)) : "لم يُرسل بعد"} ${worker}`;
+}
+
+function digestPreviewHtml(p) {
+  const dated = x => esc(x).replace(/\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2})?/g, m => ltr(m));
+  const part = (t, items, none) => `<b>${t}</b>${items.length ? `<ul>${items.map(x => `<li>${dated(x)}</li>`).join("")}</ul>` : `<p class="hint">${none}</p>`}`;
+  return `<div class="digest-preview">${p.headline ? `<p><b>خلاصة الأمس:</b> ${dated(p.headline)}</p>` : ""}
+    ${part("ينتظر موافقتك", p.approvals, "لا شيء ينتظرك الآن.")}${part("ردود العملاء منذ أمس", p.replies, "لا ردود جديدة.")}
+    ${part("اليوم", p.today, "لا مواعيد قريبة.")}${part("حالة الفريق", p.team, "—")}</div>`;
+}
+
+function digestFormHtml(g) {
+  return `<h3 class="news-title">ملخص الصباح من راكان، وتنبيه توقف العامل</h3>
+    <label class="remember"><input type="checkbox" id="oz-dg"${g.enabled ? " checked" : ""}> يصلك بريد كل صباح بما ينتظر موافقتك وردود العملاء ومواعيد اليوم</label>
+    ${dayChecks("oz-dgd", g.days)}
+    <div class="row-actions"><label class="hint">الساعة ${hourSelect("oz-dghour", g.hour)}</label></div>
+    <label class="lbl" for="oz-dgto">البريد المستلم</label>
+    <input class="input ltr" id="oz-dgto" type="email" maxlength="120" value="${esc(g.to || "")}" placeholder="name@entaliq.com.sa">
+    <p class="hint">اتركه فارغاً ليصل إلى بريد حساب Google الذي يشغّل الخادم.</p>
+    <label class="remember"><input type="checkbox" id="oz-wd"${g.watchdog ? " checked" : ""}> نبّهني بالبريد إن توقف العامل على جهازي أكثر من 30 دقيقة</label>
+    <div class="row-actions"><label class="hint">في أيام الملخص من <input class="input" type="time" id="oz-wdfrom" value="${esc(g.watchFrom || "08:00")}"></label>
+      <label class="hint">إلى <input class="input" type="time" id="oz-wdto" value="${esc(g.watchTo || "18:00")}"></label></div>
+    <p class="hint digest-status">${digestStatusHtml()}</p>
+    <div class="row-actions">${obtn("digest-preview", "معاينة", "btn-line")}${obtn("digest-send", "أرسل ملخص اليوم الآن", "btn-primary")}</div>
+    ${state.digestPreview ? digestPreviewHtml(state.digestPreview) : ""}
+    <p class="hint">يُرسل من خادم المكتب عبر بريد Google، فيصلك حتى لو كان جهازك مطفأً. أول مرة فقط: في محرر Apps Script شغّل الدالة digestAuthorize ووافق على الإذن. التنبيه رسالة واحدة لكل انقطاع، وتتكرر بعد 24 ساعة إن استمر.</p>`;
 }
 
 // ---------------- الإجراءات ----------------
@@ -437,6 +483,7 @@ async function officeAction(btn) {
   }
   if (act === "save-auto") {
     const f = formOf("[data-auto-form]");
+    state.digest = null; // يُعاد تحميل المستلم بعد الحفظ
     return officeSend(btn, { action: "office_save_automation",
       news: { enabled: field(f, "oz-news").checked, everyHours: Number(field(f, "oz-every").value) },
       weekly: { enabled: field(f, "oz-weekly").checked, day: Number(field(f, "oz-day").value), hour: Number(field(f, "oz-hour").value) },
@@ -444,7 +491,22 @@ async function officeAction(btn) {
       exec: field(f, "oz-xdaily") ? { daily: { enabled: field(f, "oz-xdaily").checked, hour: Number(field(f, "oz-xdhour").value) },
         weekly: { enabled: field(f, "oz-xweekly").checked, day: Number(field(f, "oz-xwday").value), hour: Number(field(f, "oz-xwhour").value) } } : undefined,
       brain: field(f, "oz-brain") ? { enabled: field(f, "oz-brain").checked, day: Number(field(f, "oz-bday").value), hour: Number(field(f, "oz-bhour").value) } : undefined,
-      studio: field(f, "oz-studio") ? { enabled: field(f, "oz-studio").checked, everyHours: Number(field(f, "oz-severy").value), perRun: Number(field(f, "oz-sper").value) } : undefined }, "حُفظت الأتمتة وحُدّثت المشغلات");
+      studio: field(f, "oz-studio") ? { enabled: field(f, "oz-studio").checked, everyHours: Number(field(f, "oz-severy").value), perRun: Number(field(f, "oz-sper").value) } : undefined,
+      digest: field(f, "oz-dg") ? { enabled: field(f, "oz-dg").checked, hour: Number(field(f, "oz-dghour").value), days: readDays(f, "oz-dgd"), to: field(f, "oz-dgto").value.trim(),
+        watchdog: field(f, "oz-wd").checked, watchFrom: field(f, "oz-wdfrom").value, watchTo: field(f, "oz-wdto").value } : undefined }, "حُفظت الأتمتة وحُدّثت المشغلات");
+  }
+  if (act === "digest-preview" || act === "digest-send") {
+    const send = act === "digest-send";
+    if (send && !confirm("يرسل راكان ملخص اليوم الآن إلى " + ((state.digest && state.digest.recipient) || "بريد حساب Google صاحب الخادم") + "؟")) return;
+    const stop = busy(btn, send ? "جاري الإرسال" : "جاري التجهيز");
+    try {
+      const data = await api({ action: send ? "digest_send" : "digest_preview" });
+      state.digest = data; state.digestError = "";
+      if (data.preview) state.digestPreview = data.preview;
+      if (send) toast("أُرسل الملخص إلى " + data.sent.to, "ok");
+    } catch (e) { toast(officeError(e), "bad"); }
+    finally { stop(); renderOfficeView(); }
+    return;
   }
   if (act === "all-on" || act === "all-off") {
     const on = act === "all-on";

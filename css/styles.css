@@ -613,3 +613,7 @@
   .p-reply { margin: 8px 0; padding: 8px 12px; border-inline-start: 3px solid var(--text-3); background: rgb(255 255 255 / .02); border-radius: 4px; }
   .p-reply[data-tone="ok"] { border-inline-start-color: var(--green); } .p-reply[data-tone="warn"] { border-inline-start-color: var(--amber); } .p-reply[data-tone="bad"] { border-inline-start-color: var(--red); }
   .p-reply p { margin: 4px 0; }
+  /* ملخص الصباح من راكان */
+  .digest-preview { margin: 8px 0; padding: 10px 14px; border: 1px solid var(--line-2); border-radius: 6px; background: rgb(255 255 255 / .02); }
+  .digest-preview ul { margin: 4px 0 10px; padding-inline-start: 20px; } .digest-preview li { margin: 2px 0; }
+  .digest-status .badge { margin-inline-start: 6px; }
