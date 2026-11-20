@@ -85,6 +85,7 @@ async function refresh(opts) {
     Object.assign(state, { tasks, news, stats, alerts, taskVersions, sig, loaded: true, error: "", lastSync: new Date() });
     ingestResearchMetadata(researchTasks, tasks);
     renderResearchResult();
+    syncOffice();
     return true;
   } catch (e) {
     if (!current()) return false;
@@ -240,7 +241,8 @@ async function saveSettings(ev) {
   state.linkedin = linkedin;
   store.set(KEYS.linkedin, linkedin);
 
-  Object.assign(state, { url, token, loaded: false, error: "", sig: "", connectionEpoch: state.connectionEpoch + 1, contentFloor: null, contentVersions: {}, contentMeta: null, taskVersions: {}, tasks: [], news: [], content: [], stats: null, alerts: null, lastSync: null, editingId: null, askingId: null, conflictId: null });
+  Object.assign(state, { url, token, loaded: false, error: "", sig: "", connectionEpoch: state.connectionEpoch + 1, contentFloor: null, contentVersions: {}, contentMeta: null, taskVersions: {}, tasks: [], news: [], content: [], stats: null, alerts: null, lastSync: null, editingId: null, askingId: null, conflictId: null,
+    office: null, officeAt: 0, officeError: "", officeUnsupported: false });
   store.set(KEYS.url, url); tokenStore.set(token, $("#inRemember").checked);
   restoreResearchTracking();
   const btn = $("#btnSaveSettings");

@@ -106,6 +106,7 @@ const state = {
   idToken: (() => { try { return sessionStorage.getItem(KEYS.idToken) || ""; } catch (e) { return ""; } })(),
   social: null, socialPosts: {}, socialBusy: false,
   office: null, officeTab: "agents", officeEdit: "", officeTaskEdit: "", officeLoading: false, officeError: "", designEditId: "",
+  officeAt: 0, officeSyncing: false, officeUnsupported: false, agentDlg: null,
   view: "", filterAgent: "", query: "", sort: "new"
 };
 
@@ -133,7 +134,8 @@ const ICON = {
   alert: svg('<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>'),
   check: svg('<path d="M20 6 9 17l-5-5"/>'),
   team: svg('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>'),
-  eye: svg('<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>')
+  eye: svg('<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'),
+  clock: svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>')
 };
 // رسومات البلاطات العلوية (64×36)
 const GLYPH = {

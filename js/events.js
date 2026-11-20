@@ -37,6 +37,10 @@ $("#sheetClose").addEventListener("click", () => sheet.close());
 sheet.addEventListener("click", e => { if (e.target === sheet) sheet.close(); });
 sheet.addEventListener("close", () => { state.view = ""; });
 $("#taskForm").addEventListener("submit", sendTask);
+$("#agentDlgForm").addEventListener("submit", saveAgentDlg);
+$("#agentDlgClose").addEventListener("click", () => agentDlg.close());
+agentDlg.addEventListener("click", e => { if (e.target === agentDlg) agentDlg.close(); });
+agentDlg.addEventListener("close", () => { state.agentDlg = null; });
 $("#btnContentOlder").addEventListener("click", loadOlderContent);
 document.addEventListener("input", e => {
   if (state.editingId && e.target.id === "edit-" + state.editingId) state.editingDraft = e.target.value;
@@ -59,6 +63,10 @@ $("#taskSort").addEventListener("change", e => { state.sort = e.target.value; re
 
 document.addEventListener("click", async e => {
   const t = e.target;
+  const actl = t.closest("[data-actl]");
+  if (actl) { agentControl(actl); return; }
+  const adEx = t.closest("[data-ad-example]");
+  if (adEx) { const box = $("#ad-task"); if (box) { box.value = adEx.dataset.adExample; box.focus(); } return; }
   const opener = t.closest("[data-open]");
   if (opener) { openView(opener.dataset.open, { agent: opener.dataset.filterAgent, sort: opener.dataset.sort, cfilter: opener.dataset.cfilterOpen }); return; }
   const pick = t.closest("[data-pick]");

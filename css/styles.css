@@ -508,3 +508,25 @@
   .duty-switch { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-2); cursor: pointer; margin-inline-end: auto; }
   .duty-switch input { width: 18px; height: 18px; accent-color: var(--green, #2bd47d); }
   .site-row .grow { flex: 1; min-width: 200px; }
+
+  /* أدوات الوكيل تحت اسمه: الدوام والإيقاف والتكليف */
+  .metric.agent .m-open { position: absolute; inset: 0; z-index: 0; border-radius: inherit; cursor: pointer; }
+  .metric.agent .m-open:focus-visible { outline: 2px solid var(--steel); outline-offset: 2px; }
+  .m-ctl { position: relative; z-index: 1; display: flex; align-items: center; gap: 6px 10px; flex-wrap: wrap; pointer-events: none; }
+  .m-duty { --duty: var(--text-3); display: inline-flex; align-items: center; gap: 6px; min-width: 0; margin-inline-end: auto; font-size: 12px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .m-duty i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--duty); box-shadow: 0 0 6px var(--duty); }
+  .m-duty[data-duty-state="on"] { --duty: var(--green); }
+  .m-duty[data-duty-state="out"] { --duty: var(--amber); }
+  .m-duty[data-duty-state="off"] { --duty: var(--red); color: var(--text); }
+  .m-duty[data-duty-state="none"] i { box-shadow: none; }
+  .m-hours { color: var(--text-3); }
+  .m-acts { display: inline-flex; gap: 6px; }
+  .m-btn { pointer-events: auto; display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 9px; border: 1px solid var(--line-2); border-radius: 6px; background: rgb(255 255 255 / .02); font-size: 12px; color: var(--text-2); cursor: pointer; white-space: nowrap; transition: border-color .15s, color .15s, background-color .15s; }
+  .m-btn:hover { color: var(--text); border-color: #46505a; background: rgb(255 255 255 / .06); }
+  .m-btn svg { width: 13px; height: 13px; flex: none; }
+  .m-btn:disabled { opacity: .6; cursor: progress; }
+  .m-btn[data-actl="start"] { color: var(--green); border-color: color-mix(in srgb, var(--green) 45%, var(--line-2)); }
+  .assign-ed .assign-schedule { display: none; }
+  .assign-ed:has(input[value="schedule"]:checked) .assign-schedule { display: block; }
+  #agentDlg .examples { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+  #agentDlg .msg:empty { display: none; }

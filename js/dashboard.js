@@ -68,16 +68,20 @@ function metricCard(slot, m) {
     open = `data-open="${s.view}"` + (s.sort ? ` data-filter-agent="" data-sort="${s.sort}"` : "") + (s.cfilter ? ` data-cfilter-open="${s.cfilter}"` : "");
   }
   const t = tone(value);
-  return `<button type="button" class="metric pos-${slot.pos}" data-tone="${t}" title="${esc(hint)}" ${open}>
-    <div class="m-row">
+  const body = `<div class="m-row">
       <div class="m-head">
         <div class="m-line"><span class="m-name">${esc(title)}</span><span class="m-status"><i></i>${TONE_LABEL[t]}</span></div>
         <span class="m-role">${esc(sub)}</span>
       </div>
       ${valueHtml(value, "m-val")}
     </div>
-    ${segbar(value)}
-  </button>`;
+    ${segbar(value)}`;
+  // بطاقة الوكيل: الضغط عليها يفتح سجل مهامه، وتحت اسمه أدوات الدوام والإيقاف والتكليف (office.js)
+  if (slot.agent) return `<div class="metric agent pos-${slot.pos}" data-tone="${t}" data-agent-card="${esc(slot.agent)}">
+    <button type="button" class="m-open" title="${esc(hint)}" aria-label="${esc("سجل مهام " + slot.agent)}" ${open}></button>
+    ${body}${agentCtlHtml(slot.agent)}
+  </div>`;
+  return `<button type="button" class="metric pos-${slot.pos}" data-tone="${t}" title="${esc(hint)}" ${open}>${body}</button>`;
 }
 function renderStage(m) {
   const stage = $("#stage");

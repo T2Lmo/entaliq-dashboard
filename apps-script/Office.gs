@@ -11,11 +11,14 @@
  * parseDesign_, brandOf_, xLength_, assertSupportedNumbers_, X_MAX_CHARS, PLAN_BUDGET_MS, executionDeadline_
  *
  * التخزين: Script Properties (OFFICE_CFG، OFFICE_AGENT_<اسم>، OFFICE_TASK_<معرف>).
+ * سجل المكتب: ورقة OfficeLog (التاريخ، الإجراء، الوكيل، التفاصيل، بواسطة) — كل إيقاف وتشغيل وتغيير دوام وتكليف وجدولة،
+ * ليعرف راكان (المدير التنفيذي) ما حدث في الفريق.
  */
 
 const OFFICE_ = {
   dayNames: ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"],
   maxPrompt: 2500, maxDirections: 1200, maxTask: 1500, maxTasks: 25,
+  logSheet: "OfficeLog", logHeaders: ["التاريخ", "الإجراء", "الوكيل", "التفاصيل", "بواسطة"], logShown: 40,
   newsHours: [1, 2, 4, 6, 8, 12], // القيم التي يقبلها everyHours في Apps Script
   handlers: ["runAutomatedNewsPipeline", "generateWeeklyPlan", "officeRunNews", "officeRunWeeklyPlan", "officeRunScheduler", "officeRunSites"],
   weekDays: () => [ScriptApp.WeekDay.SUNDAY, ScriptApp.WeekDay.MONDAY, ScriptApp.WeekDay.TUESDAY, ScriptApp.WeekDay.WEDNESDAY, ScriptApp.WeekDay.THURSDAY, ScriptApp.WeekDay.FRIDAY, ScriptApp.WeekDay.SATURDAY],
@@ -145,6 +148,45 @@ function officeText_(v, name, max) {
   return t;
 }
 
+// ---------------- سجل المكتب ----------------
+// من نفّذ الإجراء: بريد Google إن وُجد، وإلا «اللوحة» (الرمز المشترك)، و«آلي» للمشغلات
+function officeBy_(user) { return user && user.email ? user.email : user ? "اللوحة" : "آلي"; }
+
+function officeLogSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(OFFICE_.logSheet);
+  if (!sh) { sh = ss.insertSheet(OFFICE_.logSheet); sh.appendRow(OFFICE_.logHeaders); sh.setFrozenRows(1); }
+  return sh;
+}
+
+// لا يُفشل الإجراء الأصلي إن تعذر التسجيل
+function officeLog_(action, agent, details, by) {
+  try {
+    officeLogSheet_().appendRow([new Date(), action, agent || "", String(details || "").slice(0, 1000), by || "آلي"].map(cell_));
+  } catch (e) { console.log("تعذر تسجيل حدث المكتب: " + e.message); }
+}
+
+// أحدث الأحداث أولاً
+function officeLogRows_(limit) {
+  try {
+    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(OFFICE_.logSheet);
+    if (!sh || sh.getLastRow() < 2) return [];
+    const n = Math.min(limit, sh.getLastRow() - 1), tz = Session.getScriptTimeZone();
+    return sh.getRange(sh.getLastRow() - n + 1, 1, n, 5).getValues().reverse().map(r => ({
+      at: r[0] instanceof Date ? Utilities.formatDate(r[0], tz, "yyyy-MM-dd HH:mm") : String(r[0]),
+      action: String(r[1]), agent: String(r[2]), details: String(r[3]), by: String(r[4])
+    }));
+  } catch (e) { return []; }
+}
+
+function officeHoursLabel_(h) {
+  return h === null || h === undefined ? "ساعات المكتب (" + officeHoursText_(officeLoad_().cfg.defaultHours) + ")" : officeHoursText_(h);
+}
+
+function officeTaskLabel_(t) {
+  return t.days.map(d => OFFICE_.dayNames[d]).join("، ") + " " + String(t.hour).padStart(2, "0") + ":00" + (t.enabled ? "" : " (متوقفة)") + " — " + String(t.task).slice(0, 200);
+}
+
 // ---------------- المشغلات والأتمتة ----------------
 function officeInstallTriggers_() {
   const o = officeLoad_(), a = o.cfg.automation;
@@ -188,8 +230,10 @@ function officeRunScheduler() {
       if (Date.now() + 60000 > executionDeadline_) return;
       const r = officeExecuteTask_(t);
       officeSaveTaskRun_(t.id, { lastSlot: slot, lastRun: new Date().toISOString(), lastTaskId: r.taskId, lastError: "" });
+      officeLog_("تنفيذ مهمة مجدولة", t.agent, r.taskId + " — " + String(t.task).slice(0, 200), "آلي");
     } catch (err) {
       officeSaveTaskRun_(t.id, { lastSlot: slot, lastRun: new Date().toISOString(), lastError: String(err.message || err).slice(0, 300) });
+      officeLog_("تعذر تنفيذ مهمة مجدولة", t.agent, String(err.message || err).slice(0, 300), "آلي");
     }
   });
 }
@@ -219,27 +263,45 @@ function officeSaveTaskRun_(id, patch) {
 function handleOfficeAction_(data, user) {
   const a = data && data.action;
   if (["office_get", "office_save_agent", "office_reset_agent", "office_save_office", "office_save_automation", "office_save_brand",
-    "office_task_save", "office_task_delete", "office_task_run", "content_design_update", "office_save_sites", "sites_run", "office_set_active"].indexOf(a) < 0) return null;
+    "office_task_save", "office_task_delete", "office_task_run", "content_design_update", "office_save_sites", "sites_run", "office_set_active",
+    "office_set_hours"].indexOf(a) < 0) return null;
   try {
     officeApply_();
+    const by = officeBy_(user);
     let out;
     if (a === "office_get") out = {};
-    else if (a === "office_save_agent") officeSaveAgent_(data);
-    else if (a === "office_reset_agent") { if (!AGENTS_PROMPTS[data.name]) throw appError_("VALIDATION_ERROR", "وكيل غير معروف"); officeProps_().deleteProperty("OFFICE_AGENT_" + data.name); }
-    else if (a === "office_save_office") officeSaveOffice_(data);
-    else if (a === "office_save_automation") { officeSaveAutomation_(data); officeCache_ = null; officeInstallTriggers_(); }
-    else if (a === "office_save_brand") officeSaveBrand_(data);
-    else if (a === "office_task_save") { officeSaveTask_(data); officeCache_ = null; officeInstallTriggers_(); }
-    else if (a === "office_task_delete") { officeProps_().deleteProperty("OFFICE_TASK_" + String(data.id || "")); officeCache_ = null; officeInstallTriggers_(); }
+    else if (a === "office_save_agent") { const changed = officeSaveAgent_(data); if (changed) officeLog_("تعديل إعدادات الوكيل", data.name, changed, by); }
+    else if (a === "office_reset_agent") {
+      if (!AGENTS_PROMPTS[data.name]) throw appError_("VALIDATION_ERROR", "وكيل غير معروف");
+      officeProps_().deleteProperty("OFFICE_AGENT_" + data.name);
+      officeLog_("إرجاع الوكيل للأصل", data.name, "التعليمات والتوجيهات والدوام والحضور", by);
+    }
+    else if (a === "office_save_office") { officeSaveOffice_(data); officeLog_("تعديل توجيهات المكتب وساعاته", "", "ساعات المكتب: " + officeHoursText_(officeLoad_().cfg.defaultHours), by); }
+    else if (a === "office_save_automation") { officeSaveAutomation_(data); officeCache_ = null; officeInstallTriggers_(); officeLog_("تعديل الأتمتة", "", "", by); }
+    else if (a === "office_save_brand") { officeSaveBrand_(data); officeLog_("تعديل هوية العلامة", "", data.brand, by); }
+    else if (a === "office_task_save") {
+      const r = officeSaveTask_(data); officeCache_ = null; officeInstallTriggers_();
+      officeLog_(r.created ? "جدولة مهمة" : "تعديل مهمة مجدولة", r.task.agent, officeTaskLabel_(r.task), by);
+    }
+    else if (a === "office_task_delete") {
+      const t = officeLoad_().tasks.find(x => x.id === String(data.id || ""));
+      officeProps_().deleteProperty("OFFICE_TASK_" + String(data.id || "")); officeCache_ = null; officeInstallTriggers_();
+      if (t) officeLog_("حذف مهمة مجدولة", t.agent, String(t.task).slice(0, 200), by);
+    }
     else if (a === "office_task_run") {
       const t = officeLoad_().tasks.find(x => x.id === data.id);
       if (!t) throw appError_("NOT_FOUND", "المهمة غير موجودة");
       executionDeadline_ = Date.now() + 270000;
       out = { run: officeExecuteTask_(t) };
       officeSaveTaskRun_(t.id, { lastRun: new Date().toISOString(), lastTaskId: out.run.taskId, lastError: "" });
+      officeLog_("تشغيل مهمة مجدولة الآن", t.agent, out.run.taskId + " — " + String(t.task).slice(0, 200), by);
     }
     else if (a === "content_design_update") return json_(Object.assign({ status: "success" }, officeUpdateDesign_(data)));
-    else if (a === "office_set_active") officeSetActive_(data);
+    else if (a === "office_set_active") {
+      const names = officeSetActive_(data), on = data.active !== false;
+      officeLog_(on ? "تشغيل" : "إيقاف", data.all ? "الكل" : names.join("، "), on ? "يداوم ويقبل المهام" : "لا ينفذ مهاماً يدوية ولا آلية", by);
+    }
+    else if (a === "office_set_hours") { const h = officeSetHours_(data); officeLog_("تغيير الدوام", data.name, officeHoursLabel_(h), by); }
     else if (a === "office_save_sites") { const cfg = officeLoad_().cfg; cfg.sites = sitesValidate_(data.sites); officeProps_().setProperty("OFFICE_CFG", JSON.stringify(cfg)); }
     else if (a === "sites_run") {
       executionDeadline_ = Date.now() + 270000;
@@ -265,25 +327,43 @@ function officeState_() {
       return { name: name, defaultPrompt: officeDefaults_.prompts[name], prompt: c.prompt, directions: c.directions, active: c.active !== false,
         hours: c.hours, hoursText: officeHoursText_(h), onDuty: c.active !== false && officeInHours_(h) };
     }),
-    tasks: o.tasks
+    tasks: o.tasks,
+    log: officeLogRows_(OFFICE_.logShown)
   };
 }
 
+// يعيد وصف ما تغيّر (للسجل)، أو "" إن لم يتغير شيء
 function officeSaveAgent_(d) {
   if (!AGENTS_PROMPTS[d.name]) throw appError_("VALIDATION_ERROR", "وكيل غير معروف");
+  const before = officeAgentCfg_(d.name);
   const prompt = officeText_(d.prompt, "تعليمات الوكيل", OFFICE_.maxPrompt);
   const cfg = { prompt: prompt && prompt !== (officeDefaults_ ? officeDefaults_.prompts[d.name] : "") ? prompt : "",
     directions: officeText_(d.directions, "التوجيهات", OFFICE_.maxDirections), active: d.active !== false, hours: officeValidHours_(d.hours, true) };
   officeProps_().setProperty("OFFICE_AGENT_" + d.name, JSON.stringify(cfg));
+  const changes = [];
+  if (before.active !== cfg.active) changes.push(cfg.active ? "تشغيل" : "إيقاف");
+  if (JSON.stringify(before.hours || null) !== JSON.stringify(cfg.hours)) changes.push("الدوام: " + officeHoursLabel_(cfg.hours));
+  if ((before.prompt || "") !== cfg.prompt) changes.push("تعليمات الدور");
+  if ((before.directions || "") !== cfg.directions) changes.push("التوجيهات" + (cfg.directions ? ": " + cfg.directions.slice(0, 200) : " (حُذفت)"));
+  return changes.join(" · ");
 }
 
-// يداوم أو لا: لوكيل واحد أو عدة وكلاء أو الكل، دون المساس بتعليماتهم وساعاتهم
+// يداوم أو لا: لوكيل واحد أو عدة وكلاء أو الكل، دون المساس بتعليماتهم وساعاتهم. يعيد الأسماء
 function officeSetActive_(d) {
   const names = d.all ? Object.keys(AGENTS_PROMPTS) : (Array.isArray(d.names) ? d.names : [d.name]);
   if (!names.length || names.some(n => !AGENTS_PROMPTS[n])) throw appError_("VALIDATION_ERROR", "وكيل غير معروف");
   const updates = {};
   names.forEach(n => { updates["OFFICE_AGENT_" + n] = JSON.stringify(Object.assign(officeAgentCfg_(n), { active: d.active !== false })); });
   officeProps_().setProperties(updates);
+  return names;
+}
+
+// ساعات وكيل واحد من بطاقته في اللوحة، دون المساس بتعليماته وتوجيهاته. null = ساعات المكتب
+function officeSetHours_(d) {
+  if (!AGENTS_PROMPTS[d.name] || d.name === "الباحث") throw appError_("VALIDATION_ERROR", "وكيل غير معروف");
+  const hours = officeValidHours_(d.hours, true);
+  officeProps_().setProperty("OFFICE_AGENT_" + d.name, JSON.stringify(Object.assign(officeAgentCfg_(d.name), { hours: hours })));
+  return hours;
 }
 
 function officeSaveOffice_(d) {
@@ -328,6 +408,7 @@ function officeSaveTask_(d) {
   const id = existing ? existing.id : "OT" + Utilities.getUuid().replace(/-/g, "").slice(0, 10).toUpperCase();
   const rec = Object.assign(existing || { id: id, created: new Date().toISOString() }, { agent: t.agent, task: text, days: days, hour: hour, enabled: t.enabled !== false });
   officeProps_().setProperty("OFFICE_TASK_" + id, JSON.stringify(rec));
+  return { task: rec, created: !existing };
 }
 
 // تعديل نصوص تصميم ريم ونسخة زياد يدوياً، بنفس فحوص Code.gs (الأطوال والأرقام الموجودة في المنشور)

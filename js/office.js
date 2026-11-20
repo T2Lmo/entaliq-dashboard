@@ -5,7 +5,8 @@ const OFFICE_TABS = [
   { id: "agents", label: "الوكلاء" },
   { id: "tasks", label: "المهام المجدولة" },
   { id: "office", label: "التوجيهات والدوام" },
-  { id: "auto", label: "الأتمتة والهوية" }
+  { id: "auto", label: "الأتمتة والهوية" },
+  { id: "log", label: "سجل المكتب" }
 ];
 const DAY_LABELS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 const hourLabel = h => String(h).padStart(2, "0") + ":00";
@@ -24,7 +25,175 @@ async function loadOffice(quiet) {
   catch (e) { state.officeError = officeError(e); }
   finally { state.officeLoading = false; renderOfficeView(); }
 }
-function acceptOffice(data) { state.office = { office: data.office, agents: data.agents || [], tasks: data.tasks || [] }; }
+function acceptOffice(data) {
+  state.office = { office: data.office, agents: data.agents || [], tasks: data.tasks || [], log: data.log || [] };
+  state.officeAt = Date.now();
+  paintAgentControls();
+}
+
+// تحميل حالة الوكلاء بهدوء مع كل تحديث للوحة (مرة كل 3 دقائق على الأكثر) لتظهر أدواتهم تحت أسمائهم
+async function syncOffice(force) {
+  if (!state.url || !hasAuth() || state.officeUnsupported || state.officeSyncing) return;
+  if (!force && state.office && Date.now() - state.officeAt < 180000) return;
+  const epoch = state.connectionEpoch;
+  state.officeSyncing = true;
+  try {
+    const data = await api({ action: "office_get" });
+    if (epoch !== state.connectionEpoch) return;
+    acceptOffice(data); state.officeError = "";
+  } catch (e) {
+    if (epoch !== state.connectionEpoch) return;
+    if (/نص المهمة فارغ/.test(e.message)) state.officeUnsupported = true;
+    state.officeError = officeError(e);
+  } finally { state.officeSyncing = false; paintAgentControls(); }
+}
+
+// ---------------- أدوات الوكيل تحت اسمه في البطاقة ----------------
+// أيام متتالية تُختصر (الأحد–الخميس)، مع دعم الأسبوع الدائري (السبت–الأربعاء)
+function shortDays(days) {
+  const set = new Set(days), n = set.size;
+  if (n === 7) return "كل الأيام";
+  if (n > 2) for (const s of set) {
+    if (Array.from({ length: n }, (_, i) => (s + i) % 7).every(d => set.has(d))) return DAY_LABELS[s] + "–" + DAY_LABELS[(s + n - 1) % 7];
+  }
+  return [...set].sort((a, b) => a - b).map(d => DAY_LABELS[d]).join("، ");
+}
+function shortHours(h) {
+  if (h === "always") return "دائماً";
+  const x = h && h.days ? h : state.office && state.office.office.defaultHours;
+  if (!x) return "";
+  // عزل اتجاه الوقت (LRI…PDI) حتى لا يظهر «17:00–08:00» معكوساً داخل النص العربي
+  return shortDays(x.days) + " " + (x.from === x.to ? "طوال اليوم" : "⁦" + x.from + "–" + x.to + "⁩");
+}
+function agentCtlHtml(name) {
+  const a = state.office && state.office.agents.find(x => x.name === name);
+  if (!a) return state.url && !state.officeError && !state.officeUnsupported
+    ? `<div class="m-ctl" aria-hidden="true"><span class="m-duty" data-duty-state="none"><i></i>جاري تحميل الدوام…</span></div>` : "";
+  const st = !a.active ? "off" : a.onDuty ? "on" : "out";
+  const label = { on: "في الدوام", out: "خارج الدوام", off: "موقوف" }[st];
+  const tip = label + " · " + a.hoursText + (a.hours === null ? " (ساعات المكتب)" : "");
+  const btn = (act, icon, text, title) => `<button type="button" class="m-btn" data-actl="${act}" data-name="${esc(name)}" title="${esc(title)}">${icon}<span class="lbl-text">${text}</span></button>`;
+  return `<div class="m-ctl">
+    <span class="m-duty" data-duty-state="${st}" title="${esc(tip)}"><i></i>${label}<span class="m-hours"> · ${esc(shortHours(a.hours))}</span></span>
+    <span class="m-acts">
+      ${btn("hours", ICON.clock, "الدوام", "ساعات عمل " + name)}
+      ${a.active ? btn("stop", ICON.pause, "إيقاف", "إيقاف " + name + " عن كل المهام") : btn("start", ICON.play, "تشغيل", "تشغيل " + name)}
+      ${btn("assign", ICON.send, "تكليف", "تكليف " + name + " بمهمة الآن أو مجدولة")}
+    </span>
+  </div>`;
+}
+function paintAgentControls() {
+  document.querySelectorAll("[data-agent-card]").forEach(card => {
+    const html = agentCtlHtml(card.dataset.agentCard), old = card.querySelector(".m-ctl");
+    if (old) old.outerHTML = html; else if (html) card.insertAdjacentHTML("beforeend", html);
+  });
+}
+
+const agentDlg = $("#agentDlg");
+async function agentControl(btn) {
+  const name = btn.dataset.name, act = btn.dataset.actl;
+  if (!state.office) { toast(state.officeError || "حالة الوكلاء لم تُحمَّل بعد.", "warn"); syncOffice(true); return; }
+  if (act === "hours" || act === "assign") { openAgentDlg(name, act); return; }
+  const on = act === "start";
+  if (!on && !confirm("إيقاف " + name + "؟ لن ينفذ أي مهمة يدوية أو مجدولة أو آلية حتى تشغّله.")) return;
+  const stop = busy(btn, on ? "تشغيل" : "إيقاف");
+  try {
+    acceptOffice(await api({ action: "office_set_active", name, active: on }));
+    toast(on ? name + " يداوم الآن" : "أُوقف " + name, "ok");
+  } catch (e) { toast(officeError(e), "bad"); }
+  finally { stop(); renderOfficeView(); }
+}
+
+function openAgentDlg(name, kind) {
+  const a = state.office.agents.find(x => x.name === name);
+  if (!a) return;
+  state.agentDlg = { name, kind };
+  const info = AGENT_BY_NAME[name] || {};
+  const o = state.office.office;
+  $("#agentDlgTitle").textContent = (kind === "hours" ? "دوام " : "تكليف ") + name;
+  $("#agentDlgSub").textContent = info.role || "";
+  $("#agentDlgMsg").textContent = "";
+  const save = $("#agentDlgSave .lbl-text");
+  if (kind === "hours") {
+    save.textContent = "حفظ الدوام";
+    $("#agentDlgBody").innerHTML = `<span class="lbl">ساعات العمل</span>${hoursEditor("ad", a.hours, true)}
+      <p class="hint">ساعات المكتب الحالية: ${esc(shortHours(null))}. ${o.enforceManual ? "الساعات تقيّد كل المهام، حتى التكليف من اللوحة." : "الساعات تقيّد المهام الآلية والمجدولة فقط؛ التكليف من اللوحة متاح دائماً."}</p>`;
+  } else {
+    save.textContent = "تكليف";
+    const today = o.today ?? new Date().getDay();
+    $("#agentDlgBody").innerHTML = `${a.active ? "" : `<p class="msg bad">${esc(name)} موقوف حالياً؛ شغّله أولاً ليقبل المهام.</p>`}
+      <label class="lbl" for="ad-task">المهمة</label>
+      <textarea class="field" id="ad-task" rows="5" maxlength="1500" placeholder="اكتب المهمة المطلوبة من ${esc(name)}…"></textarea>
+      ${(info.examples || []).length ? `<div class="examples">${info.examples.map(x => `<button type="button" class="chip-ex" data-ad-example="${esc(x)}">${esc(x)}</button>`).join("")}</div>` : ""}
+      <div class="assign-ed">
+        <div class="day-checks"><label><input type="radio" name="ad-when" value="now" checked> نفّذ الآن</label>
+          <label><input type="radio" name="ad-when" value="schedule"> مهمة مجدولة متكررة</label></div>
+        <div class="assign-schedule"><span class="lbl">الأيام</span>${dayChecks("adt", [today])}
+          <label class="lbl" for="adt-hour">الساعة</label>${hourSelect("adt-hour", 9)}
+          <p class="hint">تُنفَّذ في الموعد إذا كان ${esc(name)} في دوامه، وتظهر في إدارة المكتب ← المهام المجدولة.</p></div>
+      </div>
+      <p class="hint">يدقق سالم النتيجة، ويُسجَّل التكليف في سجل المكتب ليعرفه راكان.</p>`;
+  }
+  if (!agentDlg.open) agentDlg.showModal();
+  const first = agentDlg.querySelector(kind === "hours" ? "input" : "#ad-task");
+  if (first) first.focus();
+}
+
+async function saveAgentDlg(ev) {
+  ev.preventDefault();
+  const d = state.agentDlg;
+  if (!d) return;
+  const body = $("#agentDlgBody"), msg = $("#agentDlgMsg");
+  msg.textContent = "";
+  if (d.kind === "hours") {
+    const hours = readHours(body, "ad");
+    if (hours && hours !== "always" && !hours.days.length) { msg.textContent = "اختر يوماً واحداً على الأقل."; return; }
+    const stop = busy($("#agentDlgSave"), "جاري الحفظ");
+    try {
+      acceptOffice(await api({ action: "office_set_hours", name: d.name, hours }));
+      agentDlg.close();
+      toast("حُفظ دوام " + d.name + ": " + shortHours(hours), "ok");
+    } catch (e) { msg.textContent = officeError(e); }
+    finally { stop(); renderOfficeView(); }
+    return;
+  }
+  const text = field(body, "ad-task").value.trim();
+  if (!text) { msg.textContent = "اكتب المهمة أولاً."; field(body, "ad-task").focus(); return; }
+  const when = (body.querySelector('input[name="ad-when"]:checked') || {}).value;
+  if (when === "now") {
+    if (state.sending) { msg.textContent = "هناك تكليف قيد التنفيذ؛ انتظر اكتماله."; return; }
+    agentDlg.close();
+    // نفس مسار «تكليف وكيل»: تظهر النتيجة وتدقيق سالم في نافذة التكليف
+    state.agent = d.name; store.set(KEYS.agent, d.name); store.set(KEYS.draft, text);
+    openView("compose");
+    renderCompose();
+    sendTask();
+    return;
+  }
+  const days = readDays(body, "adt");
+  if (!days.length) { msg.textContent = "اختر يوماً واحداً على الأقل."; return; }
+  const hour = Number(field(body, "adt-hour").value);
+  const stop = busy($("#agentDlgSave"), "جاري الجدولة");
+  try {
+    acceptOffice(await api({ action: "office_task_save", task: { agent: d.name, task: text, days, hour, enabled: true } }));
+    agentDlg.close();
+    toast("جُدولت مهمة " + d.name + ": " + shortDays(days) + " " + hourLabel(hour), "ok");
+  } catch (e) { msg.textContent = officeError(e); }
+  finally { stop(); renderOfficeView(); }
+}
+
+// ---------------- سجل المكتب ----------------
+function officeLogHtml(o) {
+  const rows = o.log || [];
+  const note = "كل إيقاف وتشغيل وتغيير دوام وتكليف وجدولة يُسجَّل هنا وفي ورقة OfficeLog، ليعرف راكان ما فعله كل وكيل.";
+  if (!rows.length) return `<p class="hint sh-pad">لا أحداث بعد. ${note}</p>`;
+  const n = rows.length, count = n === 1 ? "حدث واحد" : n === 2 ? "حدثان" : n <= 10 ? n + " أحداث" : n + " حدثاً";
+  return `<p class="hint sh-pad">آخر ${count}، الأحدث أولاً. ${note}</p><div class="list">${rows.map(r => `<article class="item">
+      <div class="item-head">${AGENT_BY_NAME[r.agent] ? avatar(r.agent, "xs") : ""}<b>${esc(r.action)}</b>${r.agent ? `<small class="muted">${esc(r.agent)}</small>` : ""}
+        <small class="muted" style="margin-inline-start:auto">${esc(r.at)} · ${esc(r.by)}</small></div>
+      ${r.details ? `<p class="hint">${esc(r.details)}</p>` : ""}
+    </article>`).join("")}</div>`;
+}
 
 async function officeSend(btn, body, okMessage) {
   const stop = busy(btn, "جاري الحفظ");
@@ -75,7 +244,7 @@ function renderOfficeView() {
     return;
   }
   const o = state.office;
-  const body = { agents: officeAgentsHtml, tasks: officeTasksHtml, office: officeSettingsHtml, auto: officeAutoHtml }[state.officeTab] || officeAgentsHtml;
+  const body = { agents: officeAgentsHtml, tasks: officeTasksHtml, office: officeSettingsHtml, auto: officeAutoHtml, log: officeLogHtml }[state.officeTab] || officeAgentsHtml;
   box.innerHTML = tabs + `<p class="hint sh-pad">الوقت في الخادم: ${esc(o.office.now)} (${esc(o.office.timezone)})</p>` + body(o);
 }
 
