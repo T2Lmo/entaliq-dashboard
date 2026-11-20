@@ -15,7 +15,7 @@ const PROSPECT_TABS = [
   { id: "all", label: "الكل", match: null }
 ];
 const SELECTABLE = [PST.ready, PST.check, PST.fuReady, PST.failed];
-const PROSPECT_SECTORS = ["فنادق", "مستشفيات", "مولات ومراكز تجارية", "مجمعات سكنية", "شركات ومبانٍ إدارية"];
+const PROSPECT_SECTORS = ["فنادق", "مستشفيات", "مولات ومراكز تجارية", "مجمعات سكنية", "شركات ومبانٍ إدارية", "منشآت لديها ألواح شمسية"];
 const PROSPECT_TONE = { [PST.ready]: "ok", [PST.fuReady]: "ok", [PST.check]: "warn", [PST.wait]: "none", [PST.queued]: "none", [PST.sending]: "warn",
   [PST.sent]: "none", [PST.followed]: "none", [PST.replied]: "ok", [PST.excluded]: "bad", [PST.failed]: "bad" };
 if (!state.prospectsSel) state.prospectsSel = new Set();
@@ -96,7 +96,7 @@ function prospectItemHtml(p) {
     [PST.queued]: b("unqueue", "إلغاء من الطابور"),
     [PST.sent]: b("replied", "ردّوا", "btn-primary") + b("exclude", "أوقف المتابعة"),
     [PST.followed]: b("replied", "ردّوا", "btn-primary") + b("exclude", "أوقف المتابعة"),
-    [PST.replied]: "",
+    [PST.replied]: `<button type="button" class="btn btn-primary sm" data-to-contract="${esc(p.id)}"><span class="lbl-text">اعمل عرض صيانة شمسية</span></button>`,
     [PST.excluded]: b("restore", "إرجاع"),
     [PST.failed]: b("send1", "أعد المحاولة", "btn-primary") + b("sentManual", "أرسلتها يدوياً") + b("exclude", "استبعد")
   }[p.status] || "";

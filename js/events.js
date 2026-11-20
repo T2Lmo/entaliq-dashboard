@@ -48,6 +48,7 @@ document.addEventListener("change", e => {
   if (e.target.matches("[data-psel], [data-psel-all]")) prospectsSelect(e.target);
 });
 document.addEventListener("input", e => {
+  if (e.target.closest && e.target.closest("[data-cnform]")) contractsPreview();
   if (state.editingId && e.target.id === "edit-" + state.editingId) state.editingDraft = e.target.value;
   if (state.askingId && e.target.id === "note-" + state.askingId) state.askingDraft = e.target.value;
 });
@@ -75,6 +76,12 @@ document.addEventListener("click", async e => {
   const xassign = t.closest("[data-exec-assign]");
   if (xassign) { execAssign(xassign); return; }
   if (t.closest("[data-exec-reload]")) { loadExec(); return; }
+  const cntab = t.closest("[data-cntab]");
+  if (cntab) { state.contractsTab = cntab.dataset.cntab; renderContractsView(); return; }
+  const cnact = t.closest("[data-cnact]");
+  if (cnact) { contractsAction(cnact); return; }
+  const toCn = t.closest("[data-to-contract]");
+  if (toCn && state.prospects) { const p = state.prospects.items.find(x => x.id === toCn.dataset.toContract); if (p) contractsFromProspect(p); return; }
   const ttab = t.closest("[data-ttab]");
   if (ttab) { state.tendersTab = ttab.dataset.ttab; renderTendersView(); return; }
   const tact = t.closest("[data-tact]");

@@ -85,6 +85,7 @@ function agentCtlHtml(name) {
       ${name === EXEC_AGENT ? btn("exec", ICON.clip, "الملخص", "ملخص راكان لما أنجزه كل وكيل ونتائجه") : ""}
       ${name === PROSPECTS_AGENT ? btn("prospects", ICON.search, "الفرص", "المنشآت التي وجدها مازن ومسودات رسائلها") : ""}
       ${name === TENDERS_AGENT ? btn("tenders", ICON.clip, "المنافسات", "منافسات بدر وترسياته ولوحة الجاهزية") : ""}
+      ${name === "سلطان" ? btn("contracts", ICON.clip, "العقود", "عروض وعقود صيانة الطاقة الشمسية وزياراتها") : ""}
     </span>
   </div>`;
 }
@@ -101,6 +102,7 @@ async function agentControl(btn) {
   if (act === "exec") { openView("exec"); return; }
   if (act === "prospects") { openView("prospects"); return; }
   if (act === "tenders") { openView("tenders"); return; }
+  if (act === "contracts") { openView("contracts"); return; }
   if (!state.office) { toast(state.officeError || "حالة الوكلاء لم تُحمَّل بعد.", "warn"); syncOffice(true); return; }
   if (act === "hours" || act === "assign") { openAgentDlg(name, act); return; }
   const on = act === "start";

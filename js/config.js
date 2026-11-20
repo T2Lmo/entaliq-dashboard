@@ -78,6 +78,7 @@ const VIEWS = {
   news: { title: "الأخبار", sub: "آخر 10 أخبار طاقة رصدها نواف وربطها الفريق بخدماتنا." },
   team: { title: "التكليفات المباشرة للوكلاء", sub: "التكليفات المباشرة خلال الفترة؛ لا تشمل الأدوار الآلية في الأخبار وخطط المحتوى والتصاميم." },
   alerts: { title: "تنبيهات الفترة", sub: "كل المخرجات منخفضة التقدير أو غير مكتملة التدقيق في الفترة المختارة." },
+  contracts: { title: "سلطان · عقود صيانة الطاقة الشمسية", sub: "عروض وعقود بأسعارك يكتبها سلطان ويدققها سالم، وسجل للزيارات والتجديد." },
   tenders: { title: "بدر · المنافسات والمناقصات", sub: "فرص حكومية وخاصة وترسيات في مجالاتنا، بحكم يناسب وضع المكتب الحالي، ولوحة جاهزية للتسجيل والمستندات." },
   prospects: { title: "مازن · استقطاب العملاء", sub: "منشآت سعودية تناسب وهج وانطلق، ببريدها الرسمي المنشور ومسودة يدققها سالم. لا يُرسل شيء إلا منك." },
   exec: { title: "ملخص راكان التنفيذي", sub: "ما أنجزه كل وكيل ونتائجه في الفترة، مع ما يحتاج انتباهك ومقترحات التكليف. الأرقام من السجلات مباشرة." },
@@ -130,6 +131,7 @@ const state = {
   officeAt: 0, officeSyncing: false, officeUnsupported: false, agentDlg: null,
   exec: null, execSel: "", execLoading: false, execError: "", execBusy: false,
   brain: null, brainLoading: false, brainError: "", brainAgent: "", brainEdit: "",
+  contracts: null, contractsLoading: false, contractsError: "", contractsTab: "offers", contractsNew: false, contractsPrefill: null,
   tenders: null, tendersStats: null, tendersAt: 0, tendersLoading: false, tendersError: "", tendersTab: "open", tendersBusy: false, tendersAddOpen: false, tendersCfgOpen: false,
   prospects: null, prospectsStats: null, prospectsAt: 0, prospectsLoading: false, prospectsError: "", prospectsFilter: "approve", prospectsEdit: "", prospectsBusy: false, prospectsCfgOpen: false,
   view: "", filterAgent: "", query: "", sort: "new"

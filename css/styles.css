@@ -581,3 +581,30 @@
   .t-docs { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
   .t-doc { display: grid; grid-template-columns: minmax(0, 1fr) 160px auto; gap: 8px; align-items: center; }
   @media (max-width: 640px) { .t-doc { grid-template-columns: minmax(0, 1fr) 140px; } .t-doc .badge { grid-column: 1 / -1; justify-self: start; } }
+
+  /* عقود صيانة الطاقة الشمسية */
+  .cn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 4px 12px; }
+  .cn-grid .lbl { margin-top: 8px; }
+  .cn-grid .input { margin-top: 4px; }
+  .cn-pkg { border: 1px solid var(--line); border-radius: 8px; padding: 6px 14px 12px; margin: 10px 0; }
+  .cn-pkg .cn-name { display: inline-block; width: auto; min-width: 140px; margin-inline-start: 6px; }
+  #printDoc { display: none; }
+  @media print {
+    body { background: #fff !important; color: #000 !important; }
+    body > *:not(#printDoc) { display: none !important; }
+    #printDoc { display: block !important; }
+    .pd { font: 12.5px/1.75 "IBM Plex Sans Arabic", Tahoma, sans-serif; color: #000; }
+    .pd-head { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #0d3b4f; padding-bottom: 8px; margin-bottom: 14px; }
+    .pd-head b { display: block; font-size: 20px; color: #0d3b4f; } .pd-head span { color: #444; font-size: 11px; }
+    .pd-meta { text-align: left; } .pd-meta h1 { font-size: 16px; margin: 0 0 2px; color: #0d3b4f; }
+    .pd h2 { font-size: 13.5px; margin: 14px 0 6px; color: #0d3b4f; break-after: avoid; }
+    .pd-t { width: 100%; border-collapse: collapse; margin: 4px 0 8px; break-inside: avoid; }
+    .pd-t th, .pd-t td { border: 1px solid #bbb; padding: 4px 8px; text-align: start; vertical-align: top; }
+    .pd-t th { background: #eef4f6; width: 32%; font-weight: 600; }
+    .pd-c th, .pd-v th { width: auto; } .pd-pick td { background: #fff7d6; font-weight: 700; }
+    .pd-total th, .pd-total td { font-weight: 700; background: #eef4f6; }
+    .pd-pre { white-space: pre-wrap; margin: 0 0 4px; }
+    .pd-sign { display: flex; gap: 30px; margin-top: 26px; break-inside: avoid; }
+    .pd-sign div { flex: 1; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid #999; padding-top: 8px; }
+    @page { size: A4; margin: 16mm 14mm; }
+  }
