@@ -111,6 +111,7 @@ const state = {
   office: null, officeTab: "agents", officeEdit: "", officeTaskEdit: "", officeLoading: false, officeError: "", designEditId: "",
   officeAt: 0, officeSyncing: false, officeUnsupported: false, agentDlg: null,
   exec: null, execSel: "", execLoading: false, execError: "", execBusy: false,
+  brain: null, brainLoading: false, brainError: "", brainAgent: "", brainEdit: "",
   view: "", filterAgent: "", query: "", sort: "new"
 };
 

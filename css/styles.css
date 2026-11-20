@@ -546,3 +546,10 @@
   .x-agents { padding-inline: 0; }
   .x-agents .item p { margin: 4px 0; }
   .x-avg { font-weight: 700; font-size: 15px; }
+
+  /* عقل المكتب ومرجعه */
+  .b-impact { padding-inline: 0; }
+  .b-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .b-row:last-child { border-bottom: 0; }
+  .b-trend { margin-inline-start: auto; color: var(--text-2); }
+  .b-up { color: var(--green); } .b-down { color: var(--red); }

@@ -20,7 +20,7 @@ const OFFICE_ = {
   maxPrompt: 2500, maxDirections: 1200, maxTask: 1500, maxTasks: 25,
   logSheet: "OfficeLog", logHeaders: ["التاريخ", "الإجراء", "الوكيل", "التفاصيل", "بواسطة"], logShown: 40,
   newsHours: [1, 2, 4, 6, 8, 12], // القيم التي يقبلها everyHours في Apps Script
-  handlers: ["runAutomatedNewsPipeline", "generateWeeklyPlan", "officeRunNews", "officeRunWeeklyPlan", "officeRunScheduler", "officeRunSites", "officeRunExecDaily", "officeRunExecWeekly"],
+  handlers: ["runAutomatedNewsPipeline", "generateWeeklyPlan", "officeRunNews", "officeRunWeeklyPlan", "officeRunScheduler", "officeRunSites", "officeRunExecDaily", "officeRunExecWeekly", "officeRunBrainReview"],
   weekDays: () => [ScriptApp.WeekDay.SUNDAY, ScriptApp.WeekDay.MONDAY, ScriptApp.WeekDay.TUESDAY, ScriptApp.WeekDay.WEDNESDAY, ScriptApp.WeekDay.THURSDAY, ScriptApp.WeekDay.FRIDAY, ScriptApp.WeekDay.SATURDAY],
   sitesAgents: { full: ["راكان", "لمى", "سالم", "ريم", "زياد"], ideas: ["راكان"] },
   newsAgents: ["نواف", "فيصل", "لمى", "سالم"],
@@ -33,7 +33,9 @@ const OFFICE_DEFAULT_CFG_ = {
   enforceManual: false, // false = ساعات العمل تقيّد العمل الآلي فقط، والتكليف من اللوحة متاح دائماً
   automation: { news: { enabled: true, everyHours: 6 }, weekly: { enabled: true, day: 6, hour: 9 }, sites: { enabled: false, day: 0, hour: 10, mode: "full" },
     // ملخص راكان: يومي قبل نهاية الدوام (16:00–17:00)، وأسبوعي الخميس 14:00
-    exec: { daily: { enabled: true, hour: 16 }, weekly: { enabled: true, day: 4, hour: 14 } } },
+    exec: { daily: { enabled: true, hour: 16 }, weekly: { enabled: true, day: 4, hour: 14 } },
+    // مراجعة العقل (Brain.gs): راكان يقترح دروساً من الأسبوعين الأخيرين، الخميس 15:00
+    brain: { enabled: true, day: 4, hour: 15 } },
   brandLooks: {}
 };
 
@@ -51,6 +53,7 @@ function officeLoad_() {
   cfg.automation = Object.assign(JSON.parse(JSON.stringify(OFFICE_DEFAULT_CFG_.automation)), cfg.automation || {});
   if (!cfg.automation.sites) cfg.automation.sites = JSON.parse(JSON.stringify(OFFICE_DEFAULT_CFG_.automation.sites));
   if (!cfg.automation.exec) cfg.automation.exec = JSON.parse(JSON.stringify(OFFICE_DEFAULT_CFG_.automation.exec));
+  if (!cfg.automation.brain) cfg.automation.brain = JSON.parse(JSON.stringify(OFFICE_DEFAULT_CFG_.automation.brain));
   const agents = {}, tasks = [];
   Object.keys(all).forEach(k => {
     try {
@@ -104,6 +107,11 @@ function officeSystemFor_(systemRole) {
   }
   const dirs = [o.cfg.directions, agent ? officeAgentCfg_(agent).directions : ""].map(s => String(s || "").trim()).filter(Boolean);
   if (dirs.length) system += "\n\nتوجيهات المدير (التزم بها ما لم تتعارض مع القواعد العامة):\n" + dirs.join("\n");
+  // عقل المكتب (Brain.gs): الدروس المعتمدة لهذا الوكيل وللجميع، ومثال معتمد من عمله
+  if (agent && typeof brainFor_ === "function") {
+    try { const b = brainFor_(agent); if (b) system += "\n\n" + b; }
+    catch (e) { console.log("تعذر تحميل عقل المكتب: " + e.message); }
+  }
   return system;
 }
 
@@ -204,6 +212,8 @@ function officeInstallTriggers_() {
     if (a.exec.daily.enabled) ScriptApp.newTrigger("officeRunExecDaily").timeBased().everyDays(1).atHour(a.exec.daily.hour).create();
     if (a.exec.weekly.enabled) ScriptApp.newTrigger("officeRunExecWeekly").timeBased().onWeekDay(OFFICE_.weekDays()[a.exec.weekly.day]).atHour(a.exec.weekly.hour).create();
   }
+  if (typeof officeRunBrainReview === "function" && a.brain && a.brain.enabled)
+    ScriptApp.newTrigger("officeRunBrainReview").timeBased().onWeekDay(OFFICE_.weekDays()[a.brain.day]).atHour(a.brain.hour).create();
 }
 
 function officeTriggerList_() {
@@ -272,6 +282,7 @@ function officeSaveTaskRun_(id, patch) {
 function handleOfficeAction_(data, user) {
   const a = data && data.action;
   if (typeof a === "string" && a.indexOf("exec_") === 0 && typeof handleExecAction_ === "function") return handleExecAction_(data, user);
+  if (typeof a === "string" && a.indexOf("brain_") === 0 && typeof handleBrainAction_ === "function") return handleBrainAction_(data, user);
   if (["office_get", "office_save_agent", "office_reset_agent", "office_save_office", "office_save_automation", "office_save_brand",
     "office_task_save", "office_task_delete", "office_task_run", "content_design_update", "office_save_sites", "sites_run", "office_set_active",
     "office_set_hours"].indexOf(a) < 0) return null;
@@ -396,9 +407,13 @@ function officeSaveAutomation_(d) {
   const xd = x.daily || {}, xw = x.weekly || {}, okHour = v => Number.isInteger(v) && v >= 0 && v <= 23, okDay = v => Number.isInteger(v) && v >= 0 && v <= 6;
   const exec = { daily: { enabled: !!xd.enabled, hour: Number(xd.hour) }, weekly: { enabled: !!xw.enabled, day: Number(xw.day), hour: Number(xw.hour) } };
   if (!okHour(exec.daily.hour) || !okHour(exec.weekly.hour) || !okDay(exec.weekly.day)) throw appError_("VALIDATION_ERROR", "يوم أو ساعة الملخص التنفيذي غير صالحة");
+  // مراجعة العقل (Brain.gs): أسبوعية بيوم وساعة
+  const bx = d.brain || cfg.automation.brain || OFFICE_DEFAULT_CFG_.automation.brain;
+  const brain = { enabled: !!bx.enabled, day: Number(bx.day), hour: Number(bx.hour) };
+  if (!okHour(brain.hour) || !okDay(brain.day)) throw appError_("VALIDATION_ERROR", "يوم أو ساعة مراجعة العقل غير صالحة");
   cfg.automation = { news: { enabled: !!n.enabled, everyHours: every }, weekly: { enabled: !!w.enabled, day: day, hour: hour },
     sites: { enabled: !!s.enabled, day: Number.isInteger(sDay) ? sDay : 0, hour: Number.isInteger(sHour) ? sHour : 10, mode: s.mode === "ideas" ? "ideas" : "full" },
-    exec: exec };
+    exec: exec, brain: brain };
   officeProps_().setProperty("OFFICE_CFG", JSON.stringify(cfg));
 }
 

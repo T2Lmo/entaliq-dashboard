@@ -293,7 +293,7 @@ function taskItem(row, reason) {
     + (researching ? '<p class="hint">يستمر البحث بعد إغلاق الصفحة، وستظهر النتيجة ومصادرها عند اكتماله.</p>' : score === null && !research ? '<p class="hint">' + esc(clip(current || "لم تُسجل نتيجة تدقيق؛ يمكنك إعادة تدقيق المخرجات المحفوظة.", 220)) + '</p>' : '')
     + '<details class="fold"' + (state.taskOpenId === id ? ' open' : '') + '><summary>' + (research ? "نتيجة البحث والمصادر" : "المخرجات وتدقيق سالم") + '</summary><div class="fold-body">'
     + (output ? '<div class="md">' + md(output) + '</div>' : '') + (research ? researchPanelHtml(meta) : '')
-    + (!manual && !researching && audit ? taskAuditHtml(audit) : '') + '<div class="row-actions">' + (output ? copyButton(output, "نسخ المخرجات") : '') + auditAction + follow + '</div>'
+    + (!manual && !researching && audit ? taskAuditHtml(audit) : '') + '<div class="row-actions">' + (output ? copyButton(output, "نسخ المخرجات") : '') + auditAction + follow + (researching ? '' : teachButtonsHtml(row, score)) + '</div>'
     + (canAudit ? '<p class="hint">إعادة التدقيق تراجع المخرجات المحفوظة فقط؛ لا تعيد إنشاء المهمة.</p>' : '') + '</div></details></article>';
 }
 

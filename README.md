@@ -19,11 +19,12 @@ js/                 سكربتات عادية (ليست modules) تتشارك ا
   app.js            الرسم الكامل والتحديث والإجراءات والإعدادات
   office.js         إدارة المكتب: الوكلاء والدوام والمهام المجدولة والأتمتة وتعديل التصاميم، وأدوات كل وكيل تحت اسمه وسجل المكتب
   executive.js      ملخص راكان التنفيذي: ما أنجزه كل وكيل ونتائجه ومقترحات التكليف
+  brain.js          عقل المكتب ومرجعه: الدروس والأمثلة، «علّم الوكيل» من سجل المهام، وحفظ ملاحظاتك على المنشورات
   auth.js           الدخول بحساب Google
   social.js         ربط LinkedIn و X والنشر المباشر
   events.js         ربط الأحداث
   main.js           البداية (يُشغَّل أخيراً)
-apps-script/        ملفات تُضاف إلى مشروع Apps Script (Auth.gs, Social.gs, ClaudeBridge.gs, Office.gs, Executive.gs, Sites.gs) وخطوات التفعيل في SETUP.md
+apps-script/        ملفات تُضاف إلى مشروع Apps Script (Auth.gs, Social.gs, ClaudeBridge.gs, Office.gs, Executive.gs, Brain.gs, Sites.gs) وخطوات التفعيل في SETUP.md
 worker/             عامل Claude على جهازك: ينفذ طلبات الوكلاء بـ Claude Sonnet باشتراكك (بدون API)
 ```
 

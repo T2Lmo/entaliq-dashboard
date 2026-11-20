@@ -273,6 +273,8 @@ async function contentAction(btn) {
     Object.assign(state, { editingId: null, askingId: null, conflictId: null });
     const savedMessage = request[1] + (act === "save" && data.item ? "؛ الحالة: " + data.item[9] : "");
     jobFeedback(data, savedMessage);
+    // عقل المكتب: ملاحظتك على المنشور تصير درساً معتمداً للمى (brain.js)
+    if (act === "send-note" && note.trim()) brainCaptureNote(id, note, rejecting);
     if (!await refresh({ quiet: true })) jobFeedback({ ...data, warnings: [...(data.warnings || []), "تعذر تحديث بقية البيانات: " + state.error] }, savedMessage);
   } catch (e) {
     if (!sameConnection(epoch, url, token)) return;

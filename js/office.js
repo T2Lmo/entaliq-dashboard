@@ -6,6 +6,7 @@ const OFFICE_TABS = [
   { id: "tasks", label: "المهام المجدولة" },
   { id: "office", label: "التوجيهات والدوام" },
   { id: "auto", label: "الأتمتة والهوية" },
+  { id: "brain", label: "العقل والمرجع" },
   { id: "log", label: "سجل المكتب" }
 ];
 const DAY_LABELS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
@@ -152,6 +153,7 @@ async function saveAgentDlg(ev) {
   if (!d) return;
   const body = $("#agentDlgBody"), msg = $("#agentDlgMsg");
   msg.textContent = "";
+  if (d.kind === "lesson") return saveTeachDlg(); // brain.js
   if (d.kind === "hours") {
     const hours = readHours(body, "ad");
     if (hours && hours !== "always" && !hours.days.length) { msg.textContent = "اختر يوماً واحداً على الأقل."; return; }
@@ -251,7 +253,7 @@ function renderOfficeView() {
     return;
   }
   const o = state.office;
-  const body = { agents: officeAgentsHtml, tasks: officeTasksHtml, office: officeSettingsHtml, auto: officeAutoHtml, log: officeLogHtml }[state.officeTab] || officeAgentsHtml;
+  const body = { agents: officeAgentsHtml, tasks: officeTasksHtml, office: officeSettingsHtml, auto: officeAutoHtml, log: officeLogHtml, brain: officeBrainHtml }[state.officeTab] || officeAgentsHtml;
   box.innerHTML = tabs + `<p class="hint sh-pad">الوقت في الخادم: ${esc(ltr(o.office.now))} (${esc(o.office.timezone)})</p>` + body(o);
 }
 
@@ -346,6 +348,10 @@ function officeAutoHtml(o) {
     <label class="remember"><input type="checkbox" id="oz-xweekly"${a.exec.weekly.enabled ? " checked" : ""}> ملخص أسبوعي</label>
     <div class="row-actions"><select class="input" id="oz-xwday">${DAY_LABELS.map((d, i) => `<option value="${i}"${a.exec.weekly.day === i ? " selected" : ""}>${d}</option>`).join("")}</select>${hourSelect("oz-xwhour", a.exec.weekly.hour)}</div>
     <p class="hint">يُكتب في موعده إذا كان راكان في دوامه (اختر ساعة قبل نهاية دوامه)، ويُتخطى إن لم يكن للفريق نشاط. يظهر من بطاقة راكان ← «الملخص».</p>` : ""}
+    ${a.brain ? `<h3 class="news-title">مراجعة العقل (راكان يقترح دروساً من تدقيقات سالم وملاحظاتك)</h3>
+    <label class="remember"><input type="checkbox" id="oz-brain"${a.brain.enabled ? " checked" : ""}> أسبوعياً</label>
+    <div class="row-actions"><select class="input" id="oz-bday">${DAY_LABELS.map((d, i) => `<option value="${i}"${a.brain.day === i ? " selected" : ""}>${d}</option>`).join("")}</select>${hourSelect("oz-bhour", a.brain.hour)}</div>
+    <p class="hint">المقترحات تنتظر اعتمادك في «العقل والمرجع»، ولا يستخدمها أي وكيل قبل ذلك.</p>` : ""}
     <p class="hint">يعمل التشغيل الآلي فقط إذا كان كل الفريق المعني في دوامه وغير موقوف. المشغلات الحالية: ${esc(trig)}</p>
     <div class="row-actions">${obtn("save-auto", "حفظ وتحديث المشغلات", "btn-primary")}</div>
   </div>
@@ -423,7 +429,8 @@ async function officeAction(btn) {
       weekly: { enabled: field(f, "oz-weekly").checked, day: Number(field(f, "oz-day").value), hour: Number(field(f, "oz-hour").value) },
       sites: { enabled: field(f, "oz-sites").checked, day: Number(field(f, "oz-sday").value), hour: Number(field(f, "oz-shour").value), mode: field(f, "oz-smode").value },
       exec: field(f, "oz-xdaily") ? { daily: { enabled: field(f, "oz-xdaily").checked, hour: Number(field(f, "oz-xdhour").value) },
-        weekly: { enabled: field(f, "oz-xweekly").checked, day: Number(field(f, "oz-xwday").value), hour: Number(field(f, "oz-xwhour").value) } } : undefined }, "حُفظت الأتمتة وحُدّثت المشغلات");
+        weekly: { enabled: field(f, "oz-xweekly").checked, day: Number(field(f, "oz-xwday").value), hour: Number(field(f, "oz-xwhour").value) } } : undefined,
+      brain: field(f, "oz-brain") ? { enabled: field(f, "oz-brain").checked, day: Number(field(f, "oz-bday").value), hour: Number(field(f, "oz-bhour").value) } : undefined }, "حُفظت الأتمتة وحُدّثت المشغلات");
   }
   if (act === "all-on" || act === "all-off") {
     const on = act === "all-on";
