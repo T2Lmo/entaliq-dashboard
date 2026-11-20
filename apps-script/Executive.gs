@@ -130,6 +130,8 @@ function execDigest_(c, kindLabel) {
   if (typeof tendersBrief_ === "function") { const tb = tendersBrief_(c.start); if (tb) lines.push(tb); }
   // عقود الصيانة الشمسية (Contracts.gs): الزيارات القريبة والتجديدات
   if (typeof contractsBrief_ === "function") { const cb = contractsBrief_(); if (cb) lines.push(cb); }
+  // ردود العملاء على رسائل مازن (قراءة الوارد في Prospects.gs)
+  if (typeof prospectsRepliesBrief_ === "function") { const rb = prospectsRepliesBrief_(c.start); if (rb) lines.push(rb); }
   lines.push("");
   lines.push("لكل وكيل:");
   Object.keys(c.agents).forEach(n => {

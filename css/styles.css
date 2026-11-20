@@ -608,3 +608,8 @@
     .pd-sign div { flex: 1; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid #999; padding-top: 8px; }
     @page { size: A4; margin: 16mm 14mm; }
   }
+
+  /* مازن: الردود من الوارد */
+  .p-reply { margin: 8px 0; padding: 8px 12px; border-inline-start: 3px solid var(--text-3); background: rgb(255 255 255 / .02); border-radius: 4px; }
+  .p-reply[data-tone="ok"] { border-inline-start-color: var(--green); } .p-reply[data-tone="warn"] { border-inline-start-color: var(--amber); } .p-reply[data-tone="bad"] { border-inline-start-color: var(--red); }
+  .p-reply p { margin: 4px 0; }

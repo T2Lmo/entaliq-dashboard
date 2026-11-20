@@ -15,6 +15,14 @@ const PROSPECT_TABS = [
   { id: "all", label: "الكل", match: null }
 ];
 const SELECTABLE = [PST.ready, PST.check, PST.fuReady, PST.failed];
+// قراءة الوارد (العامل): نوع الرد ولونه
+const REPLY_TONE = { "مهتم": "ok", "يطلب معلومات": "ok", "ليس الآن": "warn", "غير مهتم": "bad", "إلغاء المراسلة": "bad", "تحويل": "none", "ارتداد": "bad" };
+function replyHtml(p) {
+  if (!p.replyKind) return "";
+  return `<div class="p-reply" data-tone="${REPLY_TONE[p.replyKind] || "none"}"><div class="p-line"><span class="badge" data-tone="${REPLY_TONE[p.replyKind] || "none"}">${esc(p.replyKind)}</span>`
+    + `${p.replyFrom ? `<span class="mono ltr">${esc(p.replyFrom)}</span>` : ""}${p.replyAt ? `<small class="muted">${ltr(p.replyAt)}</small>` : ""}</div>`
+    + `${p.replySummary ? `<p>${esc(p.replySummary)}</p>` : ""}${p.replyText ? `<details class="fold"><summary>نص الرد</summary><div class="p-body">${esc(p.replyText)}</div></details>` : ""}</div>`;
+}
 const PROSPECT_SECTORS = ["فنادق", "مستشفيات", "مولات ومراكز تجارية", "مجمعات سكنية", "شركات ومبانٍ إدارية", "منشآت لديها ألواح شمسية"];
 const PROSPECT_TONE = { [PST.ready]: "ok", [PST.fuReady]: "ok", [PST.check]: "warn", [PST.wait]: "none", [PST.queued]: "none", [PST.sending]: "warn",
   [PST.sent]: "none", [PST.followed]: "none", [PST.replied]: "ok", [PST.excluded]: "bad", [PST.failed]: "bad" };
@@ -41,7 +49,7 @@ async function loadProspects() {
   finally { state.prospectsLoading = false; renderProspectsView(); }
 }
 function acceptProspects(d) {
-  state.prospects = { items: d.items || [], stats: d.stats || {}, cfg: d.cfg || {}, webReady: !!d.webReady, mailer: d.mailer || {} };
+  state.prospects = { items: d.items || [], stats: d.stats || {}, cfg: d.cfg || {}, webReady: !!d.webReady, mailer: d.mailer || {}, inbox: d.inbox || {} };
   state.prospectsStats = d.stats || null; state.prospectsAt = Date.now();
   // التحديد يبقى فقط لما يمكن إرساله
   const sendable = new Set(state.prospects.items.filter(p => SELECTABLE.includes(p.status) && p.email).map(p => p.id));
@@ -102,7 +110,7 @@ function prospectItemHtml(p) {
   }[p.status] || "";
   const manualSent = [PST.ready, PST.check].includes(p.status) && !editing ? b("sentManual", "أرسلتها يدوياً") : "";
   return `<article class="item p-item${state.prospectsSel.has(p.id) ? " p-picked" : ""}">${head}${contact}
-    ${times ? `<p class="hint">${times}</p>` : ""}${p.status === PST.failed && p.sendError ? `<p class="msg bad">${esc(p.sendError)}</p>` : ""}${draft}
+    ${times ? `<p class="hint">${times}</p>` : ""}${replyHtml(p)}${p.status === PST.failed && p.sendError ? `<p class="msg bad">${esc(p.sendError)}</p>` : ""}${draft}
     ${p.status === PST.check && !editing ? `<p class="hint">افتح مصدر البريد وتأكد منه قبل الإرسال، أو عدّله.</p>` : ""}
     <div class="row-actions">${acts}${manual}${manualSent}</div></article>`;
 }
@@ -152,7 +160,7 @@ function renderProspectsView() {
     box.innerHTML = tools + empty(ICON.alert, "تعذر تحميل منشآت مازن", state.prospectsError || "", `<button type="button" class="btn btn-line" data-pact="reload">${ICON.refresh}<span class="lbl-text">إعادة المحاولة</span></button>`);
     return;
   }
-  const p = state.prospects, s = p.stats || {}, by = s.byStatus || {}, t = s.today || {}, mailer = p.mailer || {};
+  const p = state.prospects, s = p.stats || {}, by = s.byStatus || {}, t = s.today || {}, mailer = p.mailer || {}, inbox = p.inbox || {};
   const count = tab => tab.match ? tab.match.reduce((n, st) => n + (by[st] || 0), 0) : s.total || 0;
   const tab = PROSPECT_TABS.find(x => x.id === state.prospectsFilter) || PROSPECT_TABS[0];
   const items = p.items.filter(x => !tab.match || tab.match.includes(x.status));
@@ -165,12 +173,16 @@ function renderProspectsView() {
         <div class="x-num"><b>${count(PROSPECT_TABS[3])}</b><span>في الطابور</span></div>
         <div class="x-num"><b>${t.sent || 0}</b><span>أُرسل اليوم</span></div>
         <div class="x-num" data-tone="${s.followDue ? "warn" : ""}"><b>${s.followDue || 0}</b><span>متابعات مستحقة</span></div>
+        <div class="x-num" data-tone="${s.repliesToday ? "ok" : ""}"><b>${s.repliesToday || 0}</b><span>ردود اليوم</span></div>
         <div class="x-num"><b>${s.replyRate === null || s.replyRate === undefined ? "—" : s.replyRate + "%"}</b><span>معدل الرد</span></div>
       </div>
       <p class="hint">${mailer.online ? `البريد: يرسل من <span class="mono ltr">${esc(mailer.from)}</span> عبر العامل على جهازك.` : mailer.from
         ? `<span class="p-note">عامل البريد غير متصل الآن؛ ما توافق عليه ينتظر في الطابور حتى يتصل.</span>`
         : `<span class="p-note">لم يتصل عامل البريد بعد: أضف SMTP_* في worker/.env وشغّل start-worker. يمكنك الإرسال يدوياً حتى ذلك الحين.</span>`}
         ${p.webReady ? "" : ` <span class="p-note">البحث في الإنترنت يحتاج عامل Claude (AI_ENGINE=claude والعامل شغّال).</span>`}</p>
+      <p class="hint">${inbox.online ? `الوارد: يقرأ العامل ردود رسائل مازن تلقائياً (آخر قراءة ${ltr(inbox.seen)})؛ الرد يوقف المتابعة، وطلب الإيقاف والارتداد يُستبعدان.`
+        : inbox.seen ? `<span class="p-note">قراءة الوارد متوقفة منذ ${ltr(inbox.seen)}؛ تأكد أن العامل شغّال. حتى ذلك الحين اضغط «ردّوا» عند وصول رد.</span>`
+        : `<span class="p-note">قراءة الوارد غير مفعلة بعد: تعمل تلقائياً ببيانات SMTP في worker/.env (أو IMAP_*). حتى ذلك الحين اضغط «ردّوا» عند وصول رد.</span>`}</p>
     </div>`;
   const intro = `<p class="hint sh-pad">لا يُرسل شيء قبل موافقتك. البريد من الموقع الرسمي لكل منشأة فقط ويتحقق الخادم أنه مكتوب في الصفحة؛ والرسائل يكتبها مازن من مستجدات السوق التي يرصدها نواف وفيصل، ويدققها سالم. بعد ${esc(String((p.cfg || {}).followUpDays || 5))} أيام بلا رد يكتب مازن متابعة في نفس المحادثة تنتظر موافقتك.</p>`;
   const tabs = `<div class="seg-ctl office-tabs" role="tablist">${PROSPECT_TABS.map(x => `<button type="button" data-ptab="${x.id}" aria-pressed="${tab.id === x.id}">${x.label} (${count(x)})</button>`).join("")}</div>`;

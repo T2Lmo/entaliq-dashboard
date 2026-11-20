@@ -29,7 +29,7 @@ js/                 سكربتات عادية (ليست modules) تتشارك ا
   events.js         ربط الأحداث
   main.js           البداية (يُشغَّل أخيراً)
 apps-script/        ملفات تُضاف إلى مشروع Apps Script (Auth.gs, Social.gs, ClaudeBridge.gs, Office.gs, Executive.gs, Brain.gs, Studio.gs, Prospects.gs, Tenders.gs, Contracts.gs, Sites.gs) وخطوات التفعيل في SETUP.md
-worker/             عامل على جهازك: ينفذ طلبات الوكلاء بـ Claude باشتراكك (بدون API)، ويرسل رسائل مازن المعتمدة من بريد الشركة
+worker/             عامل على جهازك: ينفذ طلبات الوكلاء بـ Claude باشتراكك (بدون API)، ويرسل رسائل مازن المعتمدة من بريد الشركة ويقرأ ردودها
 ```
 
 > الترتيب في `index.html` مهم: كل ملف يستخدم ما عُرّف في الملفات التي قبله عند التحميل.
