@@ -125,6 +125,7 @@
   .pos-c5 { grid-column: 2; grid-row: 5; }
   .pos-r6 { grid-column: 1; grid-row: 6; } .pos-c6 { grid-column: 2; grid-row: 6; } .pos-l6 { grid-column: 3; grid-row: 6; }
   .pos-r7 { grid-column: 1; grid-row: 7; } .pos-c7 { grid-column: 2; grid-row: 7; } .pos-l7 { grid-column: 3; grid-row: 7; }
+  .pos-r8 { grid-column: 1; grid-row: 8; } .pos-c8 { grid-column: 2; grid-row: 8; } .pos-l8 { grid-column: 3; grid-row: 8; }
   @media (max-width: 1180px) {
     .stage { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .stage > * { grid-column: auto !important; grid-row: auto !important; }
@@ -569,3 +570,14 @@
   .p-bulk { position: sticky; top: 0; z-index: 2; background: #0b0d10; border-bottom: 1px solid var(--line); padding-block: 10px; }
   .p-progress .x-nums { margin-top: 0; }
   .p-item .row-actions, .p-bulk { flex-wrap: wrap; }
+
+  /* بدر: المنافسات والجاهزية */
+  .t-item .row-actions { flex-wrap: wrap; }
+  .t-urgent { box-shadow: inset 3px 0 0 var(--red); }
+  .t-due { color: var(--red); font-weight: 600; }
+  .t-check { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .t-check input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--green); }
+  .t-check span { display: flex; flex-direction: column; gap: 2px; }
+  .t-docs { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
+  .t-doc { display: grid; grid-template-columns: minmax(0, 1fr) 160px auto; gap: 8px; align-items: center; }
+  @media (max-width: 640px) { .t-doc { grid-template-columns: minmax(0, 1fr) 140px; } .t-doc .badge { grid-column: 1 / -1; justify-self: start; } }

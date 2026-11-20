@@ -114,7 +114,8 @@ function computeMetrics() {
 // مؤشرا مازن (Prospects.gs): متوسط تقدير سالم لمسوداته، ومعدل الرد من الرسائل المرسلة
 function outreachRates() {
   const p = state.prospectsStats;
-  return { outreach: p ? p.draftAvg : null, replyRate: p ? p.replyRate : null };
+  const t = state.tendersStats;
+  return { outreach: p ? p.draftAvg : null, replyRate: p ? p.replyRate : null, tendersFit: t ? t.fitAvg : null, readiness: t ? t.readiness : null };
 }
 
 // نسبة المنشورات المعتمدة المجهزة بتصميم ونسخة X من جميع منشورات الخادم

@@ -126,6 +126,8 @@ function execDigest_(c, kindLabel) {
   lines.push("- الأخبار المرصودة: " + t.news + " (متوسط تقدير سالم " + pct(t.newsAvg) + ")");
   lines.push("- المحتوى المُنشأ: " + t.content + (t.content ? " (" + Object.keys(t.contentByStatus).map(k => k + " " + t.contentByStatus[k]).join("، ") + ")" : ""));
   lines.push("- أحداث المكتب: " + t.events + (t.stopped.length ? " · موقوفون الآن: " + t.stopped.join("، ") : ""));
+  // بدر (Tenders.gs): المنافسات والمواعيد القريبة وجاهزية المكتب
+  if (typeof tendersBrief_ === "function") { const tb = tendersBrief_(c.start); if (tb) lines.push(tb); }
   lines.push("");
   lines.push("لكل وكيل:");
   Object.keys(c.agents).forEach(n => {
@@ -239,6 +241,7 @@ function execTaskContext_(agent, task) {
       const last = a.list.length ? " · آخر مهمة: " + execCut_(a.list[a.list.length - 1].task, 90) : "";
       lines.push("- " + n + ": مهام " + a.tasks + " (" + pct(a.avg) + ")" + (a.news ? "، أخبار " + a.news : "") + (a.content ? "، محتوى " + a.content : "") + last);
     });
+    if (typeof tendersBrief_ === "function") { const tb = tendersBrief_(); if (tb) lines.push(tb); }
     const latest = execReports_(1)[0];
     if (latest) lines.push("آخر ملخص تنفيذي (" + latest.kind + " " + latest.at + "): " + execCut_(latest.report.headline + " — " + latest.report.summary, 400));
     return task + "\n\n---\nمرجع الفريق (آخر 7 أيام، من سجلات المكتب؛ استخدمه إن كان له صلة بالمهمة ولا تخترع غيره):\n" + lines.join("\n").slice(0, 2500);

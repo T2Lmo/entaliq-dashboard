@@ -242,7 +242,7 @@ async function saveSettings(ev) {
   store.set(KEYS.linkedin, linkedin);
 
   Object.assign(state, { url, token, loaded: false, error: "", sig: "", connectionEpoch: state.connectionEpoch + 1, contentFloor: null, contentVersions: {}, contentMeta: null, taskVersions: {}, tasks: [], news: [], content: [], stats: null, alerts: null, lastSync: null, editingId: null, askingId: null, conflictId: null,
-    office: null, officeAt: 0, officeError: "", officeUnsupported: false, exec: null, execSel: "", execError: "", brain: null, brainError: "", brainEdit: "", prospects: null, prospectsStats: null, prospectsAt: 0, prospectsError: "" });
+    office: null, officeAt: 0, officeError: "", officeUnsupported: false, exec: null, execSel: "", execError: "", brain: null, brainError: "", brainEdit: "", prospects: null, prospectsStats: null, prospectsAt: 0, prospectsError: "", tenders: null, tendersStats: null, tendersAt: 0, tendersError: "" });
   store.set(KEYS.url, url); tokenStore.set(token, $("#inRemember").checked);
   restoreResearchTracking();
   const btn = $("#btnSaveSettings");

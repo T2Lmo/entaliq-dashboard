@@ -22,11 +22,12 @@ js/                 سكربتات عادية (ليست modules) تتشارك ا
   brain.js          عقل المكتب ومرجعه: الدروس والأمثلة، «علّم الوكيل» من سجل المهام، وحفظ ملاحظاتك على المنشورات
   studio.js         استوديو المحتوى: «أكمل المنشورات الآن» (الوكلاء يكتبون ويصممون، وأنت تعتمد أو ترفض)
   prospects.js      مازن: منشآت سعودية ببريدها الرسمي ومسودات رسائل ترسلها أنت
+  tenders.js        بدر: المنافسات والمناقصات والترسيات ولوحة الجاهزية
   auth.js           الدخول بحساب Google
   social.js         ربط LinkedIn و X والنشر المباشر
   events.js         ربط الأحداث
   main.js           البداية (يُشغَّل أخيراً)
-apps-script/        ملفات تُضاف إلى مشروع Apps Script (Auth.gs, Social.gs, ClaudeBridge.gs, Office.gs, Executive.gs, Brain.gs, Studio.gs, Prospects.gs, Sites.gs) وخطوات التفعيل في SETUP.md
+apps-script/        ملفات تُضاف إلى مشروع Apps Script (Auth.gs, Social.gs, ClaudeBridge.gs, Office.gs, Executive.gs, Brain.gs, Studio.gs, Prospects.gs, Tenders.gs, Sites.gs) وخطوات التفعيل في SETUP.md
 worker/             عامل على جهازك: ينفذ طلبات الوكلاء بـ Claude باشتراكك (بدون API)، ويرسل رسائل مازن المعتمدة من بريد الشركة
 ```
 

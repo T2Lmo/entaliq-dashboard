@@ -43,6 +43,7 @@ async function syncOffice(force) {
     if (epoch !== state.connectionEpoch) return;
     acceptOffice(data); state.officeError = "";
     syncProspects(); // مؤشرا مازن في البطاقات (prospects.js)
+    syncTenders(); // مؤشرا بدر في البطاقات (tenders.js)
   } catch (e) {
     if (epoch !== state.connectionEpoch) return;
     if (/نص المهمة فارغ/.test(e.message)) state.officeUnsupported = true;
@@ -83,6 +84,7 @@ function agentCtlHtml(name) {
       ${btn("assign", ICON.send, "تكليف", "تكليف " + name + " بمهمة الآن أو مجدولة")}
       ${name === EXEC_AGENT ? btn("exec", ICON.clip, "الملخص", "ملخص راكان لما أنجزه كل وكيل ونتائجه") : ""}
       ${name === PROSPECTS_AGENT ? btn("prospects", ICON.search, "الفرص", "المنشآت التي وجدها مازن ومسودات رسائلها") : ""}
+      ${name === TENDERS_AGENT ? btn("tenders", ICON.clip, "المنافسات", "منافسات بدر وترسياته ولوحة الجاهزية") : ""}
     </span>
   </div>`;
 }
@@ -98,6 +100,7 @@ async function agentControl(btn) {
   const name = btn.dataset.name, act = btn.dataset.actl;
   if (act === "exec") { openView("exec"); return; }
   if (act === "prospects") { openView("prospects"); return; }
+  if (act === "tenders") { openView("tenders"); return; }
   if (!state.office) { toast(state.officeError || "حالة الوكلاء لم تُحمَّل بعد.", "warn"); syncOffice(true); return; }
   if (act === "hours" || act === "assign") { openAgentDlg(name, act); return; }
   const on = act === "start";

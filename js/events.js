@@ -75,6 +75,10 @@ document.addEventListener("click", async e => {
   const xassign = t.closest("[data-exec-assign]");
   if (xassign) { execAssign(xassign); return; }
   if (t.closest("[data-exec-reload]")) { loadExec(); return; }
+  const ttab = t.closest("[data-ttab]");
+  if (ttab) { state.tendersTab = ttab.dataset.ttab; renderTendersView(); return; }
+  const tact = t.closest("[data-tact]");
+  if (tact) { tendersAction(tact); return; }
   const ptab = t.closest("[data-ptab]");
   if (ptab) { state.prospectsFilter = ptab.dataset.ptab; state.prospectsEdit = ""; renderProspectsView(); return; }
   const pact = t.closest("[data-pact]");
