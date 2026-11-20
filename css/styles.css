@@ -562,3 +562,10 @@
   .p-subject { margin: 10px 0 6px; }
   .p-body { white-space: pre-wrap; padding: 12px 14px; border: 1px solid var(--line); border-radius: 6px; background: rgb(255 255 255 / .02); font-size: 14px; line-height: 1.8; }
   .p-item a.btn { text-decoration: none; }
+
+  /* مازن: الموافقة والإرسال */
+  .p-sel { width: 18px; height: 18px; accent-color: var(--steel); cursor: pointer; }
+  .p-picked { background: rgb(156 196 238 / .05); }
+  .p-bulk { position: sticky; top: 0; z-index: 2; background: #0b0d10; border-bottom: 1px solid var(--line); padding-block: 10px; }
+  .p-progress .x-nums { margin-top: 0; }
+  .p-item .row-actions, .p-bulk { flex-wrap: wrap; }

@@ -222,6 +222,11 @@ function execReports_(limit) {
 // ---------------- راكان يعرف ما فعله الفريق عند تكليفه ----------------
 // يُضاف لنص مهمة راكان المباشرة والمجدولة (ويراه سالم عند التدقيق)، ولا يُحفظ في سجل المهام
 function execTaskContext_(agent, task) {
+  // مازن (Prospects.gs) مطلع على مستجدات السوق من أخبار نواف وتحليل فيصل وآخر ملخص لراكان
+  if (agent === "مازن" && typeof prospectsMarketBrief_ === "function") {
+    const brief = prospectsMarketBrief_();
+    return brief ? task + "\n\n---\nمستجدات السوق من فريق المكتب (استخدمها إن كان لها صلة، ولا تنقل أرقاماً غير مكتوبة فيها):\n" + brief : task;
+  }
   if (agent !== EXEC_.agent) return task;
   try {
     const c = execCollect_(7), t = c.totals;

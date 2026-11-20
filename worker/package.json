@@ -1,0 +1,9 @@
+{
+  "name": "entaliq-worker",
+  "private": true,
+  "description": "عامل مكتب انطلق: Claude للوكلاء، وإرسال رسائل مازن المعتمدة من بريد الشركة",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "nodemailer": "10.6.0"
+  }
+}

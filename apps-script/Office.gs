@@ -38,8 +38,8 @@ const OFFICE_DEFAULT_CFG_ = {
     brain: { enabled: true, day: 4, hour: 15 },
     // استوديو المحتوى (Studio.gs): الوكلاء يكملون الكتابة والتصميم ونسخة X كل ساعة، منشوران في كل دورة
     studio: { enabled: true, everyHours: 1, perRun: 2 },
-    // مازن (Prospects.gs): بحث ومسودات كل 4 ساعات، 3 منشآت في كل دورة؛ القطاعات والمدن الافتراضية في Prospects.gs
-    prospects: { enabled: true, everyHours: 4, perRun: 3 } },
+    // مازن (Prospects.gs): كل ساعة حتى 5 منشآت في الدورة وهدف 20 يومياً؛ بقية الإعدادات الافتراضية في prospectsCfg_
+    prospects: { enabled: true, everyHours: 1, perRun: 5, dailyTarget: 20 } },
   brandLooks: {}
 };
 

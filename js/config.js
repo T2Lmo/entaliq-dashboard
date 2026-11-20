@@ -121,7 +121,7 @@ const state = {
   officeAt: 0, officeSyncing: false, officeUnsupported: false, agentDlg: null,
   exec: null, execSel: "", execLoading: false, execError: "", execBusy: false,
   brain: null, brainLoading: false, brainError: "", brainAgent: "", brainEdit: "",
-  prospects: null, prospectsStats: null, prospectsAt: 0, prospectsLoading: false, prospectsError: "", prospectsFilter: "جاهز للإرسال", prospectsEdit: "", prospectsBusy: false, prospectsCfgOpen: false,
+  prospects: null, prospectsStats: null, prospectsAt: 0, prospectsLoading: false, prospectsError: "", prospectsFilter: "approve", prospectsEdit: "", prospectsBusy: false, prospectsCfgOpen: false,
   view: "", filterAgent: "", query: "", sort: "new"
 };
 

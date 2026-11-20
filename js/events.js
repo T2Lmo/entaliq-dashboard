@@ -45,6 +45,7 @@ $("#btnContentOlder").addEventListener("click", loadOlderContent);
 document.addEventListener("change", e => {
   if (e.target.id === "execPick") { state.execSel = e.target.value; renderExecView(); }
   if (e.target.id === "brainFilter") { state.brainAgent = e.target.value; renderOfficeView(); }
+  if (e.target.matches("[data-psel], [data-psel-all]")) prospectsSelect(e.target);
 });
 document.addEventListener("input", e => {
   if (state.editingId && e.target.id === "edit-" + state.editingId) state.editingDraft = e.target.value;
