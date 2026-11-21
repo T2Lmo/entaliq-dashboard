@@ -620,6 +620,9 @@
   /* راكان بالصوت */
   .fab-voice { bottom: 98px; left: 30px; width: 48px; height: 48px; }
   .fab-voice svg { width: 24px; height: 24px; }
+  .fab-voice.busy { border-color: var(--green); color: #fff; animation: voiceBusy 1.6s infinite; }
+  @keyframes voiceBusy { 0% { box-shadow: 0 0 0 0 rgb(92 199 177 / .45); } 100% { box-shadow: 0 0 0 12px rgb(92 199 177 / 0); } }
+  @media (prefers-reduced-motion: reduce) { .fab-voice.busy { animation: none; } }
   .voice { display: grid; gap: 10px; }
   .voice-log { display: grid; gap: 10px; max-height: 52vh; overflow-y: auto; padding: 4px 2px; }
   .vmsg { display: flex; gap: 8px; align-items: flex-start; max-width: 92%; }

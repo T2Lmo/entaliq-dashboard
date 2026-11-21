@@ -1,12 +1,14 @@
 "use strict";
 // راكان بالصوت (Voice.gs): تتكلم أو تكتب، فيفهم الخادم الأمر وينفذه، ويرد راكان بالصوت.
 // التعرف على الكلام ونطق الرد من المتصفح نفسه (Chrome أو Edge أو Safari)؛ الخادم يستقبل النص فقط.
+// المرحلة الثانية: الطلب الحر يُكلَّف به الوكيل بعد تأكيدك، وتُقرأ خلاصته وتقدير سالم عند انتهائه.
 
 const VOICE_KEY = "entaliq.voice";
 const VOICE_YES = /^(?:نعم|ايه|إيه|اي|أي|أكد|اكد|أكّد|تمام|اوكي|أوكي|أكيد|اكيد|موافق|نفذ|نفّذ|ok|okay|yes)(?=[\s،.!]|$)/i;
 const VOICE_NO = /^(?:لا|إلغاء|الغاء|ألغ|الغ|ألغي|الغي|كنسل|بلاش|cancel|no)(?=[\s،.!]|$)/i;
 const VOICE_EXAMPLES = ["وش ينتظرني اليوم؟", "كم رد جانا؟", "وش سوى مازن اليوم؟", "هل العامل شغال؟", "مين موقوف؟",
-  "أوقف خالد", "خل خالد يداوم", "مازن جهّز شركات اليوم", "بدر دوّر منافسات", "أرسل ملخص اليوم على إيميلي"];
+  "أوقف خالد", "خل خالد يداوم", "مازن جهّز شركات اليوم", "بدر دوّر منافسات", "أرسل ملخص اليوم على إيميلي",
+  "لمى اكتبي منشور عن ترشيد التكييف في المستشفيات", "جهّز عرض تدقيق طاقة لفندق في الرياض"];
 const VOICE_W = {
   place: ["ولا منشأة", "منشأة واحدة", "منشأتين", "منشآت", "منشأة"],
   draft: ["ولا مسودة", "مسودة واحدة", "مسودتين", "مسودات", "مسودة"],
@@ -39,7 +41,7 @@ function voiceSpeak(text, then) {
   speechSynthesis.cancel();
   const v = voicePick();
   // Chrome يقطع النطق الطويل؛ نقسّمه جملاً
-  const parts = String(text).replace(/[⁦-⁩]/g, "").split(/(?<=[.!؟?])\s+/).flatMap(s => s.length > 220 ? s.split(/(?<=،)\s+/) : [s]).filter(Boolean);
+  const parts = String(text).replace(/[⁦-⁩]/g, "").replace(/\p{Extended_Pictographic}️?/gu, "").split(/(?<=[.!؟?])\s+/).flatMap(s => s.length > 220 ? s.split(/(?<=،)\s+/) : [s]).filter(Boolean);
   parts.forEach((s, i) => {
     const u = new SpeechSynthesisUtterance(s);
     u.lang = v ? v.lang : "ar-SA"; if (v) u.voice = v;
@@ -95,10 +97,27 @@ async function voiceSubmit(text) {
   if (VS.pending) {
     const p = VS.pending;
     VS.pending = null;
+    const other = p.op === "task" && voiceAgentIn(text, p.agent);
+    if (other) {
+      const np = Object.assign({}, p, { agent: other, prompt: "تكليف " + other });
+      const say = "أكلّف " + other + " بدلاً منه؟ قل أكّد أو إلغاء.";
+      VS.pending = np; // قبل الرسم، لتظهر أزرار التأكيد
+      voiceAdd({ who: "rakan", text: say, confirm: np, compose: { agent: other, task: p.task } });
+      voiceSpeak(say, () => { if (VS.cfg.autoListen && VoiceRec && state.view === "voice" && sheet.open) voiceListen(); });
+      return;
+    }
     if (VOICE_YES.test(text)) return voiceAsk({ confirm: p });
     if (VOICE_NO.test(text)) { const say = "تمام، ألغيت."; voiceAdd({ who: "rakan", text: say }); voiceSpeak(say); return; }
   }
   return voiceAsk({ text });
+}
+
+// اسم وكيل آخر في الجملة (لتحويل التكليف إليه)
+function voiceAgentIn(text, except) {
+  const t = String(text || "").replace(/[\u064B-\u065F]/g, "").replace(/ى/g, "ي");
+  const hit = AGENTS.map(a => a.name).filter(n => n !== except && n !== "الباحث")
+    .find(n => new RegExp("(^|[\\s،,ولب])" + n.replace(/ى/g, "ي") + "($|[\\s،,.؟?])").test(t));
+  return hit || "";
 }
 
 async function voiceAsk(payload) {
@@ -108,8 +127,8 @@ async function voiceAsk(payload) {
   try { res = await api(Object.assign({ action: "voice_ask" }, payload)); }
   catch (e) { res = { say: "تعذر: " + officeError(e) }; }
   finally { VS.thinking = false; }
+  if (res.confirm) VS.pending = res.confirm; // قبل الرسم، لتظهر أزرار التأكيد
   voiceAdd({ who: "rakan", text: res.say || "", lines: res.lines, open: res.open, compose: res.compose, composeOnly: res.composeOnly, examples: res.examples, confirm: res.confirm });
-  if (res.confirm) VS.pending = res.confirm;
   if (res.refreshOffice && state.office) loadOffice(true);
   voiceSpeak(res.say, () => { if (res.confirm && VS.cfg.autoListen && VoiceRec && state.view === "voice" && sheet.open) voiceListen(); });
   if (res.run) voiceRunJob(res.run);
@@ -118,17 +137,40 @@ async function voiceAsk(payload) {
 // المهام الطويلة تُشغَّل بإجراءاتها المعتادة، وتُقرأ نتيجتها عند انتهائها
 const VOICE_BUSY = { prospects: "prospectsBusy", tenders: "tendersBusy", studio: "contentBusy", exec: "execBusy" };
 const VOICE_WHO = { prospects: "مازن", tenders: "بدر", studio: "الاستوديو", exec: "راكان" };
+const voiceWho = run => run.kind === "task" ? run.agent : VOICE_WHO[run.kind];
+
+// خلاصة تُقرأ بالصوت: أول جملتين أو ثلاث من المخرجات، بلا عناوين ولا روابط ولا تنسيق، وكل سطر جملة
+function voiceGist(text) {
+  const lines = String(text || "").replace(/```[\s\S]*?```/g, "\n").split(/\r?\n/)
+    .filter(l => !/^\s*#/.test(l))
+    .map(l => l.replace(/!\[[^\]]*\]\([^)]*\)/g, " ").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/https?:\/\/\S+/g, "")
+      .replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "").replace(/[*_`>|#]/g, "").replace(/\s+/g, " ").trim())
+    .filter(l => l.length > 2 && !/[:：]$/.test(l));
+  const plain = lines.map(l => /[.!؟?،]$/.test(l) ? l : l + ".").join(" ");
+  let out = "";
+  for (const part of plain.split(/(?<=[.!؟?])\s+/)) {
+    if (out && (out + " " + part).length > 300) break;
+    out = out ? out + " " + part : part;
+    if (out.length > 170) break;
+  }
+  return { gist: out.slice(0, 320), more: plain.length > out.length + 20 };
+}
 async function voiceRunJob(run) {
   const flag = VOICE_BUSY[run.kind];
   if (VS.running || (flag && state[flag])) {
-    const say = (VS.running ? VOICE_WHO[VS.running] : VOICE_WHO[run.kind]) + " يشتغل الحين، أبلغك إذا خلص.";
+    const say = (VS.running ? VS.runningWho : voiceWho(run)) + " يشتغل الحين، أبلغك إذا خلص. اطلب الثانية بعده.";
     voiceAdd({ who: "rakan", text: say }); voiceSpeak(say); return;
   }
-  VS.running = run.kind; if (flag) state[flag] = true; renderVoiceView();
-  let say = "";
+  VS.running = run.kind; VS.runningWho = voiceWho(run); if (flag) state[flag] = true; voiceFab(); renderVoiceView();
+  let say = "", extra = {};
   try {
     const d = await api(run.body);
-    if (run.kind === "prospects") {
+    if (run.kind === "task") {
+      const f = (AGENT_BY_NAME[run.agent] || {}).f, m = String(d.audit || "").match(/نسبة الدقة:\s*(\d+)%/), g = voiceGist(d.output);
+      say = run.agent + (f ? " خلصت" : " خلص") + " المهمة" + (m ? "، وقدّرها سالم " + m[1] + "%" : "") + ". " + g.gist + (g.more ? " والنص كامل تحت، وفي سجل المهام." : "");
+      extra = { output: d.output, taskId: d.taskId };
+      refresh({ quiet: true });
+    } else if (run.kind === "prospects") {
       if (typeof acceptProspects === "function") acceptProspects(d);
       const r = d.run || {};
       say = "خلص مازن: " + voiceNum(r.found, VOICE_W.place) + " جديدة، و" + voiceNum(r.drafted, VOICE_W.draft) + "، و" + voiceNum(r.followUps, VOICE_W.follow) + ". تنتظر موافقتك في صفحة مازن.";
@@ -144,11 +186,19 @@ async function voiceRunJob(run) {
       say = "كتب راكان " + (d.report ? d.report.kind === "أسبوعي" ? "ملخص الأسبوع" : d.report.kind === "شهري" ? "ملخص الشهر" : "ملخص اليوم" : "الملخص")
         + (d.report && d.report.report && d.report.report.headline ? ": " + d.report.report.headline : ".");
     }
-  } catch (e) { say = "تعذر عمل " + VOICE_WHO[run.kind] + ": " + officeError(e); }
-  finally { VS.running = ""; if (flag) state[flag] = false; }
-  const open = { prospects: { view: "prospects", label: "افتح صفحة مازن" }, tenders: { view: "tenders", label: "افتح صفحة بدر" }, studio: { view: "content", label: "افتح المنشورات" }, exec: { view: "exec", label: "افتح الملخص" } }[run.kind];
-  voiceAdd({ who: "rakan", text: say, open });
+  } catch (e) { say = "تعذر عمل " + voiceWho(run) + ": " + officeError(e); }
+  finally { VS.running = ""; VS.runningWho = ""; if (flag) state[flag] = false; voiceFab(); }
+  const open = { prospects: { view: "prospects", label: "افتح صفحة مازن" }, tenders: { view: "tenders", label: "افتح صفحة بدر" }, studio: { view: "content", label: "افتح المنشورات" }, exec: { view: "exec", label: "افتح الملخص" }, task: { view: "tasks", label: "افتح سجل المهام" } }[run.kind];
+  voiceAdd(Object.assign({ who: "rakan", text: say, open }, extra));
+  // إن كانت لوحة الصوت مغلقة: تنبيه مكتوب مع النطق
+  if (state.view !== "voice" || !sheet.open) toast(say.slice(0, 160), /^تعذر/.test(say) ? "bad" : "ok");
   voiceSpeak(say);
+}
+
+// زر الميكروفون العائم ينبض ما دام وكيل يشتغل بطلبك
+function voiceFab() {
+  const b = $("#fabVoice");
+  if (b) { b.classList.toggle("busy", !!VS.running); b.title = VS.running ? VS.runningWho + " يشتغل بطلبك" : "تكلم مع راكان"; }
 }
 
 function voiceOpenCompose(c) {
@@ -171,9 +221,11 @@ function voiceMsgHtml(m, i) {
   if (m.confirm && last && VS.pending) acts.push(`<button type="button" class="btn btn-primary sm" data-vact="yes"><span class="lbl-text">أكّد: ${esc(m.confirm.prompt || "")}</span></button>`,
     `<button type="button" class="btn btn-line sm" data-vact="no"><span class="lbl-text">إلغاء</span></button>`);
   if (m.open) acts.push(`<button type="button" class="btn btn-line sm" data-vopen="${esc(m.open.view)}"><span class="lbl-text">${esc(m.open.label)}</span></button>`);
-  if (m.compose) acts.push(`<button type="button" class="btn ${m.composeOnly ? "btn-line" : "btn-primary"} sm" data-vcompose="${i}"><span class="lbl-text">${m.composeOnly ? "أرسلها تكليفاً لراكان" : "افتح تكليف " + esc(m.compose.agent)}</span></button>`);
+  if (m.compose && (!m.confirm || (last && VS.pending))) acts.push(`<button type="button" class="btn ${m.confirm ? "btn-line" : "btn-primary"} sm" data-vcompose="${i}"><span class="lbl-text">${m.confirm ? "عدّل قبل الإرسال" : "افتح تكليف " + esc(m.compose.agent)}</span></button>`);
+  if (m.output) acts.push(copyButton(m.output, "نسخ النص"));
   const ex = m.examples ? `<div class="chips">${m.examples.map(x => `<button type="button" class="chip-ex" data-vex="${esc(x)}">${esc(x)}</button>`).join("")}</div>` : "";
-  return `<div class="vmsg" data-who="rakan">${avatar(EXEC_AGENT, "xs")}<div><p>${esc(m.text)}</p>${voiceLines(m.lines)}
+  const full = m.output ? `<details class="vmsg-more"><summary>النص كامل${m.taskId ? " · " + esc(m.taskId) : ""}</summary><div class="md">${md(m.output)}</div></details>` : "";
+  return `<div class="vmsg" data-who="rakan">${avatar(EXEC_AGENT, "xs")}<div><p>${esc(m.text)}</p>${voiceLines(m.lines)}${full}
     ${acts.length ? `<div class="row-actions">${acts.join("")}</div>` : ""}${ex}</div></div>`;
 }
 
@@ -187,8 +239,8 @@ function renderVoiceView() {
   if (!box || state.view !== "voice") return;
   const keep = $("#voiceText") ? $("#voiceText").value : "";
   const voices = voiceVoices(), picked = voicePick();
-  const status = VS.listening ? "أسمعك… تكلم ثم توقف" : VS.thinking ? "راكان يفكر…" : VS.running ? VOICE_WHO[VS.running] + " يشتغل، وأبلغك إذا خلص" : VoiceRec ? "اضغط الميكروفون وتكلم" : "اكتب أمرك (متصفحك لا يدعم التعرف على الكلام)";
-  const intro = VS.log.length ? "" : `<div class="vmsg" data-who="rakan">${avatar(EXEC_AGENT, "xs")}<div><p>هلا، أنا راكان. اسألني عن المكتب أو اطلب مني أوقف وكيل أو أشغّل مهمة.</p>
+  const status = VS.listening ? "أسمعك… تكلم ثم توقف" : VS.thinking ? "راكان يفكر…" : VS.running ? VS.runningWho + " يشتغل بطلبك، وأبلغك إذا خلص (تقدر تسأل في الأثناء)" : VoiceRec ? "اضغط الميكروفون وتكلم" : "اكتب أمرك (متصفحك لا يدعم التعرف على الكلام)";
+  const intro = VS.log.length ? "" : `<div class="vmsg" data-who="rakan">${avatar(EXEC_AGENT, "xs")}<div><p>هلا، أنا راكان. اسألني عن المكتب، أو اطلب مني أوقف وكيل أو أشغّل مهمة، أو كلّف أي وكيل بكلامك وأقرأ لك النتيجة.</p>
     <div class="chips">${VOICE_EXAMPLES.map(x => `<button type="button" class="chip-ex" data-vex="${esc(x)}">${esc(x)}</button>`).join("")}</div></div></div>`;
   box.innerHTML = `<div class="sh-pad voice">
     <div class="voice-log" aria-live="polite">${intro}${VS.log.map(voiceMsgHtml).join("")}<p class="vmsg-live" id="voiceLive" hidden></p></div>
@@ -209,7 +261,7 @@ function renderVoiceView() {
         ${VS.log.length ? `<button type="button" class="btn btn-line sm" data-vact="clear"><span class="lbl-text">مسح المحادثة</span></button>` : ""}</div>
     </details>
     <p class="hint">يعمل الميكروفون في متصفح Chrome أو Edge أو Safari، ويحتاج إنترنت؛ يحوّل المتصفح كلامك إلى نص (عبر Google أو Microsoft أو Apple) ويصل النص فقط إلى خادم المكتب.
-      الأوامر المعروفة تُنفَّذ فوراً. لا حذف ولا موافقة على إرسال الرسائل أو النشر بالصوت، وإيقاف كل الوكلاء يحتاج تأكيدك.</p>
+      الأوامر المعروفة تُنفَّذ فوراً، والتكليف الحر يُقرأ عليك قبل تنفيذه ويحتاج العامل على جهازك. لا حذف ولا موافقة على إرسال الرسائل أو النشر بالصوت، وإيقاف كل الوكلاء يحتاج تأكيدك.</p>
   </div>`;
   voicePaintLive();
   const log = box.querySelector(".voice-log"); if (log) log.scrollTop = log.scrollHeight;
@@ -229,7 +281,7 @@ document.addEventListener("click", e => {
   const vopen = t.closest("[data-vopen]");
   if (vopen) { openView(vopen.dataset.vopen); return; }
   const vc = t.closest("[data-vcompose]");
-  if (vc) { const m = VS.log[Number(vc.dataset.vcompose)]; if (m && m.compose) voiceOpenCompose(m.compose); return; }
+  if (vc) { const m = VS.log[Number(vc.dataset.vcompose)]; if (m && m.compose) { if (m.confirm) VS.pending = null; voiceOpenCompose(m.compose); } return; }
   const act = (t.closest("[data-vact]") || {}).dataset;
   if (!act) return;
   if (act.vact === "mic") voiceListen();
