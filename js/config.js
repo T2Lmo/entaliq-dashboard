@@ -48,7 +48,7 @@ const PROSPECTS_AGENT = "مازن";
 // المنافسات والمناقصات (Tenders.gs)
 const TENDERS_AGENT = "بدر";
 // نسخة الخادم التي تتوقعها هذه اللوحة (HEALTH_.server في Health.gs)؛ تزيد مع كل تحديث للخادم
-const SERVER_VERSION = 2;
+const SERVER_VERSION = 3;
 
 // توزيع البطاقات حول العدّاد: r = العمود الأيمن، l = الأيسر، c5 = أسفل العدّاد
 const SLOTS = [
@@ -137,6 +137,7 @@ const state = {
   brain: null, brainLoading: false, brainError: "", brainAgent: "", brainEdit: "",
   contracts: null, contractsLoading: false, contractsError: "", contractsTab: "offers", contractsNew: false, contractsPrefill: null,
   tenders: null, tendersStats: null, tendersAt: 0, tendersLoading: false, tendersError: "", tendersTab: "open", tendersBusy: false, tendersAddOpen: false, tendersCfgOpen: false,
+  leads: null, leadsLoading: false, leadsError: "",
   pipe: null, pipeLoading: false, pipeError: "", pipeTab: "today", pipeEdit: "", pipeNext: "", pipeClose: "", pipeCloseKind: "",
   health: null, healthLoading: false, healthError: "", healthUnsupported: false,
   prospects: null, prospectsStats: null, prospectsAt: 0, prospectsLoading: false, prospectsError: "", prospectsFilter: "approve", prospectsEdit: "", prospectsBusy: false, prospectsCfgOpen: false,

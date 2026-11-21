@@ -283,6 +283,20 @@ function voiceAgent_(name) {
     open: name === "مازن" ? { view: "prospects", label: "افتح صفحة مازن" } : name === "بدر" ? { view: "tenders", label: "افتح صفحة بدر" } : name === "راكان" ? { view: "exec", label: "افتح ملخص راكان" } : null };
 }
 
+// «كم عميل جانا من الموقع؟»: طلبات نموذج الموقع (Leads.gs)
+function voiceLeads_() {
+  const open = { view: "pipeline", label: "افتح طلبات الموقع" };
+  if (typeof leadsAll_ !== "function") return { say: "نموذج الموقع غير موجود في الخادم المنشور. حدّث كود الخادم وانشر نسخة جديدة." };
+  const all = leadsAll_(), since = Date.now() - 7 * 86400000, real = x => ["جديد", "تواصلنا", "مغلق"].indexOf(x.status) >= 0;
+  const week = all.filter(x => x.atMs >= since && real(x)), fresh = all.filter(x => x.status === "جديد");
+  const W = ["ولا طلب", "طلب واحد", "طلبين", "طلبات", "طلباً"];
+  if (!all.length) return { say: "ما جانا طلبات من الموقع بعد. تأكد أن النموذج مضاف في موقعي انطلق ووهج، ورابطه في صفحة المسار.", open: open };
+  const say = ["جانا من الموقع هذا الأسبوع " + voiceNum_(week.length, W)];
+  if (fresh.length) say.push("لم نتواصل بعد مع " + voiceNum_(fresh.length, W) + ": " + voiceJoin_(fresh.slice(-3).reverse().map(x => (x.company || x.name) + (x.service ? "، " + x.service : ""))));
+  else say.push("وتواصلنا مع الكل");
+  return { say: voiceSay_(say), lines: fresh.slice(-6).reverse().map(x => x.at + " · " + (x.company || x.name) + (x.phone ? " · +" + x.phone : "")), open: open };
+}
+
 // «وش الصفقات اللي تنتظرني؟»: مسار المبيعات (Pipeline.gs)
 function voicePipeline_() {
   const open = { view: "pipeline", label: "افتح مسار المبيعات" };
@@ -402,7 +416,7 @@ function voiceReviewItems_(kinds) {
   const items = [], notes = [], W = VOICE_.w, max = VOICE_.reviewMax;
   if (kinds.mail && typeof prospectsAll_ === "function") {
     const all = prospectsAll_();
-    const ok = p => p.email && prospectsEmailOk_(p.email) && (p.status === "متابعة جاهزة" ? !!p.fuBody : (p.status === "جاهز للإرسال" && !!p.body && ["موثّق من الصفحة", "عدّلته يدوياً"].indexOf(p.verified) >= 0));
+    const ok = p => p.email && prospectsEmailOk_(p.email) && (p.status === "متابعة جاهزة" ? !!p.fuBody : (p.status === "جاهز للإرسال" && !!p.body && ["موثّق من الصفحة", "عدّلته يدوياً", "من نموذج الموقع"].indexOf(p.verified) >= 0));
     all.filter(ok).slice(0, max.mail).forEach(p => {
       const follow = p.status === "متابعة جاهزة";
       items.push({ kind: "mail", id: p.id, title: p.company, where: [p.sector, p.city].filter(Boolean).join(" · "), email: p.email, follow: follow,
@@ -465,6 +479,8 @@ function voiceAsk_(data, user) {
   const activity = has(["سوا", "سوي", "سوت", "سويت", "عمل", "انجز", "انجزت", "اخبار", "وضع", "حال", "صار", "اشتغل", "اشتغلت", "دقق", "كتب", "كتبت", "صمم", "صممت", "رصد", "حلل"]);
 
   if (has(["مساعده", "الاوامر", "اوامر", "تقدر"]) && (p.question || has(["مساعده"]))) return voiceHelp_();
+  if (has(["الموقع", "موقع", "النموذج"]) && has(["طلب", "طلبات", "عميل", "عملاء", "تواصل", "جانا", "جاني"]) && !has(["عن"]) && !has(VOICE_.task.filter(w => w !== "ابي" && w !== "عطني")))
+    return voiceLeads_();
   if (has(["صفقات", "صفقه", "الصفقات", "الصفقه", "المبيعات", "مبيعات", "الايراد", "ايراد", "الايرادات", "المتوقع"]) && !has(["عن"]) && !has(VOICE_.task.filter(w => w !== "ابي" && w !== "عطني")))
     return voicePipeline_();
   if (!has(["عن"]) && ((has(["صحه", "سليم", "مشاكل", "مشكله", "خلل", "عطل", "اعطال"]) && has(["المكتب", "مكتب", "النظام", "اللوحه", "الخادم"])) || has(["افحص", "فحص"])))

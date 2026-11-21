@@ -96,6 +96,12 @@ function digestCollect_() {
     s.visitsSoon.filter(v => v.date <= today).forEach(v => d.today.push((v.late ? "زيارة صيانة متأخرة " : "زيارة صيانة اليوم ") + v.date + ": " + v.client + " (" + v.type + ")"));
     s.renewals.forEach(r => d.today.push("تجديد عقد صيانة: " + r.client + " ينتهي " + r.end));
   });
+  // طلبات نموذج الموقع منذ أمس (Leads.gs)
+  safe(() => {
+    if (typeof leadsAll_ !== "function") return;
+    leadsAll_().filter(x => x.atMs >= since && x.status === "جديد").slice(-6).reverse()
+      .forEach(x => d.replies.push("طلب من موقع " + x.brand + ": " + (x.company || x.name) + (x.service ? " — " + x.service : "") + (x.phone ? " · +" + x.phone : "")));
+  });
   // مسار المبيعات (Pipeline.gs): خطوات الصفقات التي حان موعدها
   safe(() => {
     if (typeof pipeAll_ !== "function") return;

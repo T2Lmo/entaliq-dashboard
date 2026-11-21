@@ -362,9 +362,11 @@ function prospectsRun_(by, auto) {
   // 1) المتابعات المستحقة (5 أيام بلا رد)
   const due = prospectsFollowDue_(prospectsAll_(), cfg, now);
   if (due.length && budget(150000)) result.followUps = prospectsDraftBatch_(due.slice(0, cfg.perRun), cfg, "follow");
-  // 2) مسودات المنشآت التي تنتظر
-  let pend = prospectsAll_().filter(p => p.status === PST_.wait);
-  if (pend.length && budget(150000)) { result.drafted += prospectsDraftBatch_(pend.slice(0, cfg.perRun), cfg, "first"); pend = prospectsAll_().filter(p => p.status === PST_.wait); }
+  // 2) ردود طلبات الموقع (لها صياغة رد لا رسالة أولى — Leads.gs)، ثم مسودات المنشآت التي تنتظر
+  if (typeof leadsDraftPending_ === "function" && budget(150000)) result.leads = leadsDraftPending_();
+  const cold = p => p.status === PST_.wait && p.verified !== "من نموذج الموقع";
+  let pend = prospectsAll_().filter(cold);
+  if (pend.length && budget(150000)) { result.drafted += prospectsDraftBatch_(pend.slice(0, cfg.perRun), cfg, "first"); pend = prospectsAll_().filter(cold); }
   // 3) البحث حتى الهدف اليومي
   const today = prospectsToday_(prospectsAll_()).found, left = cfg.dailyTarget - today;
   if (left > 0 && pend.length < cfg.perRun && budget(200000)) {
@@ -372,18 +374,19 @@ function prospectsRun_(by, auto) {
     else {
       const s = prospectsSearch_(cfg, Math.min(cfg.perRun, left), by);
       result.found = s.added; result.target = s.target;
-      pend = prospectsAll_().filter(p => p.status === PST_.wait);
+      pend = prospectsAll_().filter(cold);
       if (pend.length && budget(150000)) result.drafted += prospectsDraftBatch_(pend.slice(0, cfg.perRun), cfg, "first");
     }
   }
-  result.pending = prospectsAll_().filter(p => p.status === PST_.wait).length;
+  result.pending = prospectsAll_().filter(cold).length;
   result.today = prospectsToday_(prospectsAll_());
   return result;
 }
 
 function prospectsToday_(all) {
   const start = startOfDay_(new Date(), 0).getTime();
-  return { found: all.filter(p => p.atMs >= start).length, sent: all.filter(p => p.lastSentMs >= start).length };
+  // طلبات الموقع لا تُحسب من هدف مازن اليومي للبحث
+  return { found: all.filter(p => p.atMs >= start && p.verified !== "من نموذج الموقع").length, sent: all.filter(p => p.lastSentMs >= start).length };
 }
 
 // ---------------- الإرسال بعد موافقتك (طابور) ----------------
@@ -424,7 +427,7 @@ function prospectsQueue_(ids, by) {
 function prospectsUnqueue_(id, by) {
   const p = prospectsAll_().find(x => x.id === id);
   if (!p || p.status !== PST_.queued) throw appError_("VALIDATION_ERROR", "الرسالة ليست في الطابور");
-  prospectsWrite_(p, { status: p.sendKind === "متابعة" ? PST_.fuReady : (p.verified === "موثّق من الصفحة" || p.verified === "عدّلته يدوياً" ? PST_.ready : PST_.check), sendAt: "", sendKind: "" });
+  prospectsWrite_(p, { status: p.sendKind === "متابعة" ? PST_.fuReady : (["موثّق من الصفحة", "عدّلته يدوياً", "من نموذج الموقع"].indexOf(p.verified) >= 0 ? PST_.ready : PST_.check), sendAt: "", sendKind: "" });
   officeLog_("إلغاء من طابور الإرسال", PROSPECTS_.agent, p.company, by);
 }
 

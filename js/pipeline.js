@@ -2,7 +2,7 @@
 // مسار المبيعات (Pipeline.gs): كل صفقة من أول اهتمام حتى الربح أو الخسارة، بقيمتها وخطوتها القادمة.
 // الصفقات تُنشأ وحدها من ردود مازن المهتمة ومنافسات بدر وعروض الصيانة، وتضيف أنت ما يأتيك من غيرها.
 
-const PIPE_TABS = [{ id: "today", label: "خطوات اليوم" }, { id: "open", label: "المسار" }, { id: "closed", label: "المغلقة" }];
+const PIPE_TABS = [{ id: "today", label: "خطوات اليوم" }, { id: "open", label: "المسار" }, { id: "closed", label: "المغلقة" }, { id: "site", label: "من الموقع" }];
 const PIPE_TONE = { "مهتم": "none", "اجتماع": "none", "زيارة ودراسة": "warn", "عرض مرسل": "warn", "تفاوض": "ok", "ربحنا": "ok", "خسرنا": "bad" };
 const pipeMoney = n => n === null || n === undefined || n === "" ? "—" : Math.round(Number(n)).toLocaleString("en-US") + " ر.س";
 const pipeToday = () => { const d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); };
@@ -41,13 +41,14 @@ function renderPipelineView() {
       <div class="x-num"><b>${s.winRate === null || s.winRate === undefined ? "—" : s.winRate + "%"}</b><span>نسبة الفوز (90 يوماً)</span></div>
       <div class="x-num" data-tone="${s.overdue ? "bad" : s.due ? "warn" : ""}"><b>${s.due || 0}</b><span>خطوات حان موعدها${s.overdue ? " · متأخرة " + s.overdue : ""}</span></div>
     </div>${s.noValue ? `<p class="hint">${s.noValue} ${s.noValue === 1 ? "صفقة مفتوحة بلا قيمة" : "صفقات مفتوحة بلا قيمة"}؛ أضف القيمة التقديرية ليصح «المتوقع».</p>` : ""}</div>`;
-  const count = { today: p.due.length + open.filter(d => !d.nextStep).length, open: open.length, closed: p.items.length - open.length };
+  const count = { today: p.due.length + open.filter(d => !d.nextStep).length, open: open.length, closed: p.items.length - open.length, site: state.leads ? state.leads.stats.fresh : "…" };
   const tabs = `<div class="sh-pad row-actions"><div class="seg-ctl" role="tablist">${PIPE_TABS.map(t => `<button type="button" data-qtab="${t.id}" aria-pressed="${state.pipeTab === t.id}">${t.label} (${count[t.id]})</button>`).join("")}</div>
     <button type="button" class="btn btn-primary sm" data-qact="new"><span class="lbl-text">+ صفقة</span></button>
     <button type="button" class="btn btn-line sm" data-qact="reload"${state.pipeLoading ? " disabled" : ""}><span class="lbl-text">تحديث</span></button></div>`;
   const form = state.pipeEdit === "new" ? pipeFormHtml(null) : "";
   let body = "";
-  if (state.pipeTab === "today") {
+  if (state.pipeTab === "site") body = leadsTabHtml();
+  else if (state.pipeTab === "today") {
     const due = p.due.map(x => p.items.find(d => d.id === x.id)).filter(Boolean);
     const noStep = open.filter(d => !d.nextStep && due.indexOf(d) < 0);
     body = (due.length ? `<div class="list">${due.map(pipeDealHtml).join("")}</div>` : `<p class="hint sh-pad">ما فيه خطوات حان موعدها اليوم.</p>`)
@@ -62,7 +63,7 @@ function renderPipelineView() {
     const closed = p.items.filter(d => (p.cfg.open || []).indexOf(d.stage) < 0).sort((a, b) => String(b.closedAt).localeCompare(String(a.closedAt)));
     body = closed.length ? `<div class="list">${closed.map(pipeDealHtml).join("")}</div>` : `<p class="hint sh-pad">لم تُغلق صفقات بعد.</p>`;
   }
-  const intro = p.items.length ? "" : `<p class="hint sh-pad">المسار فارغ. أول ما يرد عميل مهتم على مازن، أو يجهز بدر عرض منافسة، أو تعمل عرض صيانة، تنضاف الصفقة وحدها. وتقدر تضيف صفقة بنفسك من «+ صفقة».</p>`;
+  const intro = p.items.length || state.pipeTab === "site" ? "" : `<p class="hint sh-pad">المسار فارغ. أول ما يرد عميل مهتم على مازن، أو يجهز بدر عرض منافسة، أو تعمل عرض صيانة، تنضاف الصفقة وحدها. وتقدر تضيف صفقة بنفسك من «+ صفقة».</p>`;
   box.innerHTML = nums + tabs + form + intro + body
     + `<p class="hint sh-pad">الاحتمال الافتراضي لكل مرحلة يُحسب به «المتوقع». خطوات اليوم تصلك في ملخص الصباح، وتقدر تسأل راكان: «وش الصفقات اللي تنتظرني؟».</p>`;
 }
@@ -136,6 +137,7 @@ function pipeFormHtml(d) {
 
 // ---------------- الإجراءات ----------------
 async function pipeAction(btn) {
+  if (/^lead-/.test(btn.dataset.qact)) return leadsAction(btn);
   const act = btn.dataset.qact, id = btn.dataset.id, d = id && state.pipe ? state.pipe.items.find(x => x.id === id) : null;
   if (act === "reload") return loadPipeline(!!state.pipe);
   if (act === "new") { state.pipeEdit = "new"; state.pipeNext = state.pipeClose = ""; renderPipelineView(); const i = $("#qf-company"); if (i) i.focus(); return; }
@@ -185,6 +187,94 @@ async function pipeMove(sel) {
   if (!d || stage === d.stage) return;
   if (stage === "ربحنا" || stage === "خسرنا") { state.pipeClose = id; state.pipeCloseKind = stage === "ربحنا" ? "won" : "lost"; return renderPipelineView(); }
   await pipeSend(null, { action: "pipeline_stage", id, stage }, d.company + " ← " + stage);
+}
+
+// ---------------- من الموقع: طلبات نموذج «اطلب تواصلاً» (Leads.gs) ----------------
+async function loadLeads() {
+  state.leadsLoading = true;
+  try { state.leads = await api({ action: "leads_get" }); state.leadsError = ""; }
+  catch (e) { state.leadsError = officeError(e); }
+  finally { state.leadsLoading = false; if (state.view === "pipeline" && state.pipeTab === "site") renderPipelineView(); }
+}
+
+// رابط النموذج لكل علامة؛ رابط الخادم ورمز النموذج بعد # فلا يصلان لخادم الصفحات
+function leadsLink(slug, embed) {
+  const base = location.origin + location.pathname.replace(/[^/]*$/, "") + "lead.html";
+  return base + "#u=" + encodeURIComponent(state.url || "") + "&k=" + encodeURIComponent(state.leads.cfg.key) + "&b=" + slug + (embed ? "&e=1" : "");
+}
+
+function leadsTabHtml() {
+  if (!state.leads) {
+    if (!state.leadsLoading && !state.leadsError) { state.leadsLoading = true; setTimeout(loadLeads, 0); }
+    return state.leadsError ? empty(ICON.alert, "تعذر تحميل طلبات الموقع", state.leadsError, `<button type="button" class="btn btn-line" data-qact="lead-reload">${ICON.refresh}<span class="lbl-text">إعادة المحاولة</span></button>`) : skeleton();
+  }
+  const L = state.leads, c = L.cfg, s = L.stats;
+  const okUrl = /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]{20,}\/exec$/.test(state.url || "");
+  const linkRow = (slug, label) => {
+    const link = leadsLink(slug, false), frame = `<iframe src="${leadsLink(slug, true)}" title="اطلب تواصلاً · ${label}" style="width:100%;max-width:560px;height:760px;border:0" loading="lazy"></iframe>`;
+    return `<div class="lead-link"><b>${esc(label)}</b>
+      <div class="row-actions">${copyButton(link, "نسخ الرابط")}${copyButton(frame, "نسخ كود التضمين")}
+        <a class="btn btn-line sm" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${ICON.ext}<span class="lbl-text">افتح النموذج</span></a></div></div>`;
+  };
+  const settings = `<details class="sh-pad office-form lead-cfg"${L.items.length ? "" : " open"}><summary><b>النموذج وإعداداته</b></summary>
+    ${okUrl ? "" : `<p class="health-fix">رابط الخادم في إعدادات اللوحة ليس رابط Apps Script منشوراً (…/exec)، فلن يعمل النموذج حتى تضبطه.</p>`}
+    <p class="hint">ضع النموذج في موقعي انطلق ووهج: الصق «كود التضمين» في صفحة «تواصل معنا» أو أسفل الصفحة الرئيسية، أو اربط زر «اطلب عرضاً» بالرابط. وشارك الرابط في واتساب وإنستغرام ورمز QR.</p>
+    ${linkRow("entaliq", "انطلق للطاقة")}${linkRow("wahaj", "وهج")}
+    <label class="remember"><input type="checkbox" id="ld-on"${c.enabled ? " checked" : ""}> النموذج يستقبل الطلبات</label>
+    <label class="remember"><input type="checkbox" id="ld-alert"${c.alert ? " checked" : ""}> نبّهني بالبريد مع كل طلب جديد</label>
+    <label class="remember"><input type="checkbox" id="ld-draft"${c.autoDraft ? " checked" : ""}> مازن يكتب رداً خلال دقائق ويدققه سالم (يصلك للموافقة)</label>
+    <div class="row-actions"><label class="hint">الحد اليومي <input class="input" id="ld-cap" type="number" min="1" max="500" value="${esc(c.dailyCap)}" style="width:90px"></label>
+      <button type="button" class="btn btn-primary sm" data-qact="lead-save"><span class="lbl-text">حفظ وتحديث المشغلات</span></button>
+      <button type="button" class="btn btn-line sm" data-qact="lead-rotate"><span class="lbl-text">غيّر رمز النموذج</span></button></div>
+    <p class="hint">الحماية: رمز النموذج، وحقل مخفي يكشف البرامج الآلية، وزمن تعبئة أدنى، وحد للطلبات في الدقيقة واليوم، ودمج المكرر خلال 24 ساعة. إن وصلك إزعاج كثير فاضغط «غيّر رمز النموذج» ثم انسخ الروابط الجديدة إلى الموقعين؛ القديمة تتوقف فوراً. لا يرسل الخادم أي بريد للزائر من نفسه.</p>
+  </details>`;
+  const line = `<p class="hint sh-pad">هذا الأسبوع: ${s.week} · لم نتواصل بعد: ${s.fresh}${s.spam ? " · مشتبه: " + s.spam : ""}${s.last ? " · آخر طلب: " + esc(ltr(s.last)) : ""}</p>`;
+  const tone = { "جديد": "warn", "تواصلنا": "ok", "مكرر": "none", "مشتبه": "bad", "مغلق": "none" };
+  const replyLabel = { "بانتظار المسودة": "مازن يكتب الرد", "جاهز للإرسال": "رد مازن ينتظر موافقتك", "تحقق يدوي": "رد مازن يحتاج مراجعتك", "في الطابور": "الرد في طابور الإرسال", "أُرسل": "أُرسل الرد", "ردّوا": "ردّوا على رسالتنا" };
+  const list = L.items.map(x => {
+    const wa = x.phone ? `https://wa.me/${encodeURIComponent(x.phone)}?text=${encodeURIComponent("السلام عليكم " + x.name + "، معك فريق " + (x.brand === "وهج" ? "وهج" : "انطلق للطاقة") + " بخصوص طلبكم من موقعنا.")}` : "";
+    const b = (act, label, cls, extra) => `<button type="button" class="btn ${cls || "btn-line"} sm" data-qact="${act}" data-id="${esc(x.id)}"${extra || ""}><span class="lbl-text">${label}</span></button>`;
+    return `<article class="item lead" data-status="${esc(x.status)}">
+      <div class="item-head"><b>${esc(x.company || x.name)}</b>${x.company ? `<small class="muted">${esc(x.name)}</small>` : ""}
+        <span class="badge" data-tone="none">${esc(x.brand)}</span>
+        <span class="badge" data-tone="${tone[x.status] || "none"}" style="margin-inline-start:auto">${esc(x.status)}</span></div>
+      <p class="hint">${esc(ltr(x.at))}${x.city ? " · " + esc(x.city) : ""}${x.service ? " · " + esc(x.service) : ""}${x.phone ? ` · <bdi dir="ltr">+${esc(x.phone)}</bdi>` : ""}${x.email ? ` · <bdi dir="ltr">${esc(x.email)}</bdi>` : ""}</p>
+      ${x.message ? `<p class="deal-note">${esc(x.message)}</p>` : ""}
+      ${x.note ? `<p class="hint">${esc(x.note)}</p>` : ""}
+      ${x.reply ? `<p class="hint">${esc(replyLabel[x.reply] || "رد مازن: " + x.reply)}</p>` : ""}
+      <div class="row-actions">
+        ${x.phone ? `<a class="btn btn-primary sm" href="tel:+${esc(x.phone)}"><span class="lbl-text">اتصل</span></a><a class="btn btn-line sm" href="${esc(wa)}" target="_blank" rel="noopener noreferrer"><span class="lbl-text">واتساب</span></a>` : ""}
+        ${x.email ? `<a class="btn btn-line sm" href="mailto:${esc(x.email)}"><span class="lbl-text">بريد</span></a>` : ""}
+        ${x.reply === "جاهز للإرسال" || x.reply === "تحقق يدوي" ? b("lead-mazen", "راجع رد مازن", "btn-primary") : ""}
+        ${x.status === "جديد" ? b("lead-status", "تواصلنا", "btn-line", ` data-status="تواصلنا"`) + b("lead-status", "مزعج", "btn-line", ` data-status="مشتبه"`) : ""}
+        ${x.status === "مشتبه" ? b("lead-status", "حقيقي: أدخله المسار", "btn-line", ` data-status="جديد"`) : ""}
+        ${x.dealId ? b("lead-deal", "افتح الصفقة") : ""}
+      </div></article>`;
+  }).join("");
+  return settings + line + (list ? `<div class="list">${list}</div>` : `<p class="hint sh-pad">لم يصل طلب بعد. أضف النموذج إلى الموقعين من «النموذج وإعداداته» أعلاه، ثم جرّبه بنفسك.</p>`);
+}
+
+async function leadsAction(btn) {
+  const act = btn.dataset.qact, id = btn.dataset.id;
+  const send = async (body, ok) => {
+    const stop = busy(btn, "جاري الحفظ");
+    try { state.leads = await api(body); if (ok) toast(ok, "ok"); return true; }
+    catch (e) { toast(officeError(e), "bad"); return false; }
+    finally { stop(); renderPipelineView(); }
+  };
+  if (act === "lead-reload") { state.leads = null; state.leadsError = ""; return renderPipelineView(); }
+  if (act === "lead-save") {
+    const ok = await send({ action: "leads_cfg", enabled: $("#ld-on").checked, alert: $("#ld-alert").checked, autoDraft: $("#ld-draft").checked, dailyCap: Number($("#ld-cap").value) }, "حُفظت إعدادات النموذج");
+    if (ok) { try { await api({ action: "health_fix", fix: "triggers" }); } catch (e) { /* المشغلات تُحدَّث أيضاً من الأتمتة */ } }
+    return;
+  }
+  if (act === "lead-rotate") {
+    if (!confirm("تغيير رمز النموذج يوقف الروابط وأكواد التضمين القديمة فوراً، وتحتاج تنسخ الجديدة إلى الموقعين. متأكد؟")) return;
+    return send({ action: "leads_cfg", rotate: true }, "تغيّر الرمز؛ انسخ الروابط الجديدة إلى الموقعين");
+  }
+  if (act === "lead-status") return send({ action: "leads_update", id, status: btn.dataset.status }, btn.dataset.status === "جديد" ? "أُدخل الطلب إلى مسار المبيعات" : "حُدّثت حالة الطلب");
+  if (act === "lead-mazen") return openView("prospects");
+  if (act === "lead-deal") { state.pipeTab = "today"; if (state.pipe) { const x = state.leads.items.find(l => l.id === id); const d = x && state.pipe.items.find(p => p.id === x.dealId); if (d && (state.pipe.cfg.open || []).indexOf(d.stage) >= 0) state.pipeTab = "open"; else if (d) state.pipeTab = "closed"; } return renderPipelineView(); }
 }
 
 document.addEventListener("click", e => {

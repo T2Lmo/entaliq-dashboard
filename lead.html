@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+<title>اطلب تواصلاً</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;600;700&family=Tajawal:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="css/lead.css">
+</head>
+<body data-brand="entaliq">
+<main class="lf" id="lf">
+  <header class="lf-head">
+    <p class="lf-mark" id="lfMark">انطلق للطاقة</p>
+    <h1 id="lfTitle">خلّنا نخفض فاتورة الطاقة في منشأتك</h1>
+    <p class="lf-sub" id="lfSub">اترك بياناتك، ونتواصل معك خلال ساعات العمل.</p>
+  </header>
+
+  <form class="lf-form" id="lfForm" novalidate>
+    <label class="lf-field"><span>الاسم <b aria-hidden="true">*</b></span>
+      <input name="name" id="lfName" autocomplete="name" maxlength="80" required></label>
+    <label class="lf-field"><span>المنشأة</span>
+      <input name="company" autocomplete="organization" maxlength="120" placeholder="اسم الشركة أو الفندق أو المستشفى…"></label>
+    <div class="lf-row">
+      <label class="lf-field"><span>الجوال</span>
+        <input name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" dir="ltr" placeholder="05xxxxxxxx"></label>
+      <label class="lf-field"><span>البريد</span>
+        <input name="email" type="email" inputmode="email" autocomplete="email" maxlength="160" dir="ltr" placeholder="name@company.sa"></label>
+    </div>
+    <p class="lf-hint">يكفي الجوال أو البريد.</p>
+    <div class="lf-row">
+      <label class="lf-field"><span>المدينة</span>
+        <select name="city">
+          <option value="">اختر</option><option>الرياض</option><option>جدة</option><option>الدمام والخبر</option><option>مكة المكرمة</option><option>المدينة المنورة</option><option>أخرى</option>
+        </select></label>
+      <label class="lf-field"><span>الخدمة</span>
+        <select name="service" id="lfService">
+          <option>طاقة شمسية للسطح أو المواقف (وهج)</option>
+          <option>تدقيق الطاقة وخفض الفاتورة</option>
+          <option>صيانة منظومة شمسية قائمة</option>
+          <option>إدارة المباني والطاقة (ساعد وأثر)</option>
+          <option>أخرى</option>
+        </select></label>
+    </div>
+    <label class="lf-field"><span>رسالتك</span>
+      <textarea name="message" rows="3" maxlength="1000" placeholder="مثال: مبنى إداري 4 أدوار، الفاتورة الشهرية تقريباً 40 ألف ريال"></textarea></label>
+    <!-- فخ للبرامج الآلية: لا يراه الإنسان -->
+    <label class="lf-trap" aria-hidden="true">الموقع <input name="website" tabindex="-1" autocomplete="off"></label>
+    <label class="lf-consent"><input type="checkbox" name="consent" id="lfConsent">
+      <span>أوافق على أن تتواصل معي <b id="lfBrandName">انطلق للطاقة</b> بخصوص طلبي، وأن تُستخدم بياناتي لهذا الغرض فقط.</span></label>
+    <button type="submit" class="lf-btn" id="lfSend">أرسل الطلب</button>
+    <p class="lf-status" id="lfStatus" role="status" aria-live="polite"></p>
+  </form>
+
+  <section class="lf-done" id="lfDone" hidden>
+    <p class="lf-check" aria-hidden="true">✓</p>
+    <h2>وصلنا طلبك، شكراً لك</h2>
+    <p>بنتواصل معك قريباً خلال ساعات العمل.</p>
+  </section>
+</main>
+<script src="js/lead.js"></script>
+</body>
+</html>

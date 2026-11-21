@@ -115,7 +115,8 @@ function pipeSync_() {
   };
   const follow = (d, step, at) => PIPE_AUTO_STEP_.test(d.nextStep || "") || !d.nextStep ? { nextStep: step, nextAt: at } : null;
   if (typeof prospectsAll_ === "function") {
-    prospectsAll_().filter(p => ["مهتم", "يطلب معلومات"].indexOf(p.replyKind) >= 0).forEach(p => {
+    // طلبات الموقع لها صفقتها من Leads.gs، فلا تُكرَّر حين يردون على رد مازن
+    prospectsAll_().filter(p => ["مهتم", "يطلب معلومات"].indexOf(p.replyKind) >= 0 && p.verified !== "من نموذج الموقع").forEach(p => {
       if (bySource["مازن:" + p.id]) return;
       bySource["مازن:" + p.id] = pipeNew_({ company: p.company, contact: String(p.replyFrom || "").replace(/\s*<[^>]*>\s*$/, "").slice(0, 120), email: p.email, city: p.city, sector: p.sector,
         service: p.service, source: "مازن", sourceId: p.id, note: String(p.replySummary || "").slice(0, PIPE_.maxText),

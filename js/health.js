@@ -70,7 +70,7 @@ function officeHealthHtml() {
   const areas = [];
   all.forEach(c => { if (areas.indexOf(c.area) < 0) areas.push(c.area); });
   const actBtn = c => {
-    const map = { triggers: "أعد تثبيت المشغلات", prospects: "افتح صفحة مازن", log: "افتح سجل المكتب", agents: "افتح الوكلاء", brain: "افتح العقل", auto: "افتح الأتمتة" };
+    const map = { triggers: "أعد تثبيت المشغلات", pipeline: "افتح نموذج الموقع", prospects: "افتح صفحة مازن", log: "افتح سجل المكتب", agents: "افتح الوكلاء", brain: "افتح العقل", auto: "افتح الأتمتة" };
     return c.action && map[c.action] ? `<button type="button" class="btn ${c.action === "triggers" ? "btn-primary" : "btn-line"} sm" data-hact="${esc(c.action)}"><span class="lbl-text">${map[c.action]}</span></button>` : "";
   };
   const order = { bad: 0, warn: 1, info: 2, ok: 3 };
@@ -109,6 +109,7 @@ async function healthAction(btn) {
     return;
   }
   if (act === "prospects") return openView("prospects");
+  if (act === "pipeline") { state.pipeTab = "site"; return openView("pipeline"); }
   if (["log", "agents", "brain", "auto"].indexOf(act) >= 0) { state.officeTab = act; state.officeEdit = ""; state.officeTaskEdit = ""; return renderOfficeView(); }
 }
 

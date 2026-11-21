@@ -11,13 +11,13 @@
 
 const HEALTH_ = {
   // رقم نسخة الخادم: تزيد مع كل تحديث للخادم، وتقارنه اللوحة بالرقم الذي تتوقعه (SERVER_VERSION في config.js)
-  server: 2,
+  server: 3,
   days: 7, cellLimit: 10000000, logScan: 400,
   // كل وحدة وطريقة التأكد من وجودها في الخادم المنشور
   modules: () => [["الأتمتة وإدارة المكتب", typeof handleOfficeAction_], ["ملخص راكان", typeof handleExecAction_], ["العقل والمرجع", typeof handleBrainAction_],
     ["استوديو المحتوى", typeof handleStudioAction_], ["مازن", typeof handleProspectsAction_], ["بدر", typeof handleTendersAction_], ["عقود الصيانة", typeof handleContractsAction_],
     ["الملخص الصباحي", typeof handleDigestAction_], ["راكان بالصوت", typeof handleVoiceAction_], ["عامل Claude", typeof handleClaudeWorkerAction_],
-    ["بريد مازن والوارد", typeof handleMailWorkerAction_], ["LinkedIn وX", typeof handleSocialAction_], ["مسار المبيعات", typeof handlePipelineAction_]]
+    ["بريد مازن والوارد", typeof handleMailWorkerAction_], ["LinkedIn وX", typeof handleSocialAction_], ["مسار المبيعات", typeof handlePipelineAction_], ["نموذج الموقع", typeof handleLeadsAction_]]
 };
 
 // المشغلات التي يجب أن توجد حسب إعدادات الأتمتة (نفس شروط officeInstallTriggers_)
@@ -34,13 +34,14 @@ function healthExpectedTriggers_() {
   if (typeof officeRunTenders === "function" && a.tenders && a.tenders.enabled) out.push("officeRunTenders");
   if (typeof officeRunDigest === "function" && a.digest && a.digest.enabled) out.push("officeRunDigest");
   if (typeof officeRunWatchdog === "function" && a.digest && a.digest.watchdog) out.push("officeRunWatchdog");
+  if (typeof officeRunLeads === "function") { const lc = leadsCfg_(); if (lc.enabled && lc.autoDraft) out.push("officeRunLeads"); }
   return out;
 }
 
 const HEALTH_LABELS_ = {
   officeRunNews: "رصد الأخبار", officeRunWeeklyPlan: "خطة الأسبوع", officeRunScheduler: "المهام المجدولة", officeRunSites: "أفكار المواقع",
   officeRunExecDaily: "ملخص راكان اليومي", officeRunExecWeekly: "ملخص راكان الأسبوعي", officeRunBrainReview: "مراجعة العقل", officeRunStudio: "استوديو المحتوى",
-  officeRunProspects: "دورة مازن", officeRunTenders: "رصد بدر", officeRunDigest: "الملخص الصباحي", officeRunWatchdog: "تنبيه توقف العامل"
+  officeRunProspects: "دورة مازن", officeRunTenders: "رصد بدر", officeRunDigest: "الملخص الصباحي", officeRunWatchdog: "تنبيه توقف العامل", officeRunLeads: "رد مازن على طلبات الموقع"
 };
 
 function healthCheck_() {
@@ -172,6 +173,15 @@ function healthCheck_() {
     if (typeof execReports_ !== "function") return;
     const r = execReports_(1)[0], d = r ? toDate_(r.at) : null;
     add("الأتمتة", "ملخص راكان التنفيذي", d && now - d.getTime() <= 3 * 86400000 ? "ok" : "info", d ? "آخر ملخص " + r.at : "لم يُكتب ملخص بعد", d ? "" : "من بطاقة راكان ← «الملخص» ← «ملخص اليوم الآن».");
+  });
+
+  safe("الأتمتة", "نموذج الموقع", () => {
+    if (typeof leadsCfg_ !== "function") return;
+    const c = leadsCfg_(), all = leadsAll_(), last = all.length ? all[all.length - 1] : null;
+    const waiting = typeof prospectsAll_ === "function" ? prospectsAll_().filter(p => p.status === "بانتظار المسودة" && p.verified === "من نموذج الموقع").length : 0;
+    if (!c.enabled) { add("الأتمتة", "نموذج الموقع", "info", "متوقف: الزوار يرون رسالة بالتواصل عبر الهاتف أو البريد", "شغّله من مسار المبيعات ← «من الموقع».", "pipeline"); return; }
+    add("الأتمتة", "نموذج الموقع", waiting > 2 ? "warn" : "ok", (last ? "آخر طلب " + last.at : "لم يصل طلب بعد") + (waiting ? " · " + waiting + " بانتظار رد مازن" : ""),
+      waiting > 2 ? "ردود مازن تنتظر العامل على جهازك؛ تأكد أنه يعمل." : last ? "" : "أضف النموذج إلى موقعي انطلق ووهج من مسار المبيعات ← «من الموقع».", last ? "" : "pipeline");
   });
 
   // ---------- النشر ----------

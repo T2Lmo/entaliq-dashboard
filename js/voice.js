@@ -435,6 +435,7 @@ document.addEventListener("click", e => {
   const vex = t.closest("[data-vex]");
   if (vex) { voiceSubmit(vex.dataset.vex); return; }
   const vopen = t.closest("[data-vopen]");
+  if (vopen && vopen.dataset.vopen === "pipeline" && /الموقع/.test(vopen.textContent)) { state.pipeTab = "site"; openView("pipeline"); return; }
   if (vopen) { if (vopen.dataset.vopen === "health") { state.officeTab = "health"; openView("office"); } else openView(vopen.dataset.vopen); return; }
   const vr = t.closest("[data-vrev]");
   if (vr) { voiceSubmit({ approve: (vrevItem() || {}).kind === "mail" ? "أرسل" : "اعتمد", reject: "ارفض", skip: "تخطّ", read: "اسمع النص", stop: "وقف" }[vr.dataset.vrev]); return; }

@@ -20,7 +20,7 @@ const OFFICE_ = {
   maxPrompt: 2500, maxDirections: 1200, maxTask: 1500, maxTasks: 25,
   logSheet: "OfficeLog", logHeaders: ["التاريخ", "الإجراء", "الوكيل", "التفاصيل", "بواسطة"], logShown: 40,
   newsHours: [1, 2, 4, 6, 8, 12], // القيم التي يقبلها everyHours في Apps Script
-  handlers: ["runAutomatedNewsPipeline", "generateWeeklyPlan", "officeRunNews", "officeRunWeeklyPlan", "officeRunScheduler", "officeRunSites", "officeRunExecDaily", "officeRunExecWeekly", "officeRunBrainReview", "officeRunStudio", "officeRunProspects", "officeRunTenders", "officeRunDigest", "officeRunWatchdog"],
+  handlers: ["runAutomatedNewsPipeline", "generateWeeklyPlan", "officeRunNews", "officeRunWeeklyPlan", "officeRunScheduler", "officeRunSites", "officeRunExecDaily", "officeRunExecWeekly", "officeRunBrainReview", "officeRunStudio", "officeRunProspects", "officeRunTenders", "officeRunDigest", "officeRunWatchdog", "officeRunLeads"],
   weekDays: () => [ScriptApp.WeekDay.SUNDAY, ScriptApp.WeekDay.MONDAY, ScriptApp.WeekDay.TUESDAY, ScriptApp.WeekDay.WEDNESDAY, ScriptApp.WeekDay.THURSDAY, ScriptApp.WeekDay.FRIDAY, ScriptApp.WeekDay.SATURDAY],
   sitesAgents: { full: ["راكان", "لمى", "سالم", "ريم", "زياد"], ideas: ["راكان"] },
   newsAgents: ["نواف", "فيصل", "لمى", "سالم"],
@@ -233,6 +233,8 @@ function officeInstallTriggers_() {
   if (typeof officeRunTenders === "function" && a.tenders && a.tenders.enabled) ScriptApp.newTrigger("officeRunTenders").timeBased().everyDays(1).atHour(a.tenders.hour).create();
   if (typeof officeRunDigest === "function" && a.digest && a.digest.enabled) ScriptApp.newTrigger("officeRunDigest").timeBased().everyDays(1).atHour(a.digest.hour).create();
   if (typeof officeRunWatchdog === "function" && a.digest && a.digest.watchdog) ScriptApp.newTrigger("officeRunWatchdog").timeBased().everyHours(1).create();
+  // رد مازن على طلبات الموقع خلال دقائق (Leads.gs)
+  if (typeof officeRunLeads === "function") { const lc = leadsCfg_(); if (lc.enabled && lc.autoDraft) ScriptApp.newTrigger("officeRunLeads").timeBased().everyMinutes(LEADS_.draftEveryMin).create(); }
 }
 
 function officeTriggerList_() {
@@ -310,6 +312,7 @@ function handleOfficeAction_(data, user) {
   if (typeof a === "string" && a.indexOf("voice_") === 0 && typeof handleVoiceAction_ === "function") return handleVoiceAction_(data, user);
   if (typeof a === "string" && a.indexOf("health_") === 0 && typeof handleHealthAction_ === "function") return handleHealthAction_(data, user);
   if (typeof a === "string" && a.indexOf("pipeline_") === 0 && typeof handlePipelineAction_ === "function") return handlePipelineAction_(data, user);
+  if (typeof a === "string" && a.indexOf("leads_") === 0 && typeof handleLeadsAction_ === "function") return handleLeadsAction_(data, user);
   if (["office_get", "office_save_agent", "office_reset_agent", "office_save_office", "office_save_automation", "office_save_brand",
     "office_task_save", "office_task_delete", "office_task_run", "content_design_update", "office_save_sites", "sites_run", "office_set_active",
     "office_set_hours"].indexOf(a) < 0) return null;
