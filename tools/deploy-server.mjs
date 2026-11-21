@@ -43,39 +43,90 @@ function envExec() {
 }
 
 // ---------------- الإعدادات (مرة واحدة) ----------------
+const saveCfg = c => { mkdirSync(DIR, { recursive: true }); writeFileSync(CFG, JSON.stringify(c, null, 2)); };
+// معرّف المشروع، أو رابط المحرر الذي فيه المعرّف (…/projects/<ID>/edit)
+const scriptIdOf = v => { const s = String(v || "").trim().replace(/^["']|["']$/g, ""); const m = s.match(/\/projects\/([A-Za-z0-9_-]{30,})/); return m ? m[1] : /^[A-Za-z0-9_-]{30,}$/.test(s) ? s : ""; };
+// يسأل حتى يأتي جواب صالح (3 محاولات)، ويشرح الخطأ بدل أن يتوقف
+async function askUntil(question, parse, wrong) {
+  for (let i = 0; i < 3; i++) {
+    const v = parse(await ask(question));
+    if (v) return v;
+    say("  ✕ " + wrong + " جرّب مرة ثانية.");
+  }
+  return "";
+}
+
 async function config() {
   let c = {};
   try { c = JSON.parse(readFileSync(CFG, "utf8")); } catch (e) { /* أول مرة */ }
   let changed = false;
   if (!c.original || !existsSync(c.original)) {
     const guess = [path.resolve(repo, "..", "Code-complete.gs")].find(p => existsSync(p)) || "";
-    const typed = YES ? "" : await ask("\nملف الخادم الأصلي (Code-complete.gs الذي بُنيت عليه وحدات المكتب):\n  " + (guess || "لم أجده تلقائياً") + "\nاضغط Enter للموافقة، أو اكتب مساره: ");
-    c.original = typed || guess;
-    if (!c.original || !existsSync(c.original)) fail("ما لقيت ملف الخادم الأصلي. ضع مساره في " + CFG + " (الحقل original).");
-    changed = true;
-  }
-  if (!c.execUrl) {
-    c.execUrl = process.env.ENTALIQ_EXEC_URL || envExec() || await ask("\nرابط /exec للخادم (من إعدادات اللوحة): ");
-    changed = true;
-  }
-  if (!c.deploymentId) {
-    c.deploymentId = process.env.ENTALIQ_DEPLOYMENT_ID || execOf(c.execUrl);
-    if (!c.deploymentId) fail("رابط /exec غير صالح؛ يجب أن يكون https://script.google.com/macros/s/…/exec");
+    if (guess) say("ملف الخادم الأصلي: " + guess);
+    else if (!YES) say("\nما لقيت ملف الخادم الأصلي (Code-complete.gs الذي بُنيت عليه وحدات المكتب) بجانب مجلد المستودع.");
+    c.original = guess || (YES ? "" : await askUntil("اكتب مساره الكامل: ", v => { const p = v.replace(/^["']|["']$/g, ""); return existsSync(p) ? p : ""; }, "ما لقيت ملفاً بهذا المسار."));
+    if (!c.original) fail("ما لقيت ملف الخادم الأصلي. ضع مساره في " + CFG + " (الحقل original).");
     changed = true;
   }
   if (!c.scriptId) {
-    say("\nمعرّف المشروع (Script ID): من محرر Apps Script ← ⚙️ Project Settings ← IDs ← Script ID.");
-    c.scriptId = process.env.ENTALIQ_SCRIPT_ID || await ask("الصقه هنا: ");
-    if (!/^[A-Za-z0-9_-]{30,}$/.test(c.scriptId)) fail("معرّف المشروع غير صالح.");
+    c.scriptId = scriptIdOf(process.env.ENTALIQ_SCRIPT_ID);
+    if (!c.scriptId && !YES) {
+      say("\nمعرّف المشروع (Script ID): من محرر Apps Script ← ⚙️ إعدادات المشروع ← المعرّفات ← «معرّف النص البرمجي».");
+      c.scriptId = await askUntil("الصق معرّف المشروع هنا ثم Enter: ", scriptIdOf, "هذا ليس معرّف مشروع (نص طويل من حروف وأرقام، يبدأ عادة بـ 1).");
+    }
+    if (!c.scriptId) fail("معرّف المشروع مطلوب. ضعه في " + CFG + " (الحقل scriptId).");
     changed = true;
   }
-  if (changed) { mkdirSync(DIR, { recursive: true }); writeFileSync(CFG, JSON.stringify(c, null, 2)); say("حُفظت الإعدادات في " + CFG); }
+  // رابط /exec: من الإعدادات أو worker/.env، وإلا يُعرف من نشرات المشروع بعد تسجيل الدخول (resolveDeployment)
+  if (!c.execUrl || !c.deploymentId) {
+    const url = process.env.ENTALIQ_EXEC_URL || envExec();
+    const id = process.env.ENTALIQ_DEPLOYMENT_ID || execOf(url);
+    if (url && id) { c.execUrl = url; c.deploymentId = id; changed = true; }
+  }
+  if (changed) { saveCfg(c); say("حُفظت الإعدادات في " + CFG); }
   return c;
 }
 
+// النشر الذي يرد عليه رابط /exec: إن لم يُعرف من الإعدادات، نقرؤه من نشرات المشروع نفسه
+async function resolveDeployment(c) {
+  if (c.execUrl && c.deploymentId) return;
+  const r = clasp("--json list-deployments " + c.scriptId, { cwd: repo });
+  let list = [];
+  try {
+    const j = JSON.parse(r.out.slice(r.out.search(/[[{]/)));
+    // clasp 3.4 يعطي {deploymentId, versionNumber, description}؛ والإصدارات الأقدم تضعها داخل deploymentConfig
+    list = (Array.isArray(j) ? j : j.deployments || []).map(d => { const k = d.deploymentConfig || {};
+      return { id: d.deploymentId, version: d.versionNumber || k.versionNumber, desc: d.description || k.description || "" }; })
+      .filter(d => d.id && d.version).sort((a, b) => b.version - a.version);
+  } catch (e) { /* نسأل عن الرابط */ }
+  let pick = null;
+  if (list.length === 1) pick = list[0];
+  else if (list.length > 1 && !YES) {
+    say("\nفي المشروع أكثر من نشر. اختر الذي رابطه في إعدادات اللوحة (⚙️ ← رابط تطبيق الويب):");
+    list.forEach((d, i) => say("  " + (i + 1) + ") https://script.google.com/macros/s/" + d.id + "/exec  (النسخة " + d.version + (d.desc ? " · " + d.desc : "") + ")"));
+    const n = await askUntil("اكتب رقم النشر ثم Enter: ", v => { const k = Number(v); return k >= 1 && k <= list.length ? String(k) : ""; }, "اكتب رقماً من القائمة.");
+    pick = n ? list[Number(n) - 1] : null;
+  }
+  if (!pick && !YES) {
+    const url = await askUntil("\nالصق رابط /exec من إعدادات اللوحة (⚙️ ← رابط تطبيق الويب) ثم Enter: ", v => execOf(v.trim()) ? v.trim() : "", "الرابط يجب أن يكون بالشكل https://script.google.com/macros/s/…/exec");
+    if (url) pick = { id: execOf(url) };
+  }
+  if (!pick) fail("ما عرفت النشر الذي يرد عليه رابط /exec. ضع الرابط في " + CFG + " (الحقلان execUrl وdeploymentId).");
+  c.deploymentId = pick.id; c.execUrl = "https://script.google.com/macros/s/" + pick.id + "/exec";
+  saveCfg(c);
+  say("النشر: " + c.execUrl);
+}
+
 // ---------------- 1) تسجيل الدخول ----------------
+// هل نزّل npx أداة clasp من قبل؟ (أول تنزيل بضع دقائق بلا أي مخرجات، فننبه قبله)
+function claspCached() {
+  if (process.env.ENTALIQ_CLASP) return true;
+  const base = process.platform === "win32" ? path.join(process.env.LOCALAPPDATA || "", "npm-cache", "_npx") : path.join(process.env.HOME || "", ".npm", "_npx");
+  try { return readdirSync(base).some(d => existsSync(path.join(base, d, "node_modules", "@google", "clasp", "package.json"))); } catch (e) { return false; }
+}
 async function ensureLogin() {
   step(1, "التحقق من تسجيل الدخول في clasp");
+  if (!claspCached()) say("أول مرة على هذا الجهاز: ينزّل أداة Google ‏(clasp) بصمت، وقد يأخذ بضع دقائق. لا تغلق النافذة…");
   const state = () => { const r = clasp("--json show-authorized-user", { cwd: repo }); try { return JSON.parse(r.out.slice(r.out.indexOf("{"))); } catch (e) { return { loggedIn: false, raw: r.out }; } };
   let s = state();
   if (s.loggedIn) { say("مسجل الدخول" + (s.email ? " بـ " + s.email : "")); return; }
@@ -180,6 +231,7 @@ async function verify(c, expected) {
   say("تحديث خادم مكتب انطلق" + (CHECK ? " (فحص فقط، بلا رفع)" : ""));
   const c = await config();
   await ensureLogin();
+  await resolveDeployment(c);
   const remote = pullRemote(c);
   await checkDrift(remote);
   const built = build(c);
