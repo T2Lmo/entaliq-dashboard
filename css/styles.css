@@ -643,3 +643,18 @@
   .voice-status { margin: 0; }
   .vrev { display: grid; gap: 4px; padding: 8px 10px; border-radius: 8px; border: 1px dashed var(--line-2); }
   .vrev p { margin: 0; } .vrev-text { white-space: pre-wrap; line-height: 1.8; margin-top: 6px; max-height: 260px; overflow-y: auto; }
+  /* صحة المكتب */
+  #btnOffice { position: relative; }
+  #btnOffice[data-health="bad"]::after, #btnOffice[data-health="warn"]::after { content: ""; position: absolute; top: 4px; right: 4px; width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 2px var(--bg); }
+  #btnOffice[data-health="bad"]::after { background: var(--red); } #btnOffice[data-health="warn"]::after { background: var(--amber); }
+  .health-head { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--line-2); margin-bottom: 6px; }
+  .health-head[data-tone="ok"] { border-color: rgb(111 208 154 / .5); } .health-head[data-tone="warn"] { border-color: var(--amber); } .health-head[data-tone="bad"] { border-color: var(--red); }
+  .health-head .btn { margin-inline-start: auto; }
+  .health-dot { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; font-size: 12px; font-weight: 700; color: #0a0c0e; background: var(--text-3); flex: none; }
+  .health-dot[data-status="ok"] { background: var(--green); } .health-dot[data-status="warn"] { background: var(--amber); } .health-dot[data-status="bad"] { background: var(--red); color: #fff; }
+  .health-fix { margin: 4px 0 0; padding: 6px 10px; border-inline-start: 3px solid var(--amber); background: rgb(255 255 255 / .02); border-radius: 4px; line-height: 1.8; }
+  .health-item[data-status="bad"] .health-fix { border-inline-start-color: var(--red); }
+  .health-table { display: grid; gap: 2px; font-size: 14px; }
+  .ht-row { display: grid; grid-template-columns: minmax(110px, 1.4fr) 1fr .7fr 1fr 1.3fr; gap: 8px; align-items: center; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+  .ht-head { color: var(--text-3); font-size: 13px; }
+  @media (max-width: 640px) { .ht-row { grid-template-columns: 1.2fr 1fr .6fr .9fr; } .ht-row > span:last-child { display: none; } }

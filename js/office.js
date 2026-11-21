@@ -3,6 +3,7 @@
 
 const OFFICE_TABS = [
   { id: "agents", label: "الوكلاء" },
+  { id: "health", label: "صحة المكتب" },
   { id: "tasks", label: "المهام المجدولة" },
   { id: "office", label: "التوجيهات والدوام" },
   { id: "auto", label: "الأتمتة والهوية" },
@@ -261,7 +262,7 @@ function renderOfficeView() {
     return;
   }
   const o = state.office;
-  const body = { agents: officeAgentsHtml, tasks: officeTasksHtml, office: officeSettingsHtml, auto: officeAutoHtml, log: officeLogHtml, brain: officeBrainHtml }[state.officeTab] || officeAgentsHtml;
+  const body = { agents: officeAgentsHtml, tasks: officeTasksHtml, office: officeSettingsHtml, auto: officeAutoHtml, log: officeLogHtml, brain: officeBrainHtml, health: officeHealthHtml }[state.officeTab] || officeAgentsHtml;
   box.innerHTML = tabs + `<p class="hint sh-pad">الوقت في الخادم: ${esc(ltr(o.office.now))} (${esc(o.office.timezone)})</p>` + body(o);
 }
 
