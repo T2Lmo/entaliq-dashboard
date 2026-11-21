@@ -96,6 +96,11 @@ function digestCollect_() {
     s.visitsSoon.filter(v => v.date <= today).forEach(v => d.today.push((v.late ? "زيارة صيانة متأخرة " : "زيارة صيانة اليوم ") + v.date + ": " + v.client + " (" + v.type + ")"));
     s.renewals.forEach(r => d.today.push("تجديد عقد صيانة: " + r.client + " ينتهي " + r.end));
   });
+  // مسار المبيعات (Pipeline.gs): خطوات الصفقات التي حان موعدها
+  safe(() => {
+    if (typeof pipeAll_ !== "function") return;
+    pipeDue_(pipeAll_()).slice(0, 6).forEach(x => d.today.push((x.late ? "خطوة صفقة متأخرة " : "خطوة صفقة اليوم ") + x.at + ": " + x.company + " — " + x.step));
+  });
   safe(() => {
     if (typeof tendersAll_ !== "function") return;
     const soon = Date.now() + 7 * DIGEST_.day;

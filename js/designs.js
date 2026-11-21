@@ -311,7 +311,7 @@ async function contentJob(btn, kind) {
 }
 
 function renderView() {
-  ({ tasks: renderTasksView, news: renderNewsView, team: renderTeamView, alerts: renderAlertsView, compose: renderCompose, content: renderContentView, office: renderOfficeView, exec: renderExecView, prospects: renderProspectsView, tenders: renderTendersView, contracts: renderContractsView, voice: renderVoiceView }[state.view] || (() => {}))();
+  ({ tasks: renderTasksView, news: renderNewsView, team: renderTeamView, alerts: renderAlertsView, compose: renderCompose, content: renderContentView, office: renderOfficeView, exec: renderExecView, prospects: renderProspectsView, tenders: renderTendersView, contracts: renderContractsView, voice: renderVoiceView, pipeline: renderPipelineView }[state.view] || (() => {}))();
 }
 
 const sheet = $("#sheet");
@@ -334,4 +334,5 @@ function openView(view, opts) {
   if (view === "prospects") loadProspects();
   if (view === "tenders") loadTenders();
   if (view === "contracts") loadContracts();
+  if (view === "pipeline") loadPipeline(!!state.pipe);
 }

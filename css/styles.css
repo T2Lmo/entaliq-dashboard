@@ -658,3 +658,11 @@
   .ht-row { display: grid; grid-template-columns: minmax(110px, 1.4fr) 1fr .7fr 1fr 1.3fr; gap: 8px; align-items: center; padding: 6px 4px; border-bottom: 1px solid var(--line); }
   .ht-head { color: var(--text-3); font-size: 13px; }
   @media (max-width: 640px) { .ht-row { grid-template-columns: 1.2fr 1fr .6fr .9fr; } .ht-row > span:last-child { display: none; } }
+  /* مسار المبيعات */
+  .deal .item-head { flex-wrap: wrap; } .deal-value { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .deal-note { margin: 4px 0; padding: 6px 10px; border-inline-start: 3px solid var(--line-2); background: rgb(255 255 255 / .02); border-radius: 4px; }
+  .deal-next { margin: 4px 0; } .deal-next[data-late="true"] b { color: var(--red); }
+  .deal[data-stage="ربحنا"] { border-inline-start: 3px solid var(--green); } .deal[data-stage="خسرنا"] { opacity: .75; }
+  .pipe-move { width: auto; min-width: 120px; } .pipe-stage { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+  .pipe-inline { margin-top: 6px; padding: 8px 10px; border: 1px dashed var(--line-2); border-radius: 8px; }
+  #pipelineBody .row-actions { flex-wrap: wrap; } #pipelineBody .x-nums { flex-wrap: wrap; }

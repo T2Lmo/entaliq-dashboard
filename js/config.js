@@ -48,7 +48,7 @@ const PROSPECTS_AGENT = "مازن";
 // المنافسات والمناقصات (Tenders.gs)
 const TENDERS_AGENT = "بدر";
 // نسخة الخادم التي تتوقعها هذه اللوحة (HEALTH_.server في Health.gs)؛ تزيد مع كل تحديث للخادم
-const SERVER_VERSION = 1;
+const SERVER_VERSION = 2;
 
 // توزيع البطاقات حول العدّاد: r = العمود الأيمن، l = الأيسر، c5 = أسفل العدّاد
 const SLOTS = [
@@ -84,6 +84,7 @@ const VIEWS = {
   tenders: { title: "بدر · المنافسات والمناقصات", sub: "فرص حكومية وخاصة وترسيات في مجالاتنا، بحكم يناسب وضع المكتب الحالي، ولوحة جاهزية للتسجيل والمستندات." },
   prospects: { title: "مازن · استقطاب العملاء", sub: "منشآت سعودية تناسب وهج وانطلق، ببريدها الرسمي المنشور ومسودة يدققها سالم. لا يُرسل شيء إلا منك." },
   exec: { title: "ملخص راكان التنفيذي", sub: "ما أنجزه كل وكيل ونتائجه في الفترة، مع ما يحتاج انتباهك ومقترحات التكليف. الأرقام من السجلات مباشرة." },
+  pipeline: { title: "مسار المبيعات", sub: "كل صفقة من أول اهتمام حتى الربح أو الخسارة: قيمتها ومرحلتها وخطوتها القادمة. تنضاف وحدها من ردود مازن ومنافسات بدر وعروض الصيانة." },
   voice: { title: "راكان بالصوت", sub: "تكلم أو اكتب: اسأل عن المكتب، أوقف وكيلاً أو أرجعه، أو شغّل مهمة. يرد راكان بالصوت." },
   office: { title: "إدارة المكتب", sub: "تعليمات الوكلاء وتوجيهاتك، ساعات العمل، المهام المجدولة، الأتمتة، وهوية التصاميم." },
   content: { title: "المحتوى والاعتماد", sub: "منشورات الأخبار وخطة الأسبوع والنصائح الموسمية؛ لا يُعتبر شيء جاهزاً للنشر قبل اعتمادك." }
@@ -136,6 +137,7 @@ const state = {
   brain: null, brainLoading: false, brainError: "", brainAgent: "", brainEdit: "",
   contracts: null, contractsLoading: false, contractsError: "", contractsTab: "offers", contractsNew: false, contractsPrefill: null,
   tenders: null, tendersStats: null, tendersAt: 0, tendersLoading: false, tendersError: "", tendersTab: "open", tendersBusy: false, tendersAddOpen: false, tendersCfgOpen: false,
+  pipe: null, pipeLoading: false, pipeError: "", pipeTab: "today", pipeEdit: "", pipeNext: "", pipeClose: "", pipeCloseKind: "",
   health: null, healthLoading: false, healthError: "", healthUnsupported: false,
   prospects: null, prospectsStats: null, prospectsAt: 0, prospectsLoading: false, prospectsError: "", prospectsFilter: "approve", prospectsEdit: "", prospectsBusy: false, prospectsCfgOpen: false,
   view: "", filterAgent: "", query: "", sort: "new"
@@ -169,6 +171,7 @@ const ICON = {
   team: svg('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>'),
   eye: svg('<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'),
   clock: svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+  funnel: svg('<path d="M3 4h18l-7 8.5V19l-4 2v-8.5z"/>'),
   mic: svg('<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4M8 22h8"/>')
 };
 // رسومات البلاطات العلوية (64×36)

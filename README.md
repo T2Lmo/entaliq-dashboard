@@ -26,11 +26,12 @@ js/                 سكربتات عادية (ليست modules) تتشارك ا
   contracts.js      عقود صيانة الطاقة الشمسية: الباقات والأسعار، عرض السعر والعقد للطباعة، الزيارات والتجديد
   voice.js          راكان بالصوت: الميكروفون والنطق في المتصفح، والمحادثة، والتأكيد، وتشغيل المهام والتكليف بالصوت وقراءة نتيجتها، والموافقات بنداً بنداً
   health.js         صحة المكتب: فحص الخادم والعامل والبريد والمشغلات والوكلاء، مع طريقة إصلاح كل خلل ونقطة تنبيه على زر إدارة المكتب
+  pipeline.js       مسار المبيعات: الصفقات ومراحلها وقيمتها وخطوتها القادمة، والمتوقع وربح الشهر، وتنضاف وحدها من مازن وبدر وعروض الصيانة
   auth.js           الدخول بحساب Google
   social.js         ربط LinkedIn و X والنشر المباشر
   events.js         ربط الأحداث
   main.js           البداية (يُشغَّل أخيراً)
-apps-script/        ملفات تُضاف إلى مشروع Apps Script (Auth.gs, Social.gs, ClaudeBridge.gs, Office.gs, Executive.gs, Brain.gs, Studio.gs, Prospects.gs, Tenders.gs, Contracts.gs, Digest.gs, Voice.gs, Health.gs, Sites.gs) وخطوات التفعيل في SETUP.md
+apps-script/        ملفات تُضاف إلى مشروع Apps Script (Auth.gs, Social.gs, ClaudeBridge.gs, Office.gs, Executive.gs, Brain.gs, Studio.gs, Prospects.gs, Tenders.gs, Contracts.gs, Digest.gs, Voice.gs, Health.gs, Pipeline.gs, Sites.gs) وخطوات التفعيل في SETUP.md
 worker/             عامل على جهازك: ينفذ طلبات الوكلاء بـ Claude باشتراكك (بدون API)، ويرسل رسائل مازن المعتمدة من بريد الشركة ويقرأ ردودها (start-worker.cmd يعيد تشغيله إن توقف، وinstall-autostart.cmd يشغّله مع Windows)
 ```
 

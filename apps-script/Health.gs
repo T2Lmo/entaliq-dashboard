@@ -11,13 +11,13 @@
 
 const HEALTH_ = {
   // رقم نسخة الخادم: تزيد مع كل تحديث للخادم، وتقارنه اللوحة بالرقم الذي تتوقعه (SERVER_VERSION في config.js)
-  server: 1,
+  server: 2,
   days: 7, cellLimit: 10000000, logScan: 400,
   // كل وحدة وطريقة التأكد من وجودها في الخادم المنشور
   modules: () => [["الأتمتة وإدارة المكتب", typeof handleOfficeAction_], ["ملخص راكان", typeof handleExecAction_], ["العقل والمرجع", typeof handleBrainAction_],
     ["استوديو المحتوى", typeof handleStudioAction_], ["مازن", typeof handleProspectsAction_], ["بدر", typeof handleTendersAction_], ["عقود الصيانة", typeof handleContractsAction_],
     ["الملخص الصباحي", typeof handleDigestAction_], ["راكان بالصوت", typeof handleVoiceAction_], ["عامل Claude", typeof handleClaudeWorkerAction_],
-    ["بريد مازن والوارد", typeof handleMailWorkerAction_], ["LinkedIn وX", typeof handleSocialAction_]]
+    ["بريد مازن والوارد", typeof handleMailWorkerAction_], ["LinkedIn وX", typeof handleSocialAction_], ["مسار المبيعات", typeof handlePipelineAction_]]
 };
 
 // المشغلات التي يجب أن توجد حسب إعدادات الأتمتة (نفس شروط officeInstallTriggers_)
