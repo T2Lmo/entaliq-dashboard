@@ -641,3 +641,5 @@
   @media (prefers-reduced-motion: reduce) { .voice-mic[aria-pressed="true"] { animation: none; } }
   .voice-set summary { cursor: pointer; color: var(--text-2); }
   .voice-status { margin: 0; }
+  .vrev { display: grid; gap: 4px; padding: 8px 10px; border-radius: 8px; border: 1px dashed var(--line-2); }
+  .vrev p { margin: 0; } .vrev-text { white-space: pre-wrap; line-height: 1.8; margin-top: 6px; max-height: 260px; overflow-y: auto; }

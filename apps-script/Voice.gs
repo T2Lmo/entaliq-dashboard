@@ -9,7 +9,12 @@
  * - المرحلة الثانية: طلب حر («لمى اكتبي منشور عن…»، «جهّز عرض تدقيق لفندق»، أو سؤال لا تجيبه السجلات) يُكلَّف به الوكيل المناسب
  *   (بالاسم، أو بنوع العمل، وإلا راكان) بعد أن يقرأ عليك راكان ما فهمه وتؤكد؛ تنفذه اللوحة بالتكليف المباشر المعتاد عبر العامل،
  *   ويدققه سالم، ثم يقرأ راكان عليك خلاصته وتقدير سالم. الباحث يدوي، فطلبه يُجهَّز في «تكليف وكيل».
- * - لا حذف، ولا موافقة على إرسال الرسائل أو النشر بالصوت.
+ * - المرحلة الثالثة: الموافقات بالصوت («خلنا نراجع اللي ينتظرني»، «وافق على رسائل مازن»، «راجع المنشورات»). يعطي الخادم
+ *   قائمة ما يجوز مراجعته فقط: رسائل مازن ببريد موثّق ومتابعاته، والمنشورات المسودة (بنسختها)، والدروس المقترحة.
+ *   تمر عليها اللوحة واحداً واحداً: تسمع الموضوع وتقدير سالم (والنص إن طلبته)، وتقول أرسل/اعتمد أو ارفض (مع السبب) أو تخطّ،
+ *   وتنفذ قرارك بإجراءات صفحاتها المعتادة. الرسائل تدخل طابور الإرسال المتباعد ويمكن إلغاؤها منه قبل موعدها.
+ *   لا تمر بالصوت: الرسائل التي تحتاج تحققك من البريد أو تعذر إرسالها، والنشر على LinkedIn وX.
+ * - لا حذف بالصوت.
  * التعرف على الكلام ونطق الرد يتمّان في المتصفح؛ الخادم يستقبل النص فقط.
  *
  * يعتمد على Office.gs: officeApply_, officeAgentCfg_, officeSetActive_, officeLog_, officeBy_, officeHoursOf_, officeInHours_, officeHoursText_
@@ -52,6 +57,11 @@ const VOICE_ = {
   // أسئلة عن حال الوكيل (تمنع اعتبار الجملة تكليفاً)
   status: ["سوا", "سوت", "سويت", "انجز", "انجزت", "اخبار", "وضع", "حال", "صار"],
   maxTask: 1500,
+  reviewMax: { mail: 20, posts: 10, lessons: 10 },
+  reviewWords: ["وافق", "اعتمد", "نراجع", "نراجعها", "نراجعهم", "المراجعه", "مراجعه", "راجعها", "راجعهم", "انشر", "ارسلها", "ارسلهم"],
+  mailWords: ["رسايل", "الرسايل", "رساله", "الرساله", "ايميلات", "الايميلات", "مازن"],
+  postWords: ["منشور", "منشورات", "المنشورات", "المنشور", "بوست", "البوستات", "المحتوي"],
+  lessonWords: ["درس", "دروس", "الدروس", "العقل"],
   topics: ["رد", "ردود", "ردو", "ردوا", "منافسه", "منافسات", "مناقصات", "زياره", "زيارات", "صيانه", "عقود", "العامل", "موافقتي", "موافقات"],
   run: ["جهز", "يجهز", "جهزي", "تجهز", "دور", "يدور", "دوري", "ادور", "ابحث", "يبحث", "ابحثي", "طلع", "يطلع", "ارصد", "يرصد", "رصد",
     "ابدا", "يبدا", "شوف", "يشوف", "لقي", "يلقي", "جيب", "يجيب", "هات", "سو", "سوي", "يسوي", "حضر", "يحضر"],
@@ -182,6 +192,7 @@ function voiceBrief_(full) {
   const d = digestCollect_(), say = [voiceGreeting_()];
   const waiting = d.approvals.length;
   say.push(waiting ? "ينتظر موافقتك: " + d.approvals.map(voiceShort_).join("، ") : "ما فيه شيء ينتظر موافقتك الآن");
+  const offer = waiting ? ["خلنا نراجعها"] : null;
   const human = d.replies.filter(x => !/^ردود أخرى/.test(x));
   if (d.replies.length) say.push("ردود العملاء منذ أمس: " + d.replies.slice(0, 3).join("، "));
   if (full) {
@@ -190,7 +201,8 @@ function voiceBrief_(full) {
     if (issues.length) say.push(issues.join("، "));
     else say.push("والفريق كله تمام");
   }
-  return { say: voiceSay_(say), lines: d.approvals.concat(d.replies, full ? d.today : [], full ? d.team : []),
+  if (offer) say.push("وإذا تبي نراجع الموافقات الحين، قل: خلنا نراجعها");
+  return { say: voiceSay_(say), lines: d.approvals.concat(d.replies, full ? d.today : [], full ? d.team : []), examples: offer,
     open: d.approvals.some(x => /مازن/.test(x)) ? { view: "prospects", label: "افتح رسائل مازن" } : d.approvals.some(x => /منشورات/.test(x)) ? { view: "content", label: "افتح المنشورات" } : null,
     human: human.length };
 }
@@ -198,7 +210,7 @@ function voiceBrief_(full) {
 function voiceApprovals_() {
   const d = digestCollect_();
   if (!d.approvals.length) return { say: "ما فيه شيء ينتظر موافقتك الآن." };
-  return { say: voiceSay_(["ينتظر موافقتك: " + d.approvals.map(voiceShort_).join("، ")]), lines: d.approvals,
+  return { say: voiceSay_(["ينتظر موافقتك: " + d.approvals.map(voiceShort_).join("، "), "إذا تبي نراجعها الحين، قل: خلنا نراجعها"]), lines: d.approvals, examples: ["خلنا نراجعها"],
     open: d.approvals.some(x => /مازن/.test(x)) ? { view: "prospects", label: "افتح رسائل مازن" } : { view: "content", label: "افتح المنشورات" } };
 }
 
@@ -270,8 +282,8 @@ function voiceAgent_(name) {
 
 function voiceHelp_() {
   return { say: "أقدر أقول لك وش ينتظرك اليوم، والموافقات، وردود العملاء، وحالة العامل، ومين يداوم، ووش سوى أي وكيل اليوم، والمنافسات وزيارات الصيانة. "
-    + "وأقدر أوقف أي وكيل أو أرجعه للدوام، وأخلي مازن يجهز الشركات، وبدر يدور المنافسات، وأكمل المنشورات، وأكتب ملخص اليوم أو الأسبوع، وأرسل ملخص الصباح لبريدك. وتقدر تكلّف أي وكيل بمهمة تقولها بكلامك، وأقرأ لك النتيجة إذا خلص.",
-    examples: ["وش ينتظرني اليوم؟", "كم رد جانا؟", "وش سوى مازن اليوم؟", "هل العامل شغال؟", "مين موقوف؟", "أوقف خالد", "خل خالد يداوم", "مازن جهّز شركات اليوم", "بدر دوّر منافسات", "أرسل ملخص اليوم على إيميلي", "لمى اكتبي منشور عن ترشيد التكييف في المستشفيات", "جهّز عرض تدقيق طاقة لفندق في الرياض"] };
+    + "وأقدر أوقف أي وكيل أو أرجعه للدوام، وأخلي مازن يجهز الشركات، وبدر يدور المنافسات، وأكمل المنشورات، وأكتب ملخص اليوم أو الأسبوع، وأرسل ملخص الصباح لبريدك. وتقدر تكلّف أي وكيل بمهمة تقولها بكلامك، وأقرأ لك النتيجة إذا خلص. ونقدر نراجع الموافقات بالصوت: رسائل مازن والمنشورات ودروس العقل، وحدة وحدة.",
+    examples: ["وش ينتظرني اليوم؟", "كم رد جانا؟", "وش سوى مازن اليوم؟", "هل العامل شغال؟", "مين موقوف؟", "أوقف خالد", "خل خالد يداوم", "مازن جهّز شركات اليوم", "بدر دوّر منافسات", "أرسل ملخص اليوم على إيميلي", "لمى اكتبي منشور عن ترشيد التكييف في المستشفيات", "جهّز عرض تدقيق طاقة لفندق في الرياض", "خلنا نراجع اللي ينتظرني"] };
 }
 
 // ---------------- الأوامر ----------------
@@ -355,6 +367,58 @@ function voiceTaskStart_(c) {
     run: { kind: "task", agent: name, body: { agent: name, task: task } } };
 }
 
+// ---------------- الموافقات بالصوت ----------------
+function voiceReviewItems_(kinds) {
+  const items = [], notes = [], W = VOICE_.w, max = VOICE_.reviewMax;
+  if (kinds.mail && typeof prospectsAll_ === "function") {
+    const all = prospectsAll_();
+    const ok = p => p.email && prospectsEmailOk_(p.email) && (p.status === "متابعة جاهزة" ? !!p.fuBody : (p.status === "جاهز للإرسال" && !!p.body && ["موثّق من الصفحة", "عدّلته يدوياً"].indexOf(p.verified) >= 0));
+    all.filter(ok).slice(0, max.mail).forEach(p => {
+      const follow = p.status === "متابعة جاهزة";
+      items.push({ kind: "mail", id: p.id, title: p.company, where: [p.sector, p.city].filter(Boolean).join(" · "), email: p.email, follow: follow,
+        subject: follow ? p.fuSubject : p.subject, text: follow ? p.fuBody : p.body, score: salemScore_(follow ? p.fuAudit : p.audit) });
+    });
+    const check = all.filter(p => p.status === "تحقق يدوي").length;
+    if (check) notes.push(voiceNum_(check, W.msg) + " تحتاج تحققك من البريد، وتبقى من صفحة مازن");
+  }
+  if (kinds.posts) {
+    const sh = setupSheets().getSheetByName("Content");
+    if (sh && sh.getLastRow() > 1) {
+      sh.getRange(2, 1, sh.getLastRow() - 1, CONTENT_HEADERS.length).getValues()
+        .filter(r => r[0] && String(r[9]) === "مسودة" && String(r[7] || "").trim()).slice(-max.posts).forEach(r => {
+          items.push({ kind: "post", id: String(r[0]), version: contentVersion_(r), title: String(r[6] || r[3] || "").slice(0, 160),
+            service: String(r[5] || ""), text: String(r[7] || ""), score: salemScore_(r[8]) });
+        });
+    }
+  }
+  if (kinds.lessons && typeof brainLoad_ === "function") {
+    brainLoad_().filter(x => x.status === "مقترح").slice(0, max.lessons)
+      .forEach(x => items.push({ kind: "lesson", id: x.id, title: x.agent, text: x.text, type: x.type }));
+  }
+  return { items: items, notes: notes };
+}
+
+function voiceReview_(toks) {
+  const has = list => voiceHas_(toks, list);
+  const want = { mail: has(VOICE_.mailWords), posts: has(VOICE_.postWords), lessons: has(VOICE_.lessonWords) };
+  const kinds = want.mail || want.posts || want.lessons ? want : { mail: true, posts: true, lessons: true };
+  const r = voiceReviewItems_(kinds), W = VOICE_.w, count = k => r.items.filter(x => x.kind === k).length;
+  const parts = [];
+  if (count("mail")) parts.push(voiceNum_(count("mail"), W.msg) + " لمازن");
+  if (count("post")) parts.push(voiceNum_(count("post"), W.post));
+  if (count("lesson")) parts.push(voiceNum_(count("lesson"), ["ولا درس", "درس واحد مقترح", "درسين مقترحين", "دروس مقترحة", "درساً مقترحاً"]) + " للعقل");
+  if (!r.items.length) return { say: voiceSay_(["ما فيه شيء ينتظر موافقتك الآن"].concat(r.notes)) };
+  const say = ["نراجع " + voiceJoin_(parts)].concat(r.notes);
+  if (count("mail") && !digestWorkerOnline_()) say.push("العامل على جهازك متوقف، فالرسائل التي توافق عليها تنتظر في الطابور حتى يشتغل");
+  say.push("أقرأها عليك وحدة وحدة. قل أرسل أو اعتمد، أو ارفض، أو تخطّ، أو اسمع النص، أو وقف");
+  return { say: voiceSay_(say), review: { items: r.items } };
+}
+
+function digestWorkerOnline_() {
+  const w = digestWorkerSeen_();
+  return !!w.last && Date.now() - w.last <= DIGEST_.offlineMin * 60000;
+}
+
 // ---------------- التوجيه ----------------
 function voiceAsk_(data, user) {
   const by = officeBy_(user) + " · بالصوت";
@@ -374,10 +438,11 @@ function voiceAsk_(data, user) {
   if (has(["احذف", "امسح", "شيل", "حذف", "مسح"])) return { say: "الحذف ما يكون بالصوت، حتى ما يضيع شيء بالغلط. احذف من صفحة القسم نفسه." };
 
   if (!p.question) {
-    // موافقات الإرسال والنشر تبقى من صفحاتها في هذه المرحلة
-    if (has(["وافق", "اعتمد", "انشر", "ارسلها", "ارسلهم"]) || (has(["ارسل", "رسل", "ابعث", "طرش"]) && has(["رسايل", "الرسايل", "ايميلات", "الايميلات", "مازن", "منشور", "المنشورات"])))
-      return { say: "الموافقة على إرسال الرسائل ونشر المنشورات تكون من صفحاتها، حتى تشوف النص قبل ما يطلع.", open: has(["منشور", "المنشورات", "انشر"]) ? { view: "content", label: "افتح المنشورات" } : { view: "prospects", label: "افتح رسائل مازن" } };
     if (has(["ارسل", "رسل", "ابعث", "طرش", "ارسله", "ارسلي"]) && has(["ملخص", "الملخص"])) return voiceSendDigest_(by);
+    // الموافقات بالصوت: مراجعة واحداً واحداً
+    const objects = VOICE_.mailWords.concat(VOICE_.postWords, VOICE_.lessonWords, ["موافقات", "الموافقات", "ينتظرني", "ينتظر", "اللي"]);
+    if (has(VOICE_.reviewWords) || (has(["ارسل", "رسل", "ابعث", "طرش"]) && has(VOICE_.mailWords)) || (has(["راجع", "راجعي", "خلنا", "نبدا"]) && has(objects) && !has(["عن"])))
+      return voiceReview_(toks);
     const duty = voiceDuty_(p);
     const runVerb = has(VOICE_.run), freeObj = has(VOICE_.freeObj);
     if (!duty.length || runVerb) {
@@ -403,7 +468,7 @@ function voiceAsk_(data, user) {
   if (!subject.length && has(["موقف", "موقوف", "موقفين", "موقوفين", "واقف", "واقفين", "يداوم", "يداومون", "بالدوام", "الدوام", "دوام", "شغالين"])) return voiceTeam_();
   if (subject.length && activity) return voiceAgent_(subject[0]);
   if (has(["رد", "ردود", "ردو", "ردوا", "ردت", "يرد", "ردهم", "جاوب", "جاوبو", "جاوبوا"])) return voiceReplies_();
-  if (has(["موافقتي", "موافقه", "موافقات", "ينتظر", "ينتظرني", "اعتماد", "مراجعه", "مراجعتي"]) && !has(["اليوم", "عندي"])) return voiceApprovals_();
+  if ((has(["موافقتي", "موافقه", "موافقات", "ينتظر", "ينتظرني", "اعتماد", "مراجعه", "مراجعتي"]) || has(VOICE_.mailWords.filter(w => w !== "مازن").concat(VOICE_.postWords))) && !has(["اليوم", "عندي"])) return voiceApprovals_();
   if (has(["منافسه", "منافسات", "مناقصه", "مناقصات", "ترسيه", "ترسيات", "مستند", "مستندات", "شهاده", "شهادات"])) return voiceToday_(/منافسة|مستند/, "ما فيه منافسات تنتهي هذا الأسبوع ولا مستندات قريبة الانتهاء.");
   if (has(["زياره", "زيارات", "صيانه", "عقد", "عقود", "تجديد", "العقود"])) return voiceToday_(/زيارة|تجديد|عروض صيانة/, "ما فيه زيارات صيانة اليوم ولا تجديدات قريبة.");
   if (subject.length && toks.length >= 5) return voiceAssign_(raw, subject[0]);
