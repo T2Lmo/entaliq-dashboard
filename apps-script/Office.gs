@@ -307,6 +307,7 @@ function handleOfficeAction_(data, user) {
   if (typeof a === "string" && a.indexOf("tenders_") === 0 && typeof handleTendersAction_ === "function") return handleTendersAction_(data, user);
   if (typeof a === "string" && a.indexOf("contracts_") === 0 && typeof handleContractsAction_ === "function") return handleContractsAction_(data, user);
   if (typeof a === "string" && a.indexOf("digest_") === 0 && typeof handleDigestAction_ === "function") return handleDigestAction_(data, user);
+  if (typeof a === "string" && a.indexOf("voice_") === 0 && typeof handleVoiceAction_ === "function") return handleVoiceAction_(data, user);
   if (["office_get", "office_save_agent", "office_reset_agent", "office_save_office", "office_save_automation", "office_save_brand",
     "office_task_save", "office_task_delete", "office_task_run", "content_design_update", "office_save_sites", "sites_run", "office_set_active",
     "office_set_hours"].indexOf(a) < 0) return null;

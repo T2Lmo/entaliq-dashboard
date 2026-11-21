@@ -311,7 +311,7 @@ async function contentJob(btn, kind) {
 }
 
 function renderView() {
-  ({ tasks: renderTasksView, news: renderNewsView, team: renderTeamView, alerts: renderAlertsView, compose: renderCompose, content: renderContentView, office: renderOfficeView, exec: renderExecView, prospects: renderProspectsView, tenders: renderTendersView, contracts: renderContractsView }[state.view] || (() => {}))();
+  ({ tasks: renderTasksView, news: renderNewsView, team: renderTeamView, alerts: renderAlertsView, compose: renderCompose, content: renderContentView, office: renderOfficeView, exec: renderExecView, prospects: renderProspectsView, tenders: renderTendersView, contracts: renderContractsView, voice: renderVoiceView }[state.view] || (() => {}))();
 }
 
 const sheet = $("#sheet");

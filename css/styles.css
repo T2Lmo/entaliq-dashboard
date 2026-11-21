@@ -617,3 +617,24 @@
   .digest-preview { margin: 8px 0; padding: 10px 14px; border: 1px solid var(--line-2); border-radius: 6px; background: rgb(255 255 255 / .02); }
   .digest-preview ul { margin: 4px 0 10px; padding-inline-start: 20px; } .digest-preview li { margin: 2px 0; }
   .digest-status .badge { margin-inline-start: 6px; }
+  /* راكان بالصوت */
+  .fab-voice { bottom: 98px; left: 30px; width: 48px; height: 48px; }
+  .fab-voice svg { width: 24px; height: 24px; }
+  .voice { display: grid; gap: 10px; }
+  .voice-log { display: grid; gap: 10px; max-height: 52vh; overflow-y: auto; padding: 4px 2px; }
+  .vmsg { display: flex; gap: 8px; align-items: flex-start; max-width: 92%; }
+  .vmsg p { margin: 0; line-height: 1.8; }
+  .vmsg > div { display: grid; gap: 6px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line-2); background: rgb(255 255 255 / .03); }
+  .vmsg[data-who="me"] { justify-self: end; padding: 8px 12px; border-radius: 10px; background: rgb(92 199 177 / .12); border: 1px solid rgb(92 199 177 / .3); }
+  .vmsg-more summary { cursor: pointer; color: var(--text-3); font-size: 13px; } .vmsg-more ul { margin: 4px 0 0; padding-inline-start: 18px; }
+  .vmsg-live { margin: 0; justify-self: end; color: var(--text-3); font-style: italic; }
+  .voice-bar { display: flex; gap: 8px; align-items: center; }
+  .voice-mic { flex: none; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; color: #e9ecef;
+    background: radial-gradient(circle at 50% 35%, #1d2126, #0a0c0e 70%); border: 1px solid #3d444c; }
+  .voice-mic svg { width: 26px; height: 26px; }
+  .voice-mic[aria-pressed="true"] { border-color: var(--red); color: #fff; box-shadow: 0 0 0 0 rgb(240 90 90 / .5); animation: voicePulse 1.4s infinite; }
+  .voice-mic:disabled { opacity: .4; cursor: not-allowed; }
+  @keyframes voicePulse { 0% { box-shadow: 0 0 0 0 rgb(240 90 90 / .45); } 100% { box-shadow: 0 0 0 14px rgb(240 90 90 / 0); } }
+  @media (prefers-reduced-motion: reduce) { .voice-mic[aria-pressed="true"] { animation: none; } }
+  .voice-set summary { cursor: pointer; color: var(--text-2); }
+  .voice-status { margin: 0; }
