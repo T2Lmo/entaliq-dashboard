@@ -16,6 +16,7 @@
  *   لا تمر بالصوت: الرسائل التي تحتاج تحققك من البريد أو تعذر إرسالها، والنشر على LinkedIn وX.
  * - لا حذف بالصوت.
  * التعرف على الكلام ونطق الرد يتمّان في المتصفح؛ الخادم يستقبل النص فقط.
+ * راكان يتكلم بلهجة سعودية بيضاء مهذبة: كل ما يقوله يمر على voiceSaudi_ (ومنه نصوص الملخص والصحة والمسار المكتوبة بالفصحى).
  *
  * يعتمد على Office.gs: officeApply_, officeAgentCfg_, officeSetActive_, officeLog_, officeBy_, officeHoursOf_, officeInHours_, officeHoursText_
  * وعلى Digest.gs: digestCollect_, digestWorkerSeen_, digestSend_ — وعلى Executive.gs: execCollect_, execReports_
@@ -181,6 +182,33 @@ function voiceSpeak_(s) {
     })
     .replace(/اليوم اليوم/g, "اليوم").replace(/\s·\s/g, "، ").replace(/\s—\s/g, "، ").replace(/\s+/g, " ").trim();
 }
+// ---------------- اللهجة السعودية ----------------
+// استبدالات مرتبة (الأطول أولاً) من الفصحى إلى لهجة سعودية بيضاء؛ تُطبَّق على نص الرد كاملاً قبل إرساله
+const VOICE_SAUDI_ = [
+  [/الآن/g, "الحين"], [/حالياً/g, "الحين"], [/منذ /g, "من "], [/شيء/g, "شي"],
+  [/موقوفين/g, "موقّفين"], [/موقوفة/g, "موقّفة"], [/موقوف/g, "موقّف"], [/(^|[\s،.])أوقفت /g, "$1وقّفت "],
+  [/خارج ساعات الدوام/g, "برا ساعات الدوام"], [/خارج دوامه/g, "برا دوامه"], [/خارج دوامها/g, "برا دوامها"], [/خارج الدوام/g, "برا الدوام"],
+  [/متوقفة/g, "واقفة"], [/متوقف/g, "واقف"],
+  [/حتى (تشغّل|ترجعهم|يشتغل|تشغله)/g, "لين $1"], [/حتى (ما|تشوف)/g, "عشان $1"],
+  [/(^|[\s،.])لكن /g, "$1بس "], [/ ثم /g, " وبعدين "],
+  [/تأخذ/g, "تاخذ"], [/يأخذ/g, "ياخذ"], [/أبلغك/g, "أعلمك"],
+  [/هذا الشهر/g, "هالشهر"], [/هذا الأسبوع/g, "هالأسبوع"], [/غير موجود/g, "مو موجود"], [/لا يوجد/g, "ما فيه"],
+  [/ بعد([.،]|$)/g, " للحين$1"], [/لم نتواصل/g, "ما تواصلنا"], [/لم يتصل/g, "ما اتصل"],
+  [/إلى بريدك/g, "على إيميلك"], [/(^|[\s،.])أرسلت /g, "$1رسلت "], [/تأكد أن /g, "تأكد إن "],
+  [/حان موعدها/g, "جا وقتها"], [/بلا حركة من/g, "ما تحركت من"], [/وغيرها في اللوحة/g, "والباقي في اللوحة"],
+  [/القادمة/g, "الجاية"], [/بدلاً منه/g, "بداله"], [/اذكر وكيلاً غيره/g, "قل اسم وكيل ثاني"], [/ما فهمت الطلب/g, "ما فهمت عليك"],
+  [/يحتاج الخادم إذن Google/g, "الخادم يبيله إذن من Google"], [/يحتاج اتصال/g, "يبيله اتصال"],
+  [/فالأعمال الآلية تنتظر بداية الدوام/g, "والشغل الآلي ينتظر لين يبدا الدوام"],
+  [/قيد التنفيذ/g, "ما خلصت للحين"], [/ما سجّلت نشاطاً اليوم/g, "ما سوّت شي اليوم"], [/ما سجّل نشاطاً اليوم/g, "ما سوّى شي اليوم"],
+  [/نفّذت من التكليفات/g, "خلّصت من التكليفات"], [/نفّذ من التكليفات/g, "خلّص من التكليفات"],
+  [/طريقة الإصلاح في صحة المكتب/g, "وطريقة الإصلاح تلقاها في صحة المكتب"],
+  [/ما أعرف وكيلاً بهذا الاسم/g, "ما أعرف وكيل بهالاسم"], [/في الخادم المنشور/g, "في الخادم اللي منشور"],
+  [/ترجعهم/g, "ترجّعهم"], [/أي عمل يدوي أو آلي/g, "أي شغل يدوي أو آلي"],
+  [/ بعد مع /g, " للحين مع "], [/ما أُرسل/g, "ما انرسل"], [/وأُرسل /g, "وانرسل "], [/ (التي|الذي|الذين) /g, " اللي "], [/(^|[\s،.])هذه /g, "$1هذي "],
+  [/تحتاج تحققك من البريد/g, "تبي تتأكد من بريدها"]
+];
+function voiceSaudi_(s) { return VOICE_SAUDI_.reduce((t, [re, to]) => t.replace(re, to), String(s || "")); }
+
 const voiceSay_ = lines => lines.filter(Boolean).map(voiceSpeak_).join(". ").replace(/\.\./g, ".") + ".";
 
 const voiceShort_ = x => String(x).replace(" تنتظر موافقتك", "");
@@ -231,7 +259,7 @@ function voiceToday_(re, none) {
 
 function voiceWorker_() {
   const w = digestWorkerSeen_(), tz = Session.getScriptTimeZone();
-  if (!w.last) return { say: "العامل على جهازك ما اتصل بالخادم بعد. شغّل start-worker.cmd من مجلد worker واتركه مفتوح." };
+  if (!w.last) return { say: "العامل على جهازك ما اتصل بالخادم بعد. شغّل start-worker.cmd من مجلد worker وخلّه مفتوح." };
   const mins = Math.round((Date.now() - w.last) / 60000);
   if (mins <= DIGEST_.offlineMin) return { say: "العامل على جهازك متصل، والوكلاء يقدرون يشتغلون." };
   return { say: voiceSay_(["العامل على جهازك متوقف من " + Utilities.formatDate(new Date(w.last), tz, "yyyy-MM-dd HH:mm"),
@@ -352,7 +380,7 @@ function voiceDoDuty_(clauses, by, confirmed) {
 function voiceRun_(kind, p) {
   const needs = { prospects: "مازن", tenders: "بدر", studio: "لمى", exec: "راكان" }[kind];
   if (needs && officeAgentCfg_(needs).active === false) return { say: needs + (VOICE_.female.indexOf(needs) >= 0 ? " موقوفة" : " موقوف") + " حالياً. قل: خل " + needs + " يداوم، ثم اطلب منه." };
-  if (kind === "prospects") return { say: "تمام، مازن بدأ يكتب المتابعات والمسودات ثم يبحث عن منشآت جديدة. تأخذ من ثلاث إلى خمس دقائق، وأبلغك إذا خلص.", run: { kind: kind, body: { action: "prospects_run" } } };
+  if (kind === "prospects") return { say: "تمام، مازن بدأ يكتب المتابعات والمسودات، وبعدها يدوّر منشآت جديدة. تأخذ من ثلاث إلى خمس دقائق، وأبلغك إذا خلص.", run: { kind: kind, body: { action: "prospects_run" } } };
   if (kind === "tenders") return { say: "تمام، بدر بدأ يدوّر المنافسات والترسيات. تأخذ من ثلاث إلى خمس دقائق، وأبلغك إذا خلص.", run: { kind: kind, body: { action: "tenders_run" } } };
   if (kind === "studio") return { say: "تمام، لمى تكتب وسالم يدقق وريم تصمم وزياد يكتب نسخة X. تأخذ من دقيقتين إلى أربع، وأبلغك إذا خلصوا.", run: { kind: kind, body: { action: "studio_run" } } };
   const k = voiceHas_(p.toks, ["الاسبوع", "اسبوع", "اسبوعي", "الاسبوعي"]) ? "week" : voiceHas_(p.toks, ["الشهر", "شهر", "شهري", "الشهري"]) ? "month" : "day";
@@ -388,7 +416,7 @@ function voiceRoute_(toks) {
 
 // الباحث يدوي (تنقل تقرير Claude بنفسك)، فطلبه يُجهَّز في «تكليف وكيل»
 function voiceCompose_(raw, name) {
-  return { say: "جهزت طلب " + name + " في صفحة التكليف. البحث ينقل يدوياً من Claude، فراجعه وأكمل من هناك.", compose: { agent: name, task: voiceTaskText_(raw, name) } };
+  return { say: "جهزت طلب " + name + " في صفحة التكليف. البحث تنقله بيدك من Claude، فراجعه وكمّل من هناك.", compose: { agent: name, task: voiceTaskText_(raw, name) } };
 }
 
 // يقرأ عليك ما فهمه ثم ينتظر تأكيدك قبل التكليف
@@ -397,7 +425,7 @@ function voiceAssign_(raw, name) {
   const task = voiceTaskText_(raw, name), f = VOICE_.female.indexOf(name) >= 0;
   if (officeAgentCfg_(name).active === false)
     return { say: name + (f ? " موقوفة" : " موقوف") + " حالياً. قل: خل " + name + " يداوم، ثم اطلب منه مرة ثانية.", compose: { agent: name, task: task } };
-  return { say: "أكلّف " + name + " بهذا: " + task + ". قل أكّد، أو إلغاء، أو اذكر وكيلاً غيره.",
+  return { say: "أكلّف " + name + " بهذا: " + task + ". قل: أكّد، أو: إلغاء، أو اذكر وكيلاً غيره.",
     confirm: { op: "task", agent: name, task: task, prompt: "تكليف " + name }, compose: { agent: name, task: task } };
 }
 
@@ -465,6 +493,12 @@ function digestWorkerOnline_() {
 
 // ---------------- التوجيه ----------------
 function voiceAsk_(data, user) {
+  const r = voiceAskCore_(data, user);
+  if (r && r.say) r.say = voiceSaudi_(r.say);
+  return r;
+}
+
+function voiceAskCore_(data, user) {
   const by = officeBy_(user) + " · بالصوت";
   if (data.confirm) {
     if (data.confirm.op === "off_all") return voiceDoDuty_([{ mode: "off", all: true, names: [] }], by, true);
@@ -485,7 +519,7 @@ function voiceAsk_(data, user) {
     return voicePipeline_();
   if (!has(["عن"]) && ((has(["صحه", "سليم", "مشاكل", "مشكله", "خلل", "عطل", "اعطال"]) && has(["المكتب", "مكتب", "النظام", "اللوحه", "الخادم"])) || has(["افحص", "فحص"])))
     return voiceHealth_();
-  if (has(["احذف", "امسح", "شيل", "حذف", "مسح"])) return { say: "الحذف ما يكون بالصوت، حتى ما يضيع شيء بالغلط. احذف من صفحة القسم نفسه." };
+  if (has(["احذف", "امسح", "شيل", "حذف", "مسح"])) return { say: "الحذف ما يكون بالصوت، حتى ما يضيع شيء بالغلط. احذفه من صفحة القسم نفسه." };
 
   if (!p.question) {
     if (has(["ارسل", "رسل", "ابعث", "طرش", "ارسله", "ارسلي"]) && has(["ملخص", "الملخص"])) return voiceSendDigest_(by);

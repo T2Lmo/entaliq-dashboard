@@ -30,7 +30,8 @@ const voiceSave = () => store.set(VOICE_KEY, JSON.stringify(VS.cfg));
 // ---------------- النطق ----------------
 function voiceVoices() {
   if (!voiceCanSpeak) return [];
-  const rank = v => (/^ar-SA/i.test(v.lang) ? 0 : /^ar/i.test(v.lang) ? 2 : 9) - (/natural|online|neural/i.test(v.name) ? 1 : 0);
+  const rank = v => (/^ar-SA/i.test(v.lang) ? 0 : /^ar/i.test(v.lang) ? 10 : 99)
+    - (/hamed|حامد/i.test(v.name) ? 6 : /naayf|نايف/i.test(v.name) ? 4 : 0) - (/natural|online|neural/i.test(v.name) ? 2 : 0);
   return speechSynthesis.getVoices().filter(v => /^ar/i.test(v.lang)).sort((a, b) => rank(a) - rank(b));
 }
 function voicePick() {
@@ -42,7 +43,7 @@ function voiceSpeak(text, then) {
   speechSynthesis.cancel();
   const v = voicePick();
   // Chrome يقطع النطق الطويل؛ نقسّمه جملاً
-  const parts = String(text).replace(/[⁦-⁩]/g, "").replace(/\p{Extended_Pictographic}️?/gu, "").split(/(?<=[.!؟?])\s+/).flatMap(s => s.length > 220 ? s.split(/(?<=،)\s+/) : [s]).filter(Boolean);
+  const parts = voiceSpoken(String(text)).replace(/[⁦-⁩]/g, "").replace(/\p{Extended_Pictographic}️?/gu, "").split(/(?<=[.!؟?])\s+/).flatMap(s => s.length > 220 ? s.split(/(?<=،)\s+/) : [s]).filter(Boolean);
   parts.forEach((s, i) => {
     const u = new SpeechSynthesisUtterance(s);
     u.lang = v ? v.lang : "ar-SA"; if (v) u.voice = v;
@@ -51,6 +52,15 @@ function voiceSpeak(text, then) {
     speechSynthesis.speak(u);
   });
 }
+// ما يُنطق فقط: الأسماء الإنجليزية بنطقها عندنا، والملفات والروابط بوصف بدل حروفها
+const VOICE_SAY_AS = [
+  [/start-worker\.cmd/gi, "ملف تشغيل العامل"], [/install-autostart\.cmd/gi, "ملف التشغيل التلقائي"],
+  [/(الرابط|رابط|للتواصل)\s*:\s*https?:\/\/\S+/g, "$1 تلقاه على الشاشة"], [/https?:\/\/\S+/g, "الرابط"], [/\bworker\b/gi, "وركر"],
+  [/\bLinkedIn\b/gi, "لينكد إن"], [/\bClaude\b/gi, "كلود"], [/\bGoogle\b/gi, "قوقل"], [/\bApps Script\b/gi, "آبس سكربت"], [/\bGmail\b/gi, "جيميل"],
+  [/\bWhatsApp\b/gi, "واتساب"], [/\bIPMVP\b/g, "آي بي إم في بي"], [/\bASHRAE\b/g, "أشري"], [/(^|[\sو(])X(?=[\s.،)]|$)/g, "$1إكس"], [/(\d+)%/g, "$1 بالمية"]
+];
+const voiceSpoken = t => VOICE_SAY_AS.reduce((x, [re, to]) => x.replace(re, to), t);
+
 function voiceHush() { if (voiceCanSpeak) speechSynthesis.cancel(); }
 
 // ---------------- الاستماع ----------------
@@ -69,8 +79,8 @@ function voiceListen() {
     voicePaintLive();
   };
   rec.onerror = e => {
-    const msg = { "not-allowed": "اسمح للوحة باستخدام الميكروفون من شريط العنوان ثم حاول مرة ثانية.", "service-not-allowed": "اسمح للوحة باستخدام الميكروفون من شريط العنوان ثم حاول مرة ثانية.",
-      "no-speech": "ما سمعت شيء. اضغط الميكروفون وتكلم.", "audio-capture": "ما لقيت ميكروفون على هذا الجهاز.", network: "التعرف على الكلام يحتاج اتصال إنترنت." }[e.error];
+    const msg = { "not-allowed": "اسمح للوحة تستخدم الميكروفون من شريط العنوان، وجرّب مرة ثانية.", "service-not-allowed": "اسمح للوحة تستخدم الميكروفون من شريط العنوان، وجرّب مرة ثانية.",
+      "no-speech": "ما سمعت شي. اضغط الميكروفون وتكلم.", "audio-capture": "ما لقيت ميكروفون على هالجهاز.", network: "التعرف على الكلام يبيله إنترنت." }[e.error];
     if (msg && e.error !== "aborted") toast(msg, e.error === "no-speech" ? "none" : "warn");
   };
   rec.onend = () => {
@@ -102,7 +112,7 @@ async function voiceSubmit(text) {
     const other = p.op === "task" && voiceAgentIn(text, p.agent);
     if (other) {
       const np = Object.assign({}, p, { agent: other, prompt: "تكليف " + other });
-      const say = "أكلّف " + other + " بدلاً منه؟ قل أكّد أو إلغاء.";
+      const say = "أكلّف " + other + " بداله؟ قل: أكّد، أو: إلغاء.";
       VS.pending = np; // قبل الرسم، لتظهر أزرار التأكيد
       voiceAdd({ who: "rakan", text: say, confirm: np, compose: { agent: other, task: p.task } });
       voiceSpeak(say, () => { if (VS.cfg.autoListen && VoiceRec && state.view === "voice" && sheet.open) voiceListen(); });
@@ -123,7 +133,7 @@ function voiceAgentIn(text, except) {
 }
 
 async function voiceAsk(payload) {
-  if (!state.url || !hasAuth()) { const say = "اربط اللوحة بالخادم أولاً من الإعدادات."; voiceAdd({ who: "rakan", text: say }); voiceSpeak(say); return; }
+  if (!state.url || !hasAuth()) { const say = "اربط اللوحة بالخادم من الإعدادات أول."; voiceAdd({ who: "rakan", text: say }); voiceSpeak(say); return; }
   VS.thinking = true; renderVoiceView();
   let res;
   try { res = await api(Object.assign({ action: "voice_ask" }, payload)); }
@@ -165,7 +175,7 @@ function voiceGist(text) {
 async function voiceRunJob(run) {
   const flag = VOICE_BUSY[run.kind];
   if (VS.running || (flag && state[flag])) {
-    const say = (VS.running ? VS.runningWho : voiceWho(run)) + " يشتغل الحين، أبلغك إذا خلص. اطلب الثانية بعده.";
+    const say = (VS.running ? VS.runningWho : voiceWho(run)) + " يشتغل الحين، وأعلمك إذا خلص. اطلب الثانية بعده.";
     voiceAdd({ who: "rakan", text: say }); voiceSpeak(say); return;
   }
   VS.running = run.kind; VS.runningWho = voiceWho(run); if (flag) state[flag] = true; voiceFab(); renderVoiceView();
@@ -180,20 +190,20 @@ async function voiceRunJob(run) {
     } else if (run.kind === "prospects") {
       if (typeof acceptProspects === "function") acceptProspects(d);
       const r = d.run || {};
-      say = "خلص مازن: " + voiceNum(r.found, VOICE_W.place) + " جديدة، و" + voiceNum(r.drafted, VOICE_W.draft) + "، و" + voiceNum(r.followUps, VOICE_W.follow) + ". تنتظر موافقتك في صفحة مازن.";
+      say = "خلص مازن: لقى " + voiceNum(r.found, VOICE_W.place) + " جديدة، وكتب " + voiceNum(r.drafted, VOICE_W.draft) + " و" + voiceNum(r.followUps, VOICE_W.follow) + "، وتنتظر موافقتك في صفحة مازن.";
     } else if (run.kind === "tenders") {
       if (typeof acceptTenders === "function") acceptTenders(d);
       const r = d.run || {};
-      say = "خلص بدر: " + voiceNum(r.found, VOICE_W.chance) + " جديدة، و" + voiceNum(r.awards, VOICE_W.award) + ".";
+      say = "خلص بدر: لقى " + voiceNum(r.found, VOICE_W.chance) + " جديدة و" + voiceNum(r.awards, VOICE_W.award) + ".";
     } else if (run.kind === "studio") {
       say = d.message || "خلص الاستوديو.";
       refresh({ quiet: true });
     } else {
       state.exec = d.reports || state.exec; if (d.report) state.execSel = d.report.id;
-      say = "كتب راكان " + (d.report ? d.report.kind === "أسبوعي" ? "ملخص الأسبوع" : d.report.kind === "شهري" ? "ملخص الشهر" : "ملخص اليوم" : "الملخص")
+      say = "كتبت " + (d.report ? d.report.kind === "أسبوعي" ? "ملخص الأسبوع" : d.report.kind === "شهري" ? "ملخص الشهر" : "ملخص اليوم" : "الملخص")
         + (d.report && d.report.report && d.report.report.headline ? ": " + d.report.report.headline : ".");
     }
-  } catch (e) { say = "تعذر عمل " + voiceWho(run) + ": " + officeError(e); }
+  } catch (e) { say = "ما زبط شغل " + voiceWho(run) + ": " + officeError(e); }
   finally { VS.running = ""; VS.runningWho = ""; if (flag) state[flag] = false; voiceFab(); }
   const open = { prospects: { view: "prospects", label: "افتح صفحة مازن" }, tenders: { view: "tenders", label: "افتح صفحة بدر" }, studio: { view: "content", label: "افتح المنشورات" }, exec: { view: "exec", label: "افتح الملخص" }, task: { view: "tasks", label: "افتح سجل المهام" } }[run.kind];
   voiceAdd(Object.assign({ who: "rakan", text: say, open }, extra));
@@ -247,7 +257,7 @@ function renderVoiceView() {
   if (!box || state.view !== "voice") return;
   const keep = $("#voiceText") ? $("#voiceText").value : "";
   const voices = voiceVoices(), picked = voicePick();
-  const status = VS.listening ? "أسمعك… تكلم ثم توقف" : VS.thinking ? "راكان يفكر…" : VS.review ? "مراجعة: البند " + (VS.review.i + 1) + " من " + VS.review.items.length : VS.running ? VS.runningWho + " يشتغل بطلبك، وأبلغك إذا خلص (تقدر تسأل في الأثناء)" : VoiceRec ? "اضغط الميكروفون وتكلم" : "اكتب أمرك (متصفحك لا يدعم التعرف على الكلام)";
+  const status = VS.listening ? "أسمعك… تكلّم، وإذا خلصت اسكت شوي" : VS.thinking ? "راكان يفكر…" : VS.review ? "مراجعة: البند " + (VS.review.i + 1) + " من " + VS.review.items.length : VS.running ? VS.runningWho + " يشتغل على طلبك، وأعلمك إذا خلص (تقدر تسأل في هالوقت)" : VoiceRec ? "اضغط الميكروفون وتكلم" : "اكتب أمرك (متصفحك لا يدعم التعرف على الكلام)";
   const intro = VS.log.length ? "" : `<div class="vmsg" data-who="rakan">${avatar(EXEC_AGENT, "xs")}<div><p>هلا، أنا راكان. اسألني عن المكتب، أو اطلب مني أوقف وكيل أو أشغّل مهمة، أو كلّف أي وكيل بكلامك وأقرأ لك النتيجة، أو نراجع الموافقات بنداً بنداً.</p>
     <div class="chips">${VOICE_EXAMPLES.map(x => `<button type="button" class="chip-ex" data-vex="${esc(x)}">${esc(x)}</button>`).join("")}</div></div></div>`;
   box.innerHTML = `<div class="sh-pad voice">
@@ -260,7 +270,7 @@ function renderVoiceView() {
     <p class="hint voice-status" role="status">${esc(status)}</p>
     <details class="voice-set"><summary>إعدادات الصوت</summary>
       ${voices.length ? `<label class="lbl" for="voicePick">الصوت</label><select class="input" id="voicePick">${voices.map(v => `<option value="${esc(v.name)}"${picked && v.name === picked.name ? " selected" : ""}>${esc(v.name)} (${esc(v.lang)})</option>`).join("")}</select>`
-        : `<p class="hint">${voiceCanSpeak ? "ما فيه صوت عربي في هذا المتصفح. في Edge أصوات سعودية طبيعية، أو أضف العربية من إعدادات Windows ← الوقت واللغة ← الكلام." : "متصفحك لا يدعم نطق الردود؛ تظهر مكتوبة فقط."}</p>`}
+        : `<p class="hint">${voiceCanSpeak ? "ما فيه صوت عربي في هذا المتصفح. أفضل صوت سعودي في Edge («Hamed» الطبيعي)، أو أضف العربية (السعودية) من إعدادات Windows ← الوقت واللغة ← الكلام." : "متصفحك لا يدعم نطق الردود؛ تظهر مكتوبة فقط."}</p>`}
       <label class="lbl" for="voiceRate">السرعة</label>
       <select class="input" id="voiceRate">${[0.9, 1, 1.1, 1.25].map(r => `<option value="${r}"${Number(VS.cfg.rate) === r ? " selected" : ""}>${r === 1 ? "عادية" : r < 1 ? "أبطأ" : r === 1.1 ? "أسرع قليلاً" : "أسرع"}</option>`).join("")}</select>
       <label class="remember"><input type="checkbox" id="voiceMute"${VS.cfg.mute ? " checked" : ""}> بلا صوت (الردود مكتوبة فقط)</label>
@@ -359,7 +369,7 @@ async function voiceReviewDecide(item, choice, note) {
         const d = await api(body);
         if (d.item) { const at = state.content.findIndex(x => x[0] === item.id); if (at >= 0) state.content[at] = d.item; }
         if (d.version) state.contentVersions[item.id] = d.version;
-        if (choice === "approve") { r.done.post++; said = "اعتمدته. النشر على LinkedIn وX من صفحة المحتوى."; }
+        if (choice === "approve") { r.done.post++; said = "اعتمدته. والنشر على LinkedIn وX تسويه من صفحة المحتوى."; }
         else {
           r.done.rejected++; said = "رفضته";
           if (note) { try { const b = await api({ action: "brain_note", contentId: item.id, note, rejected: true }); if (typeof acceptBrain === "function") acceptBrain(b); said += "، وحفظت ملاحظتك في عقل لمى"; } catch (e) { /* الملاحظة اختيارية */ } }
@@ -368,12 +378,12 @@ async function voiceReviewDecide(item, choice, note) {
       } else {
         const d = await api({ action: "brain_status", id: item.id, status: choice === "approve" ? "معتمد" : "مرفوض" });
         if (typeof acceptBrain === "function") acceptBrain(d);
-        if (choice === "approve") { r.done.lessons = (r.done.lessons || 0) + 1; said = "اعتمدته، ويستخدمه " + item.title + " من المهمة القادمة."; }
+        if (choice === "approve") { r.done.lessons = (r.done.lessons || 0) + 1; said = "اعتمدته، ويستخدمه " + item.title + " من المهمة الجاية."; }
         else { r.done.rejected++; said = "رفضته."; }
       }
     } catch (e) {
       r.done.skipped++;
-      said = e.code === "CONFLICT" ? "تغيّر من صفحته منذ بدأنا، فتخطيته." : "تعذر: " + officeError(e) + ". تخطيته.";
+      said = e.code === "CONFLICT" ? "تغيّر من صفحته بعد ما بدينا، فتخطيته." : "ما زبط: " + officeError(e) + ". تخطيته.";
     } finally { VS.thinking = false; }
   }
   r.i++;
