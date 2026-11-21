@@ -35,6 +35,7 @@ js/                 سكربتات عادية (ليست modules) تتشارك ا
   main.js           البداية (يُشغَّل أخيراً)
 apps-script/        ملفات تُضاف إلى مشروع Apps Script (Auth.gs, Social.gs, ClaudeBridge.gs, Office.gs, Executive.gs, Brain.gs, Studio.gs, Prospects.gs, Tenders.gs, Contracts.gs, Digest.gs, Voice.gs, Health.gs, Pipeline.gs, Leads.gs, Audits.gs, Sites.gs) وخطوات التفعيل في SETUP.md
 worker/             عامل على جهازك: ينفذ طلبات الوكلاء بـ Claude باشتراكك (بدون API)، ويرسل رسائل مازن المعتمدة من بريد الشركة ويقرأ ردودها (start-worker.cmd يعيد تشغيله إن توقف، وinstall-autostart.cmd يشغّله مع Windows)
+tools/              deploy-server.mjs: تحديث الخادم بأمر واحد (deploy-server.cmd في جذر المستودع) عبر clasp، بنسخة احتياطية وتحقق من النسخة
 ```
 
 > عند كل تحديث للخادم: زد `HEALTH_.server` في `apps-script/Health.gs` و`SERVER_VERSION` في `js/config.js` بالرقم نفسه، لتنبهك «صحة المكتب» إن بقي كود قديم منشوراً.

@@ -48,7 +48,7 @@ const PROSPECTS_AGENT = "مازن";
 // المنافسات والمناقصات (Tenders.gs)
 const TENDERS_AGENT = "بدر";
 // نسخة الخادم التي تتوقعها هذه اللوحة (HEALTH_.server في Health.gs)؛ تزيد مع كل تحديث للخادم
-const SERVER_VERSION = 4;
+const SERVER_VERSION = 5;
 
 // توزيع البطاقات حول العدّاد: r = العمود الأيمن، l = الأيسر، c5 = أسفل العدّاد
 const SLOTS = [

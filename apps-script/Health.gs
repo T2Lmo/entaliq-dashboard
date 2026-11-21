@@ -11,7 +11,7 @@
 
 const HEALTH_ = {
   // رقم نسخة الخادم: تزيد مع كل تحديث للخادم، وتقارنه اللوحة بالرقم الذي تتوقعه (SERVER_VERSION في config.js)
-  server: 4,
+  server: 5,
   days: 7, cellLimit: 10000000, logScan: 400,
   // كل وحدة وطريقة التأكد من وجودها في الخادم المنشور
   modules: () => [["الأتمتة وإدارة المكتب", typeof handleOfficeAction_], ["ملخص راكان", typeof handleExecAction_], ["العقل والمرجع", typeof handleBrainAction_],
@@ -215,6 +215,12 @@ function healthCheck_() {
 }
 
 const voiceJoinSafe_ = a => typeof voiceJoin_ === "function" ? voiceJoin_(a) : a.join("، ");
+
+// للتحقق بعد النشر (deploy-server.cmd): رقم نسخة الخادم فقط، بلا تسجيل دخول ولا أي بيانات أخرى
+function handleVersionPublic_(data) {
+  if (!data || data.action !== "server_version") return null;
+  return json_({ status: "success", server: HEALTH_.server });
+}
 
 function handleHealthAction_(data, user) {
   try {
