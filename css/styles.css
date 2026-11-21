@@ -669,3 +669,6 @@
   /* طلبات الموقع */
   .lead-cfg summary { cursor: pointer; } .lead-link { display: grid; gap: 4px; padding: 8px 0; border-bottom: 1px solid var(--line); }
   .lead[data-status="جديد"] { border-inline-start: 3px solid var(--amber); } .lead[data-status="مشتبه"] { opacity: .7; }
+  /* عروض تدقيق الطاقة */
+  .audit[data-status="عرض مسودة"] { border-inline-start: 3px solid var(--amber); } .audit[data-status="قُبل"] { border-inline-start: 3px solid var(--green); }
+  #auditsBody .row-actions { flex-wrap: wrap; } #auditsBody .x-nums { flex-wrap: wrap; } .cn-preview { margin: 8px 0; }

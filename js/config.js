@@ -48,7 +48,7 @@ const PROSPECTS_AGENT = "مازن";
 // المنافسات والمناقصات (Tenders.gs)
 const TENDERS_AGENT = "بدر";
 // نسخة الخادم التي تتوقعها هذه اللوحة (HEALTH_.server في Health.gs)؛ تزيد مع كل تحديث للخادم
-const SERVER_VERSION = 3;
+const SERVER_VERSION = 4;
 
 // توزيع البطاقات حول العدّاد: r = العمود الأيمن، l = الأيسر، c5 = أسفل العدّاد
 const SLOTS = [
@@ -84,6 +84,7 @@ const VIEWS = {
   tenders: { title: "بدر · المنافسات والمناقصات", sub: "فرص حكومية وخاصة وترسيات في مجالاتنا، بحكم يناسب وضع المكتب الحالي، ولوحة جاهزية للتسجيل والمستندات." },
   prospects: { title: "مازن · استقطاب العملاء", sub: "منشآت سعودية تناسب وهج وانطلق، ببريدها الرسمي المنشور ومسودة يدققها سالم. لا يُرسل شيء إلا منك." },
   exec: { title: "ملخص راكان التنفيذي", sub: "ما أنجزه كل وكيل ونتائجه في الفترة، مع ما يحتاج انتباهك ومقترحات التكليف. الأرقام من السجلات مباشرة." },
+  audits: { title: "سلطان · عروض تدقيق الطاقة", sub: "عروض بأسعارك لكل متر مربع على مستويات ASHRAE، يكتب سلطان خطابها ويدققه سالم، وتُطبع جاهزة للعميل. تتبعها صفقاتها في مسار المبيعات." },
   pipeline: { title: "مسار المبيعات", sub: "كل صفقة من أول اهتمام حتى الربح أو الخسارة: قيمتها ومرحلتها وخطوتها القادمة. تنضاف وحدها من ردود مازن ومنافسات بدر وعروض الصيانة." },
   voice: { title: "راكان بالصوت", sub: "تكلم أو اكتب: اسأل عن المكتب، أوقف وكيلاً أو أرجعه، أو شغّل مهمة. يرد راكان بالصوت." },
   office: { title: "إدارة المكتب", sub: "تعليمات الوكلاء وتوجيهاتك، ساعات العمل، المهام المجدولة، الأتمتة، وهوية التصاميم." },
@@ -137,6 +138,7 @@ const state = {
   brain: null, brainLoading: false, brainError: "", brainAgent: "", brainEdit: "",
   contracts: null, contractsLoading: false, contractsError: "", contractsTab: "offers", contractsNew: false, contractsPrefill: null,
   tenders: null, tendersStats: null, tendersAt: 0, tendersLoading: false, tendersError: "", tendersTab: "open", tendersBusy: false, tendersAddOpen: false, tendersCfgOpen: false,
+  audits: null, auditsLoading: false, auditsError: "", auditsTab: "offers", auditsNew: false, auditsPrefill: null, auditsBusy: false,
   leads: null, leadsLoading: false, leadsError: "",
   pipe: null, pipeLoading: false, pipeError: "", pipeTab: "today", pipeEdit: "", pipeNext: "", pipeClose: "", pipeCloseKind: "",
   health: null, healthLoading: false, healthError: "", healthUnsupported: false,

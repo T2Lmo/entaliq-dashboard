@@ -134,6 +134,8 @@ function execDigest_(c, kindLabel) {
   if (typeof prospectsRepliesBrief_ === "function") { const rb = prospectsRepliesBrief_(c.start); if (rb) lines.push(rb); }
   // مسار المبيعات (Pipeline.gs): المفتوحة والمتوقع والربح وخطوات اليوم
   if (typeof pipelineBrief_ === "function") { const pb = pipelineBrief_(); if (pb) lines.push(pb); }
+  // عروض تدقيق الطاقة (Audits.gs)
+  if (typeof auditsBrief_ === "function") { const ab = auditsBrief_(); if (ab) lines.push(ab); }
   lines.push("");
   lines.push("لكل وكيل:");
   Object.keys(c.agents).forEach(n => {
@@ -250,6 +252,7 @@ function execTaskContext_(agent, task) {
     if (typeof tendersBrief_ === "function") { const tb = tendersBrief_(); if (tb) lines.push(tb); }
     if (typeof contractsBrief_ === "function") { const cb = contractsBrief_(); if (cb) lines.push(cb); }
     if (typeof pipelineBrief_ === "function") { const pb = pipelineBrief_(); if (pb) lines.push(pb); }
+    if (typeof auditsBrief_ === "function") { const ab = auditsBrief_(); if (ab) lines.push(ab); }
     const latest = execReports_(1)[0];
     if (latest) lines.push("آخر ملخص تنفيذي (" + latest.kind + " " + latest.at + "): " + execCut_(latest.report.headline + " — " + latest.report.summary, 400));
     return task + "\n\n---\nمرجع الفريق (آخر 7 أيام، من سجلات المكتب؛ استخدمه إن كان له صلة بالمهمة ولا تخترع غيره):\n" + lines.join("\n").slice(0, 2500);

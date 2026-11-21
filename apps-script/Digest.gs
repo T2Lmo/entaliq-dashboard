@@ -102,6 +102,12 @@ function digestCollect_() {
     leadsAll_().filter(x => x.atMs >= since && x.status === "جديد").slice(-6).reverse()
       .forEach(x => d.replies.push("طلب من موقع " + x.brand + ": " + (x.company || x.name) + (x.service ? " — " + x.service : "") + (x.phone ? " · +" + x.phone : "")));
   });
+  // عروض تدقيق الطاقة (Audits.gs) التي كتبها سلطان ولم تُرسل بعد
+  safe(() => {
+    if (typeof auditsAll_ !== "function") return;
+    const n = auditsAll_().filter(a => a.status === "عرض مسودة").length;
+    if (n) d.approvals.push("عروض تدقيق طاقة تنتظر مراجعتك وإرسالها: " + n);
+  });
   // مسار المبيعات (Pipeline.gs): خطوات الصفقات التي حان موعدها
   safe(() => {
     if (typeof pipeAll_ !== "function") return;

@@ -11,13 +11,13 @@
 
 const HEALTH_ = {
   // رقم نسخة الخادم: تزيد مع كل تحديث للخادم، وتقارنه اللوحة بالرقم الذي تتوقعه (SERVER_VERSION في config.js)
-  server: 3,
+  server: 4,
   days: 7, cellLimit: 10000000, logScan: 400,
   // كل وحدة وطريقة التأكد من وجودها في الخادم المنشور
   modules: () => [["الأتمتة وإدارة المكتب", typeof handleOfficeAction_], ["ملخص راكان", typeof handleExecAction_], ["العقل والمرجع", typeof handleBrainAction_],
     ["استوديو المحتوى", typeof handleStudioAction_], ["مازن", typeof handleProspectsAction_], ["بدر", typeof handleTendersAction_], ["عقود الصيانة", typeof handleContractsAction_],
     ["الملخص الصباحي", typeof handleDigestAction_], ["راكان بالصوت", typeof handleVoiceAction_], ["عامل Claude", typeof handleClaudeWorkerAction_],
-    ["بريد مازن والوارد", typeof handleMailWorkerAction_], ["LinkedIn وX", typeof handleSocialAction_], ["مسار المبيعات", typeof handlePipelineAction_], ["نموذج الموقع", typeof handleLeadsAction_]]
+    ["بريد مازن والوارد", typeof handleMailWorkerAction_], ["LinkedIn وX", typeof handleSocialAction_], ["مسار المبيعات", typeof handlePipelineAction_], ["نموذج الموقع", typeof handleLeadsAction_], ["عروض تدقيق الطاقة", typeof handleAuditsAction_]]
 };
 
 // المشغلات التي يجب أن توجد حسب إعدادات الأتمتة (نفس شروط officeInstallTriggers_)
@@ -175,6 +175,13 @@ function healthCheck_() {
     add("الأتمتة", "ملخص راكان التنفيذي", d && now - d.getTime() <= 3 * 86400000 ? "ok" : "info", d ? "آخر ملخص " + r.at : "لم يُكتب ملخص بعد", d ? "" : "من بطاقة راكان ← «الملخص» ← «ملخص اليوم الآن».");
   });
 
+  safe("الأتمتة", "أسعار التدقيق والصيانة", () => {
+    const missing = [];
+    if (typeof auditsCfg_ === "function" && !auditsCfg_().packages.some(p => p.rate > 0)) missing.push("تدقيق الطاقة");
+    if (typeof contractsCfg_ === "function" && !contractsCfg_().packages.some(p => p.rate > 0)) missing.push("صيانة الطاقة الشمسية");
+    add("الأتمتة", "أسعار التدقيق والصيانة", missing.length ? "info" : "ok", missing.length ? "لم تُضبط أسعار باقات: " + missing.join(" و") + "؛ سلطان لا يُصدر عرضاً بلا سعر" : "مضبوطة",
+      missing.length ? "اضبطها من بطاقة سلطان ← «التدقيق» أو «العقود» ← «الأسعار والباقات»." : "");
+  });
   safe("الأتمتة", "نموذج الموقع", () => {
     if (typeof leadsCfg_ !== "function") return;
     const c = leadsCfg_(), all = leadsAll_(), last = all.length ? all[all.length - 1] : null;

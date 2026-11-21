@@ -313,6 +313,7 @@ function handleOfficeAction_(data, user) {
   if (typeof a === "string" && a.indexOf("health_") === 0 && typeof handleHealthAction_ === "function") return handleHealthAction_(data, user);
   if (typeof a === "string" && a.indexOf("pipeline_") === 0 && typeof handlePipelineAction_ === "function") return handlePipelineAction_(data, user);
   if (typeof a === "string" && a.indexOf("leads_") === 0 && typeof handleLeadsAction_ === "function") return handleLeadsAction_(data, user);
+  if (typeof a === "string" && a.indexOf("audits_") === 0 && typeof handleAuditsAction_ === "function") return handleAuditsAction_(data, user);
   if (["office_get", "office_save_agent", "office_reset_agent", "office_save_office", "office_save_automation", "office_save_brand",
     "office_task_save", "office_task_delete", "office_task_run", "content_design_update", "office_save_sites", "sites_run", "office_set_active",
     "office_set_hours"].indexOf(a) < 0) return null;

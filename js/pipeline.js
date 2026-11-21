@@ -94,7 +94,7 @@ function pipeDealHtml(d) {
       ${b("next", d.nextStep ? "غيّر الخطوة" : "حدد الخطوة القادمة", d.nextStep ? "btn-line" : "btn-primary")}
       <select class="input pipe-move" data-qmove="${esc(d.id)}" aria-label="نقل إلى مرحلة">${(state.pipe.cfg.stages || []).map(st => `<option${st === d.stage ? " selected" : ""}>${esc(st)}</option>`).join("")}</select>
       ${b("won", "ربحنا", "btn-primary")}${b("lost", "خسرنا")}${b("edit", "تعديل")}
-      ${b("sultan", "اطلب عرضاً من سلطان")}${solar ? b("contract", "عرض صيانة شمسية") : ""}</div>`;
+      ${b("sultan", "اطلب عرضاً من سلطان")}${b("audit", "عرض تدقيق طاقة")}${solar ? b("contract", "عرض صيانة شمسية") : ""}</div>`;
   else tools = `<div class="row-actions">${b("reopen", "أعد فتحها")}${b("edit", "تعديل")}</div>`;
   const hist = (d.history || []).slice().reverse();
   return `<article class="item deal" data-stage="${esc(d.stage)}">
@@ -175,6 +175,7 @@ async function pipeAction(btn) {
       + (d.note ? `\nما نعرفه عنهم: ${d.note}` : "") + (d.contact ? `\nجهة الاتصال: ${d.contact}` : "") + `\nالمرحلة الحالية: ${d.stage}.`);
     openView("compose"); return;
   }
+  if (act === "audit") return auditsFromDeal(d);
   if (act === "contract") {
     state.contractsPrefill = { client: d.company, city: d.city, source: d.source === "مازن" ? d.sourceId : "" };
     state.contractsNew = true; state.contractsTab = "offers";

@@ -2,7 +2,7 @@
  * Pipeline.gs — مسار المبيعات: كل صفقة من أول اهتمام حتى الربح أو الخسارة، بقيمتها وخطوتها القادمة وموعدها.
  *
  * - المراحل: مهتم ← اجتماع ← زيارة ودراسة ← عرض مرسل ← تفاوض ← ربحنا / خسرنا. لكل مرحلة احتمال افتراضي يُحسب به «المتوقع».
- * - تُنشأ الصفقات تلقائياً (بلا تكرار) من:
+ * - تُنشأ الصفقات تلقائياً (بلا تكرار) من (وأيضاً عروض تدقيق الطاقة Audits.gs: مسودة/أُرسل/قُبل/سُلّم/مرفوض):
  *   - ردود مازن «مهتم» و«يطلب معلومات» (Prospects.gs)،
  *   - منافسات بدر «نجهز العرض» و«قُدّم» (Tenders.gs) وتتبع حالتها (فزنا/لم نفز)،
  *   - عروض صيانة الطاقة الشمسية (Contracts.gs) وتتبع حالتها (أُرسل/ساري/مرفوض)؛ والعرض المعمول لمنشأة ردّت يُربط بصفقتها.
@@ -19,13 +19,13 @@ const PIPE_ = {
   fields: [["id", "ID"], ["at", "التاريخ"], ["company", "المنشأة"], ["contact", "جهة الاتصال"], ["email", "البريد"], ["phone", "الجوال"], ["city", "المدينة"],
     ["sector", "القطاع"], ["service", "الخدمة"], ["source", "المصدر"], ["sourceId", "مرجع المصدر"], ["contractId", "عرض الصيانة"], ["stage", "المرحلة"],
     ["value", "القيمة التقديرية"], ["prob", "الاحتمال"], ["nextStep", "الخطوة التالية"], ["nextAt", "موعدها"], ["note", "ملاحظات"], ["history", "السجل"],
-    ["lostReason", "سبب الخسارة"], ["closedAt", "تاريخ الإغلاق"], ["updated", "آخر تحديث"]],
+    ["lostReason", "سبب الخسارة"], ["closedAt", "تاريخ الإغلاق"], ["updated", "آخر تحديث"], ["auditId", "عرض التدقيق"]],
   dates: ["at", "closedAt", "updated"],
   stages: ["مهتم", "اجتماع", "زيارة ودراسة", "عرض مرسل", "تفاوض", "ربحنا", "خسرنا"],
   open: ["مهتم", "اجتماع", "زيارة ودراسة", "عرض مرسل", "تفاوض"],
   prob: { "مهتم": 10, "اجتماع": 25, "زيارة ودراسة": 40, "عرض مرسل": 60, "تفاوض": 80, "ربحنا": 100, "خسرنا": 0 },
   lostReasons: ["السعر", "اختاروا منافساً", "ليس الآن", "لا توجد ميزانية", "لا رد", "غير مناسب", "أخرى"],
-  sources: ["مازن", "بدر", "عرض صيانة", "يدوي", "الموقع"],
+  sources: ["مازن", "بدر", "عرض صيانة", "عرض تدقيق", "يدوي", "الموقع"],
   staleDays: 14, listed: 400, maxText: 500, day: 86400000
 };
 
@@ -99,13 +99,13 @@ function pipeMove_(d, stage, note, by, extra) {
   return true;
 }
 // الخطوات التي كتبتها المزامنة نفسها (تُستبدل بالمتابعة حين يتقدم المصدر، وما كتبته أنت يبقى)
-const PIPE_AUTO_STEP_ = /^(?:رد على اهتمامهم|أرسل المعلومات المطلوبة|أرسل العرض للعميل|جهّز العرض قبل)/;
+const PIPE_AUTO_STEP_ = /^(?:رد على اهتمامهم|أرسل المعلومات المطلوبة|أرسل العرض للعميل|جهّز العرض قبل|أرسل عرض التدقيق للعميل|اتصل بهم \(طلبوا تواصلاً|رد على طلبهم من موقع)/;
 const pipeRank_ = s => PIPE_.stages.indexOf(s) >= 5 ? 99 : PIPE_.stages.indexOf(s);
 
 function pipeSync_() {
   const all = pipeAll_(), out = { created: 0, moved: 0 };
   const bySource = {};
-  all.forEach(d => { if (d.sourceId) bySource[d.source + ":" + d.sourceId] = d; if (d.contractId) bySource["عرض صيانة:" + d.contractId] = d; });
+  all.forEach(d => { if (d.sourceId) bySource[d.source + ":" + d.sourceId] = d; if (d.contractId) bySource["عرض صيانة:" + d.contractId] = d; if (d.auditId) bySource["عرض تدقيق:" + d.auditId] = d; });
   const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
   // التقديم فقط: لا ترجع مرحلة، ولا تُمس صفقة مغلقة. onMove يُطبَّق عند التقدم، وalways (ربط العرض وقيمته) في كل الأحوال
   const forward = (d, stage, note, onMove, always) => {
@@ -154,6 +154,30 @@ function pipeSync_() {
       if (value && !d.value) link.value = value;
       forward(d, stage, "من عرض الصيانة: " + c.status,
         stage === "خسرنا" ? { lostReason: "السعر" } : stage === "عرض مرسل" ? follow(d, "تابع رد العميل على العرض", today) : stage === "زيارة ودراسة" ? follow(d, "أرسل العرض للعميل", today) : null,
+        Object.keys(link).length ? link : null);
+    });
+  }
+  // عروض تدقيق الطاقة (Audits.gs): المعمول من صفقة أو لمنشأة ردّت يُربط بها، وغيره صفقة جديدة
+  if (typeof auditsAll_ === "function") {
+    const map = { "عرض مسودة": "زيارة ودراسة", "أُرسل العرض": "عرض مرسل", "قُبل": "ربحنا", "سُلّم التقرير": "ربحنا", "مرفوض": "خسرنا", "ملغى": "خسرنا" };
+    const pkgs = typeof auditsCfg_ === "function" ? auditsCfg_().packages : [];
+    auditsAll_().forEach(a => {
+      const stage = map[a.status];
+      if (!stage) return;
+      const d = (a.dealId ? all.find(x => x.id === a.dealId) : null) || bySource["عرض تدقيق:" + a.id] || (a.source ? bySource["مازن:" + a.source] || bySource["الموقع:" + a.source] : null);
+      if (!d) {
+        if (stage === "ربحنا" || stage === "خسرنا") return;
+        const pkg = pkgs.find(p => p.id === a.pkg);
+        bySource["عرض تدقيق:" + a.id] = pipeNew_({ company: a.client, contact: a.contact, city: a.city, sector: a.buildingType, service: "تدقيق الطاقة" + (pkg ? ": " + pkg.name : ""),
+          source: "عرض تدقيق", sourceId: a.id, auditId: a.id, value: a.value, stage: stage,
+          nextStep: stage === "عرض مرسل" ? "تابع رد العميل على عرض التدقيق" : "أرسل عرض التدقيق للعميل", nextAt: today }, "آلي");
+        out.created++;
+        return;
+      }
+      const link = d.auditId ? {} : { auditId: a.id };
+      if (a.value && !d.value) link.value = a.value;
+      forward(d, stage, "من عرض التدقيق: " + a.status,
+        stage === "خسرنا" ? { lostReason: "السعر" } : stage === "عرض مرسل" ? follow(d, "تابع رد العميل على عرض التدقيق", today) : stage === "زيارة ودراسة" ? follow(d, "أرسل عرض التدقيق للعميل", today) : null,
         Object.keys(link).length ? link : null);
     });
   }
