@@ -17,6 +17,7 @@ loadEnv(join(here, ".env"));
 const EXEC_URL = process.env.EXEC_URL || "";
 const WORKER_TOKEN = process.env.WORKER_TOKEN || "";
 const CLAUDE_BIN = process.env.CLAUDE_BIN || "claude";
+const CLAUDE_CMD = resolveClaude(CLAUDE_BIN);
 const DEFAULT_MODEL = process.env.CLAUDE_MODEL || "sonnet";
 const JOB_TIMEOUT_MS = Number(process.env.JOB_TIMEOUT_MS) || 280000; // أقل من انتظار الخادم (5 دقائق)
 
@@ -31,6 +32,20 @@ function loadEnv(file) {
     const m = line.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*?)\s*$/);
     if (m && !line.trim().startsWith("#") && process.env[m[1]] === undefined) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
   }
+}
+
+// على ويندوز يثبّت npm أداة claude كملف claude.cmd، وNode لا يشغّل ملفات .cmd مباشرة؛ فنبحث عن claude.exe الحقيقي
+// (أو cli.js في النسخ الأقدم) في مجلدات PATH. يعيد [الأمر، ...وسائط تسبق وسائطنا].
+function resolveClaude(bin) {
+  if (process.platform !== "win32" || /[\\/]/.test(bin) || /\.(exe|com)$/i.test(bin)) return [bin];
+  for (const d of (process.env.PATH || "").split(";").filter(Boolean)) {
+    if (existsSync(join(d, bin + ".exe"))) return [join(d, bin + ".exe")];
+    if (!existsSync(join(d, bin + ".cmd"))) continue;
+    const pkg = join(d, "node_modules", "@anthropic-ai", "claude-code");
+    if (existsSync(join(pkg, "bin", "claude.exe"))) return [join(pkg, "bin", "claude.exe")];
+    if (existsSync(join(pkg, "cli.js"))) return [process.execPath, join(pkg, "cli.js")];
+  }
+  return [bin];
 }
 
 const log = (...a) => console.log(new Date().toLocaleTimeString("en-GB"), ...a);
@@ -59,10 +74,12 @@ function runClaude(job) {
     const args = ["-p", "--model", job.model || DEFAULT_MODEL, "--output-format", "json",
       "--system-prompt-file", sysFile, "--tools", tools, "--strict-mcp-config", "--no-session-persistence"];
     if (job.web) args.push("--allowedTools", "WebSearch", "WebFetch");
-    const child = spawn(CLAUDE_BIN, args, { cwd: dir, stdio: ["pipe", "pipe", "pipe"], windowsHide: true });
-    let out = "", err = "", done = false;
+    let out = "", err = "", done = false, timer = null, child;
     const finish = r => { if (done) return; done = true; clearTimeout(timer); try { rmSync(dir, { recursive: true, force: true }); } catch {} resolve(r); };
-    const timer = setTimeout(() => { child.kill(); finish({ error: "تجاوز الوقت المسموح للمهمة" }); }, JOB_TIMEOUT_MS);
+    // على ويندوز قد يرمي spawn مباشرة (مثلاً تحديث claude لم يكتمل)؛ نبلّغ الخادم بالخطأ بدل أن يتوقف العامل
+    try { child = spawn(CLAUDE_CMD[0], CLAUDE_CMD.slice(1).concat(args), { cwd: dir, stdio: ["pipe", "pipe", "pipe"], windowsHide: true }); }
+    catch (e) { return finish({ error: `تعذر تشغيل ${CLAUDE_BIN}: ${e.code || e.message}. جرّب claude --version، وإن فشل أعد تثبيته: npm install -g @anthropic-ai/claude-code` }); }
+    timer = setTimeout(() => { child.kill(); finish({ error: "تجاوز الوقت المسموح للمهمة" }); }, JOB_TIMEOUT_MS);
     child.stdout.on("data", d => { out += d; });
     child.stderr.on("data", d => { err += d; });
     child.on("error", e => finish({ error: `تعذر تشغيل ${CLAUDE_BIN}: ${e.message}` }));
